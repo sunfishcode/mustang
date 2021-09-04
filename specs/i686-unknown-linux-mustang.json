@@ -1,0 +1,30 @@
+{
+  "arch": "x86",
+  "cpu": "pentium4",
+  "crt-static-respected": true,
+  "data-layout": "e-m:e-p:32:32-p270:32:32-p271:32:32-p272:64:64-f64:32:64-f80:32-n8:16:32-S128",
+  "dynamic-linking": false,
+  "env": "gnu",
+  "executables": true,
+  "has-elf-tls": true,
+  "has-rpath": true,
+  "llvm-target": "i686-unknown-linux-gnu",
+  "max-atomic-width": 64,
+  "os": "linux",
+  "position-independent-executables": true,
+  "pre-link-args": {
+    "gcc": [
+      "-m32",
+      "-nostartfiles",
+      "-Wl,--require-defined=_start"
+    ]
+  },
+  "relro-level": "full",
+  "stack-probes": {
+    "kind": "call"
+  },
+  "target-family": [
+    "unix"
+  ],
+  "target-pointer-width": "32"
+}

@@ -1,0 +1,131 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  rustfmt:
+    name: Rustfmt
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+    - uses: ./.github/actions/install-rust
+      with:
+        toolchain: stable
+    - run: cargo fmt --all -- --check
+
+  test:
+    name: Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        build: [ubuntu, ubuntu-16.04, ubuntu-18.04, i686-linux, aarch64-linux, riscv64-linux]
+        include:
+          - build: ubuntu
+            os: ubuntu-latest
+            rust: nightly
+            host_target: x86_64-unknown-linux-gnu
+            mustang_target: x86_64-unknown-linux-mustang
+          - build: ubuntu-16.04
+            os: ubuntu-16.04
+            rust: nightly
+            host_target: x86_64-unknown-linux-gnu
+            mustang_target: x86_64-unknown-linux-mustang
+          - build: ubuntu-18.04
+            os: ubuntu-18.04
+            rust: nightly
+            host_target: x86_64-unknown-linux-gnu
+            mustang_target: x86_64-unknown-linux-mustang
+          - build: i686-linux
+            os: ubuntu-latest
+            rust: nightly
+            target: i686-unknown-linux-gnu
+            gcc_package: gcc-i686-linux-gnu
+            gcc: i686-linux-gnu-gcc
+            libc_package: libc-dev-i386-cross
+            host_target: i686-unknown-linux-gnu
+            mustang_target: i686-unknown-linux-mustang
+          - build: aarch64-linux
+            os: ubuntu-latest
+            rust: nightly
+            target: aarch64-unknown-linux-gnu
+            gcc_package: gcc-aarch64-linux-gnu
+            gcc: aarch64-linux-gnu-gcc
+            qemu: qemu-aarch64 -L /usr/aarch64-linux-gnu
+            qemu_target: aarch64-linux-user
+            host_target: aarch64-unknown-linux-gnu
+            mustang_target: aarch64-unknown-linux-mustang
+          - build: riscv64-linux
+            os: ubuntu-latest
+            rust: nightly
+            target: riscv64gc-unknown-linux-gnu
+            gcc_package: gcc-riscv64-linux-gnu
+            gcc: riscv64-linux-gnu-gcc
+            qemu: qemu-riscv64 -L /usr/riscv64-linux-gnu
+            qemu_target: riscv64-linux-user
+            host_target: riscv64gc-unknown-linux-gnu
+            mustang_target: riscv64gc-unknown-linux-mustang
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+    - uses: ./.github/actions/install-rust
+      with:
+        toolchain: ${{ matrix.rust }}
+
+    - name: Configure Cargo target
+      run: |
+        echo CARGO_BUILD_TARGET=${{ matrix.target }} >> $GITHUB_ENV
+        rustup target add ${{ matrix.target }}
+      if: matrix.target != ''
+
+    - name: Install cross-compilation tools
+      run: |
+        set -ex
+        sudo apt-get update
+        sudo apt-get install -y ${{ matrix.gcc_package }}
+        upcase=$(echo ${{ matrix.host_target }} | awk '{ print toupper($0) }' | sed 's/-/_/g')
+        echo CARGO_TARGET_${upcase}_LINKER=${{ matrix.gcc }} >> $GITHUB_ENV
+        upcase=$(echo ${{ matrix.mustang_target }} | awk '{ print toupper($0) }' | sed 's/-/_/g')
+        echo CARGO_TARGET_${upcase}_LINKER=${{ matrix.gcc }} >> $GITHUB_ENV
+      if: matrix.gcc_package != '' && matrix.os == 'ubuntu-latest'
+
+    - name: Install cross-compilation libraries
+      run: |
+        set -ex
+        sudo apt-get update
+        sudo apt-get install -y ${{ matrix.libc_package }}
+      if: matrix.libc_package != '' && matrix.os == 'ubuntu-latest'
+
+    - name: Install qemu
+      run: |
+        set -ex
+        # Download and build qemu from source since the most recent release is
+        # way faster at arm emulation than the current version github actions'
+        # ubuntu image uses. Disable as much as we can to get it to build
+        # quickly.
+        curl https://download.qemu.org/qemu-5.1.0.tar.xz | tar xJf -
+        cd qemu-5.1.0
+        ./configure --target-list=${{ matrix.qemu_target }} --prefix=$HOME/qemu --disable-tools --disable-slirp --disable-fdt --disable-capstone --disable-docs
+        make -j$(nproc) install
+
+        # Configure Cargo for cross compilation and tell it how it can run
+        # cross executables
+        upcase=$(echo ${{ matrix.host_target }} | awk '{ print toupper($0) }' | sed 's/-/_/g')
+        echo CARGO_TARGET_${upcase}_RUNNER=$HOME/qemu/bin/${{ matrix.qemu }} >> $GITHUB_ENV
+        upcase=$(echo ${{ matrix.mustang_target }} | awk '{ print toupper($0) }' | sed 's/-/_/g')
+        echo CARGO_TARGET_${upcase}_RUNNER=$HOME/qemu/bin/${{ matrix.qemu }} >> $GITHUB_ENV
+      if: matrix.qemu != '' && matrix.os == 'ubuntu-latest'
+
+    - run: |
+        rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
+        cd example
+        cargo +nightly run -Z build-std --target=../specs/${{ matrix.mustang_target }}.json
+        cargo +nightly test --target=${{ matrix.host_target }}
+      env:
+        RUST_BACKTRACE: 1
