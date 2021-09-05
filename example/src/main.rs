@@ -1,7 +1,8 @@
 #![feature(backtrace)]
 #![feature(backtrace_frames)]
-#![feature(portable_simd)]
 #![feature(asm)]
+// TODO: Re-enable this when core_simd works on Rust nightly.
+//#![feature(portable_simd)]
 
 extern crate mustang;
 
@@ -16,7 +17,9 @@ use std::sync::atomic::{Ordering, AtomicBool};
 fn main() {
     println!("Hello, world!");
 
-    test_simd();
+    // TODO: Re-enable this when core_simd works on Rust nightly.
+    //test_simd();
+
     test_tls(&TLS);
     test_args();
     test_vars();
@@ -25,6 +28,8 @@ fn main() {
     test_manual_ctor();
 }
 
+// TODO: Re-enable this when core_simd works on Rust nightly.
+/*
 fn test_simd() {
     use core_simd::*;
     let mut a = f32x4::splat(2.0);
@@ -32,6 +37,7 @@ fn test_simd() {
     assert_eq!(a, f32x4::splat(2.0));
     assert_eq!(&a as *const _ as usize & 0xf, 0);
 }
+*/
 
 thread_local!(static TLS: Cell<i32> = Cell::new(1));
 

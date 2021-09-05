@@ -14,6 +14,10 @@
 #[naked]
 #[no_mangle]
 unsafe extern "C" fn _start() -> ! {
+    // Jump to `start_rust`, passing it the initial stack pointer value as
+    // an argument, a NULL return address, a NULL frame pointer, and an
+    // aligned stack pointer.
+
     #[cfg(target_arch = "x86_64")]
     asm!("mov rdi, rsp",
          "push rbp",
@@ -71,7 +75,7 @@ unsafe extern "C" fn start_rust(mem: *mut usize) -> ! {
         static __init_array_end: c_void;
     }
 
-    // Do some basic invariant checks, to ensure that our assembly code did
+    // Do some basic precondition checks, to ensure that our assembly code did
     // what we expect it to do. These are debug-only for now, to keep the
     // release-mode startup code simple to disassemble and inspect, while we're
     // getting started.
@@ -101,12 +105,13 @@ unsafe extern "C" fn start_rust(mem: *mut usize) -> ! {
 
     // Compute `argc`, `argv`, and `envp`.
     let argc = *mem as c_int;
-    let argv = mem.add(1) as *mut *mut c_char;
+    let argv = mem.add(1).cast::<*mut c_char>();
     let envp = argv.add(argc as usize + 1);
 
-    // Do a few more invariant checks on `argc` and `argv`.
+    // Do a few more precondition checks on `argc` and `argv`.
     debug_assert!(argc >= 0);
-    debug_assert!((*argv.add(argc as usize)).is_null());
+    debug_assert_eq!(*mem, argc as _);
+    debug_assert_eq!(*argv.add(argc as usize), std::ptr::null_mut());
 
     // Call the `.init_array` functions.
     {
