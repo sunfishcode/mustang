@@ -1,5 +1,7 @@
 #![feature(backtrace)]
 #![feature(backtrace_frames)]
+#![feature(portable_simd)]
+#![feature(asm)]
 
 extern crate mustang;
 
@@ -14,12 +16,21 @@ use std::sync::atomic::{Ordering, AtomicBool};
 fn main() {
     println!("Hello, world!");
 
+    test_simd();
     test_tls(&TLS);
     test_args();
     test_vars();
     test_backtrace();
     test_ctor();
     test_manual_ctor();
+}
+
+fn test_simd() {
+    use core_simd::*;
+    let mut a = f32x4::splat(2.0);
+    unsafe { asm!("# {}", in(reg) &mut a) };
+    assert_eq!(a, f32x4::splat(2.0));
+    assert_eq!(&a as *const _ as usize & 0xf, 0);
 }
 
 thread_local!(static TLS: Cell<i32> = Cell::new(1));

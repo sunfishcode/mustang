@@ -39,6 +39,8 @@ unsafe extern "C" fn _start() -> ! {
     #[cfg(target_arch = "x86")]
     asm!("mov eax, esp",
          "push ebp",
+         "push ebp",
+         "push ebp",
          "push eax",
          "push ebp",
          "jmp {start_rust}",
@@ -59,6 +61,9 @@ unsafe extern "C" fn start_rust(mem: *mut usize) -> ! {
         fn builtin_frame_address(level: i32) -> *const u8;
         #[link_name = "llvm.returnaddress"]
         fn builtin_return_address(level: i32) -> *const u8;
+        #[cfg(target_arch = "aarch64")]
+        #[link_name = "llvm.sponentry"]
+        fn builtin_sponentry() -> *const u8;
     }
     extern "C" {
         fn main(argc: c_int, argv: *mut *mut c_char, envp: *mut *mut c_char) -> c_int;
@@ -76,18 +81,26 @@ unsafe extern "C" fn start_rust(mem: *mut usize) -> ! {
         debug_assert_eq!(mem as usize & 0xf, 0);
         debug_assert_eq!(builtin_return_address(0), std::ptr::null());
         debug_assert_ne!(builtin_frame_address(0), std::ptr::null());
+        #[cfg(not(target_arch = "x86"))]
         debug_assert_eq!(builtin_frame_address(0) as usize & 0xf, 0);
+        #[cfg(target_arch = "x86")]
+        debug_assert_eq!(builtin_frame_address(0) as usize & 0xf, 8);
         debug_assert!((builtin_frame_address(0) as usize) <= mem as usize);
         debug_assert_eq!(builtin_frame_address(1), std::ptr::null());
+        #[cfg(target_arch = "aarch64")]
+        debug_assert_ne!(builtin_sponentry(), std::ptr::null());
+        #[cfg(target_arch = "aarch64")]
+        debug_assert_eq!(builtin_sponentry() as usize & 0xf, 0);
     }
 
     // For now, print a message, so that we know we're doing something. We'll
     // probably remove this at some point, but for now, things are fragile
     // enough that it's nice to have this confirmation.
+    #[cfg(debug_assertions)]
     eprintln!("This process was started by mustang! 🐎");
 
     // Compute `argc`, `argv`, and `envp`.
-    let argc = (*mem) as c_int;
+    let argc = *mem as c_int;
     let argv = mem.add(1) as *mut *mut c_char;
     let envp = argv.add(argc as usize + 1);
 
@@ -96,12 +109,14 @@ unsafe extern "C" fn start_rust(mem: *mut usize) -> ! {
     debug_assert!((*argv.add(argc as usize)).is_null());
 
     // Call the `.init_array` functions.
-    type InitFn = fn(c_int, *mut *mut c_char, *mut *mut c_char);
-    let mut init = &__init_array_start as *const _ as usize as *const InitFn;
-    let init_end = &__init_array_end as *const _ as usize as *const InitFn;
-    while init != init_end {
-        (*init)(argc, argv, envp);
-        init = init.add(1);
+    {
+        type InitFn = fn(c_int, *mut *mut c_char, *mut *mut c_char);
+        let mut init = &__init_array_start as *const _ as usize as *const InitFn;
+        let init_end = &__init_array_end as *const _ as usize as *const InitFn;
+        while init != init_end {
+            (*init)(argc, argv, envp);
+            init = init.add(1);
+        }
     }
 
     // Call `main`.
