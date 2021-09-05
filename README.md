@@ -61,7 +61,6 @@ you have everything set up properly.
 
 Known limitations in `mustang` include:
 
- - Programs that use threads are not supported yet.
  - The ELF `init` function is not supported, however the more modern
    `.init_array` mechanism is supported.
  - The stdio descriptors are not sanitized, however for Rust programs,
