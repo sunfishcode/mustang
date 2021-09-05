@@ -3,10 +3,13 @@
 
 extern crate mustang;
 
+use std::os::unix::ffi::OsStrExt;
+use std::os::raw::{c_char, c_int};
+use std::slice;
+use std::ffi::{OsStr, CStr, OsString};
 use std::cell::Cell;
 use std::thread::{self, LocalKey};
-
-thread_local!(static TLS: Cell<i32> = Cell::new(1));
+use std::sync::atomic::{Ordering, AtomicBool};
 
 fn main() {
     println!("Hello, world!");
@@ -15,7 +18,11 @@ fn main() {
     test_args();
     test_vars();
     test_backtrace();
+    test_ctor();
+    test_manual_ctor();
 }
+
+thread_local!(static TLS: Cell<i32> = Cell::new(1));
 
 fn test_tls(key: &'static LocalKey<Cell<i32>>) {
     key.with(|f| {
@@ -71,4 +78,56 @@ fn test_backtrace() {
     assert_eq!(format!("{:?}", frame), "[]");
 
     assert!(frames.next().is_none());
+}
+
+static CTOR_INITIALIZED: AtomicBool = AtomicBool::new(false);
+
+#[ctor::ctor]
+fn ctor() {
+    CTOR_INITIALIZED.store(true, Ordering::Relaxed);
+}
+
+fn test_ctor() {
+    assert!(CTOR_INITIALIZED.load(Ordering::Relaxed));
+}
+
+static MANUAL_CTOR_INITIALIZED: AtomicBool = AtomicBool::new(false);
+
+#[used]
+#[link_section = ".init_array"]
+static INIT_ARRAY: unsafe extern "C" fn(c_int, *mut *mut c_char, *mut *mut c_char) = {
+    unsafe extern "C" fn function(argc: c_int, argv: *mut *mut c_char, envp: *mut *mut c_char) {
+        assert_eq!(argc as usize, std::env::args_os().len());
+
+        assert_eq!(slice::from_raw_parts(argv, argc as usize).iter().map(|arg| OsStr::from_bytes(CStr::from_ptr(*arg).to_bytes()).to_owned()).collect::<Vec<OsString>>(),
+                   std::env::args_os().collect::<Vec<OsString>>());
+        assert_eq!(*argv.add(argc as usize), std::ptr::null_mut());
+
+        assert_ne!(envp, std::ptr::null_mut());
+
+        let mut ptr = envp;
+        let mut num_env = 0;
+        loop {
+            let env = *ptr;
+            if env.is_null() {
+                break;
+            }
+
+            let bytes = CStr::from_ptr(env).to_bytes();
+            let mut parts = bytes.splitn(2, |byte| *byte == b'=');
+            assert_eq!(std::env::var_os(OsStr::from_bytes(parts.next().unwrap())).unwrap(),
+                       OsStr::from_bytes(parts.next().unwrap()));
+
+            num_env += 1;
+            ptr = ptr.add(1);
+        }
+        assert_eq!(num_env, std::env::vars_os().count());
+
+        MANUAL_CTOR_INITIALIZED.store(true, Ordering::Relaxed);
+    }
+    function
+};
+
+fn test_manual_ctor() {
+    assert!(MANUAL_CTOR_INITIALIZED.load(Ordering::Relaxed));
 }

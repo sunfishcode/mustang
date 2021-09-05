@@ -6,3 +6,6 @@ publish = false
 
 [dependencies]
 mustang = { path = ".." }
+
+# Test that the ctor crate works under mustang.
+ctor = "0.1.21"
