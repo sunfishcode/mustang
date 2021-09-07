@@ -16,7 +16,7 @@
 Mustang is a system for building programs built entirely in Rust, meaning they
 do not depend on any part of libc or crt1.o, and do not link in any C code.
 
-Why? For fun! And to exercise some components build for other purposes (such as
+Why? For fun! And to exercise some components built for other purposes (such as
 [`rsix`]) but which happen to also be part of what's needed to do what Mustang
 is doing. And in the future, possibly also for experimenting with new kinds of
 platform ABIs and new forms of process argument passing.
