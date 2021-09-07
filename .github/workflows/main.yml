@@ -24,7 +24,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        build: [ubuntu, ubuntu-16.04, ubuntu-18.04, i686-linux, aarch64-linux, riscv64-linux]
+        build: [ubuntu, ubuntu-16.04, ubuntu-18.04, i686-linux, aarch64-linux]
         include:
           - build: ubuntu
             os: ubuntu-latest
@@ -60,16 +60,6 @@ jobs:
             qemu_target: aarch64-linux-user
             host_target: aarch64-unknown-linux-gnu
             mustang_target: aarch64-unknown-linux-mustang
-          - build: riscv64-linux
-            os: ubuntu-latest
-            rust: nightly
-            target: riscv64gc-unknown-linux-gnu
-            gcc_package: gcc-riscv64-linux-gnu
-            gcc: riscv64-linux-gnu-gcc
-            qemu: qemu-riscv64 -L /usr/riscv64-linux-gnu
-            qemu_target: riscv64-linux-user
-            host_target: riscv64gc-unknown-linux-gnu
-            mustang_target: riscv64gc-unknown-linux-mustang
     steps:
     - uses: actions/checkout@v2
       with:
