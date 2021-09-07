@@ -2,7 +2,7 @@
   <h1><code>mustang</code></h1>
 
   <p>
-    <strong>Program startup written in Rust</strong>
+    <strong>Programs written entirely in Rust</strong>
   </p>
 
   <p>
@@ -13,20 +13,36 @@
   </p>
 </div>
 
-Mustang is a program startup library, similar to `crt1.o`, written entirely
-in Rust (nightly).
+Mustang is a system for building programs built entirely in Rust, meaning they
+do not depend on any part of libc or crt1.o, and do not link in any C code.
 
-It's currently experimental, and currently works on Linux, on x86-64, x86,
-aarch64, and riscv64gc.
+Why? For fun! And to exercise some components build for other purposes (such as
+[`rsix`]) but which happen to also be part of what's needed to do what Mustang
+is doing. And in the future, possibly also for experimenting with new kinds of
+platform ABIs and new forms of process argument passing.
 
-To use it, you first install rust-src, which is needed to use build-std:
+Mustang isn't about making anything safer, for the foreseeable future. The
+major libc implementations are extraordinarily well tested and mature. Mustang
+for its part is experimental and has lots of `unsafe`.
+
+This also isn't about building a complete libc. It currently includes some
+things with libc-compatible interfaces, just enough to allow it to slide in
+underneath `std`, however even this may not always be necessary. We'll see.
+
+Mustang currently runs on Rust Nightly on Linux on x86-64, aarch64, riscv64gc,
+and x86.
+
+## Usage
+
+To use it, first install rust-src, which is needed by `-Z build-std`:
 
 ```
 $ rustup component add rust-src --toolchain nightly
 ```
 
 Then, set the `RUST_TARGET_PATH` environment variable to a path to mustang's
-`specs` directory. For example, within a mustang repo:
+`specs` directory, so that you can name `mustang` targets with `--target=...`.
+For example, within a mustang repo:
 
 ```
 $ export RUST_TARGET_PATH="$PWD/specs"
@@ -39,45 +55,66 @@ Then, in your own crate, add a dependency on `mustang`:
 mustang = { git = "https://github.com/sunfishcode/mustang" }
 ```
 
-And add an `extern crate` declaration to your main.rs:
+And add an `extern crate` declaration for `mustang` to your top-level module
+(eg. main.rs). This is needed even in Rust 2018 Edition, to ensure that
+`mustang` is linked in even though no functions in it are explicitly called:
 
 ```rust
 extern crate mustang;
 ```
 
 Then, compile with Rust nightly, using `-Z build-std` and
-`--target=x86_64-unknown-linux-mustang`, for example:
+`--target=<mustang-target>`. For example:
 
 ```
-$ cargo +nightly run -Z build-std --target=x86_64-unknown-linux-mustang
-This process was started by mustang! 🐎
+$ cargo +nightly run --quiet -Z build-std --target=x86_64-unknown-linux-mustang --example hello
+.｡oO(This process was started by origin! 🎯)
+.｡oO(Environment variables initialized by c-scape! 🌱)
+.｡oO(I/O performed by c-scape using rsix! 🌊)
 Hello, world!
+.｡oO(This process will be exited by c-scape using rsix! 🚪)
+$
 ```
 
-The first line of output is printed by `mustang` in debug builds, to confirm
-you have everything set up properly.
+That's a Rust program built entirely from Rust saying "Hello, world!"!
+
+Those `.｡oO` lines are just debugging output to confirm everything is set up
+properly. Once `mustang` is more stable, we'll stop printing them.
+
+A simple way to check for uses of libc functions is to use `nm -u`, since
+the above commands are configured to link libc dynamically. If `mustang` has
+everything covered, there should be no output:
+
+```
+$ nm -u target/x86_64-unknown-linux-mustang/debug/examples/hello
+$
+```
 
 ## Known Limitations
 
 Known limitations in `mustang` include:
 
+ - Lots of stuff in `std` doesn't work yet. Hello world works, but lots of
+   other stuff doesn't yet.
+ - No support for dynamic linking yet.
+ - No support for stack smashing protection (ssp) yet.
  - The ELF `init` function is not supported, however the more modern
    `.init_array` mechanism is supported.
  - The stdio descriptors are not sanitized, however for Rust programs,
    [Rust itself already does this].
- - No support for stack smashing protection (ssp) yet.
- - No support for dynamic linking yet.
 
 ## Background
 
-Mustang is partly inspired by similar functionality in [`steed`]. Mustang is
-able to take advantage of [build-std] support, which is now built into cargo,
-so it doesn't have to re-implement all of `std`. It can just use `std`.
+Mustang is partly inspired by similar functionality in [`steed`], but a few
+things are different. cargo's [build-std] is now available, which makes it
+much easier to work with custom targets. And Mustang is starting with the
+approach of starting by replacing libc interfaces and using `std` as-is,
+rather than reimplementing `std`. This is likely to evolve, but whatever we
+do, a high-level goal of Mustang is to avoid ever having to reimplement `std`.
 
 Where does `mustang` go from here? Will it support feature X, platform Y, or
-use case Z? If `mustang` can do program startup in Rust, and [`rsix`] can do
-system calls in Rust, what does it all mean? And will `mustang` always print
-that silly horse?
+use case Z? If `origin` can do program startup in Rust, and [`rsix`] can do
+system calls in Rust, what does it all mean?
 
 And could `mustang` eventually support new ABIs that aren't limited to passing
 C-style `argc`/`argv`(/`envp`) convention, allowing new kinds of program
@@ -87,12 +124,15 @@ Let's find out! Come say hi in the [chat] or an [issue].
 
 ## How does one port `mustang` to a new architecture?
 
+ - Port [`rsix`] to the architecture, adding assembly sequences for
+   making syscalls on the architecture.
  - Add assembly code to the `_start` function in src/lib.rs to call
-   `start_rust`.
+   `origin::rust`.
  - Create a target file in `specs/`, by first following
    [these instructions] to generate a default target file, and then:
      - change `dynamic-linking` to false
-     - add `-nostartfiles` and `-Wl,--require-defined_start` to pre-link-args
+     - add `-nostdlib`, `-Wl,--require-defined_start`, and
+       `-Wl,--require-defined=environ` to pre-link-args
    See other targets in the `specs/` directory for examples.
  - Add the architecture to example/test/test.rs.
  - Add CI testing to .github/workflows/main.yml, by copying what's done
@@ -101,7 +141,7 @@ Let's find out! Come say hi in the [chat] or an [issue].
 ## How does one port `mustang` to a new OS?
 
 One probably needs to do similar things as for a new architecture, and also
-write a new `start_rust` implementation to handle the OS's convention for
+write a new `origin::rust` implementation to handle the OS's convention for
 arguments, environment variables, and initialization functions.
 
 [`steed`]: https://github.com/japaric/steed

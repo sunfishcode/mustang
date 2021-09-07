@@ -1,12 +1,37 @@
 [package]
-name = "mustang"
+name = "example"
 version = "0.0.0"
 authors = [
     "Dan Gohman <dev@sunfishcode.online>",
 ]
-description = "Program startup written in Rust"
+description = "Rust programs written entirely in Rust"
 documentation = "https://docs.rs/mustang"
 license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
 repository = "https://github.com/sunfishcode/mustang"
 edition = "2018"
 exclude = ["/.github"]
+publish = false
+
+[dependencies]
+mustang = { path = "mustang" }
+
+[dev-dependencies]
+c-scape = { path = "c-scape" }
+origin = { path = "origin" }
+
+# Test that the ctor crate works under mustang.
+ctor = "0.1.21"
+# Test that the core_simd crate works under mustang.
+# TODO: Re-enable this when core_simd works on Rust nightly.
+#core_simd = { git = "https://github.com/rust-lang/portable-simd" }
+
+[workspace]
+members = [
+  "mustang",
+  "c-scape",
+  "origin",
+]
+
+# Things are fragile enough right now that it's handy to have this.
+[profile.release]
+debug = true

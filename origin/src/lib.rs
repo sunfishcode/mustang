@@ -4,6 +4,8 @@
 #![feature(naked_functions)]
 #![cfg_attr(debug_assertions, feature(link_llvm_intrinsics))]
 
+use std::os::raw::{c_char, c_int, c_void};
+
 /// The program entry point.
 ///
 /// # Safety
@@ -14,30 +16,30 @@
 #[naked]
 #[no_mangle]
 unsafe extern "C" fn _start() -> ! {
-    // Jump to `start_rust`, passing it the initial stack pointer value as
-    // an argument, a NULL return address, a NULL frame pointer, and an
-    // aligned stack pointer.
+    // Jump to `rust`, passing it the initial stack pointer value as an
+    // argument, a NULL return address, a NULL frame pointer, and an aligned
+    // stack pointer.
 
     #[cfg(target_arch = "x86_64")]
     asm!("mov rdi, rsp",
          "push rbp",
-         "jmp {start_rust}",
-         start_rust = sym start_rust,
+         "jmp {rust}",
+         rust = sym rust,
          options(noreturn));
 
     #[cfg(target_arch = "aarch64")]
     asm!("mov x0, sp",
          "mov x30, xzr",
-         "b {start_rust}",
-         start_rust = sym start_rust,
+         "b {rust}",
+         rust = sym rust,
          options(noreturn));
 
     #[cfg(target_arch = "riscv64")]
     asm!("mv a0, sp",
          "mv ra, zero",
          "mv fp, zero",
-         "j {start_rust}",
-         start_rust = sym start_rust,
+         "tail {rust}",
+         rust = sym rust,
          options(noreturn));
 
     #[cfg(target_arch = "x86")]
@@ -47,8 +49,8 @@ unsafe extern "C" fn _start() -> ! {
          "push ebp",
          "push eax",
          "push ebp",
-         "jmp {start_rust}",
-         start_rust = sym start_rust,
+         "jmp {rust}",
+         rust = sym rust,
          options(noreturn));
 }
 
@@ -57,8 +59,7 @@ unsafe extern "C" fn _start() -> ! {
 /// # Safety
 ///
 /// `mem` should point to the stack as provided by the operating system.
-unsafe extern "C" fn start_rust(mem: *mut usize) -> ! {
-    use std::os::raw::{c_char, c_int, c_void};
+unsafe extern "C" fn rust(mem: *mut usize) -> ! {
     #[cfg(debug_assertions)]
     extern "C" {
         #[link_name = "llvm.frameaddress"]
@@ -71,6 +72,7 @@ unsafe extern "C" fn start_rust(mem: *mut usize) -> ! {
     }
     extern "C" {
         fn main(argc: c_int, argv: *mut *mut c_char, envp: *mut *mut c_char) -> c_int;
+        fn exit(code: c_int) -> !;
         static __init_array_start: c_void;
         static __init_array_end: c_void;
     }
@@ -101,7 +103,7 @@ unsafe extern "C" fn start_rust(mem: *mut usize) -> ! {
     // probably remove this at some point, but for now, things are fragile
     // enough that it's nice to have this confirmation.
     #[cfg(debug_assertions)]
-    eprintln!("This process was started by mustang! 🐎");
+    eprintln!(".｡oO(This process was started by origin! 🎯)");
 
     // Compute `argc`, `argv`, and `envp`.
     let argc = *mem as c_int;
@@ -118,6 +120,9 @@ unsafe extern "C" fn start_rust(mem: *mut usize) -> ! {
         type InitFn = fn(c_int, *mut *mut c_char, *mut *mut c_char);
         let mut init = &__init_array_start as *const _ as usize as *const InitFn;
         let init_end = &__init_array_end as *const _ as usize as *const InitFn;
+        // Prevent the optimizer from optimizing the `!=` comparison to true;
+        // `fini` and `fini_start` may have the same address.
+        asm!("# {}", inout(reg) init);
         while init != init_end {
             (*init)(argc, argv, envp);
             init = init.add(1);
@@ -127,7 +132,18 @@ unsafe extern "C" fn start_rust(mem: *mut usize) -> ! {
     // Call `main`.
     let ret = main(argc, argv, envp);
 
-    // Exit with main's return value. For now, we use `std`, which takes care
-    // of `.fini_array`, and `atexit` functions.
-    std::process::exit(ret)
+    // Exit with main's return value. This could be a libc `exit`, or our
+    // own `c-scape`'s `exit`. This takes care of the `.fini_array`,
+    // `__cxa_atexit`, and `atexit` functions.
+    exit(ret)
 }
+
+#[repr(transparent)]
+struct SendSyncVoidStar(*mut c_void);
+unsafe impl Send for SendSyncVoidStar {}
+unsafe impl Sync for SendSyncVoidStar {}
+
+/// An ABI-conforming `__dso_handle`.
+#[no_mangle]
+#[used]
+static __dso_handle: SendSyncVoidStar = SendSyncVoidStar(&__dso_handle as *const _ as *mut c_void);

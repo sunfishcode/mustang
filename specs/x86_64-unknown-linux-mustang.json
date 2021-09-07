@@ -15,8 +15,9 @@
   "pre-link-args": {
     "gcc": [
       "-m64",
-      "-nostartfiles",
-      "-Wl,--require-defined=_start"
+      "-nostdlib",
+      "-Wl,--require-defined=_start",
+      "-Wl,--require-defined=environ"
     ]
   },
   "relro-level": "full",
