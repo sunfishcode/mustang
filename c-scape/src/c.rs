@@ -201,9 +201,9 @@ pub unsafe extern "C" fn realloc(ptr: *mut c_void, size: usize) -> *mut c_void {
 
 #[no_mangle]
 pub unsafe extern "C" fn calloc(nmemb: usize, size: usize) -> *mut c_void {
-    let ptr = malloc(nmemb.checked_mul(size).unwrap());
-    memset(ptr, 0, size);
-    ptr
+    let product = nmemb.checked_mul(size).unwrap();
+    let ptr = malloc(product);
+    memset(ptr, 0, product)
 }
 
 #[no_mangle]
@@ -261,30 +261,45 @@ pub unsafe extern "C" fn bcmp(a: *const c_void, b: *const c_void, len: usize) ->
 
 #[no_mangle]
 pub unsafe extern "C" fn memcpy(dst: *mut c_void, src: *const c_void, len: usize) -> *mut c_void {
-    for i in 0..len {
-        *dst.cast::<u8>().add(i) = *src.cast::<u8>().add(i);
-    }
-    dst
+    memcpy_forward(dst, src, len)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn memmove(dst: *mut c_void, src: *const c_void, len: usize) -> *mut c_void {
     if (dst as usize) < (src as usize) {
-        for i in 0..len {
-            *dst.cast::<u8>().add(i) = *src.cast::<u8>().add(i);
-        }
+        memcpy_forward(dst, src, len)
     } else {
-        for i in 0..len {
-            *dst.cast::<u8>().add(len - i - 1) = *src.cast::<u8>().add(len - i - 1);
-        }
+        memcpy_backward(dst, src, len)
+    }
+}
+
+unsafe fn memcpy_forward(dst: *mut c_void, src: *const c_void, len: usize) -> *mut c_void {
+    // Avoid using `0..len` because that could generate a `memcpy`.
+    let mut i = 0;
+    while i != len {
+        *dst.cast::<u8>().add(i) = *src.cast::<u8>().add(i);
+        i += 1;
+    }
+    dst
+}
+
+unsafe fn memcpy_backward(dst: *mut c_void, src: *const c_void, len: usize) -> *mut c_void {
+    // Avoid using `0..len` because that could generate a `memcpy`.
+    let mut i = 0;
+    while i != len {
+        *dst.cast::<u8>().add(len - i - 1) = *src.cast::<u8>().add(len - i - 1);
+        i += 1;
     }
     dst
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn memset(dst: *mut c_void, fill: c_int, len: usize) -> *mut c_void {
-    for i in 0..len {
+    // Avoid using `0..len` because that could generate a `memset`.
+    let mut i = 0;
+    while i != len {
         *dst.cast::<u8>().add(i) = fill as u8;
+        i += 1;
     }
     dst
 }
