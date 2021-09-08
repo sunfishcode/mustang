@@ -11,4 +11,6 @@ repository = "https://github.com/sunfishcode/mustang"
 edition = "2018"
 
 [dependencies]
+# Off by default; enable this to initialize the C runtime, so that C libraries
+# can be called.
 initialize-c-runtime = { path = "../initialize-c-runtime", optional = true }

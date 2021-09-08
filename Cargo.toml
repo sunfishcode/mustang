@@ -19,11 +19,14 @@ mustang = { path = "mustang" }
 
 # Test that the ctor crate works under mustang.
 ctor = "0.1.21"
+
 # Test that the core_simd crate works under mustang.
 # TODO: Re-enable this when core_simd works on Rust nightly.
 #core_simd = { git = "https://github.com/rust-lang/portable-simd" }
 
 [features]
+# Off by default; enable this to initialize the C runtime, so that C libraries
+# can be called.
 initialize-c-runtime = ["mustang/initialize-c-runtime"]
 
 [workspace]
