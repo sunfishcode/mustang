@@ -1,14 +1,14 @@
 [package]
-name = "origin"
+name = "initialize-c-runtime"
 version = "0.0.0"
 authors = [
     "Dan Gohman <dev@sunfishcode.online>",
 ]
-description = "Program startup written in Rust"
-documentation = "https://docs.rs/origin"
+description = "A crate to explicitly inititialize the C runtime"
+documentation = "https://docs.rs/mustang"
 license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
 repository = "https://github.com/sunfishcode/mustang"
 edition = "2018"
 
-[dependencies]
-initialize-c-runtime = { path = "../initialize-c-runtime", optional = true }
+[build-dependencies]
+cc = "1.0"

@@ -16,3 +16,6 @@ origin = { path = "../origin" }
 
 # A minimal `global_allocator` implementation.
 wee_alloc = "0.4.5"
+
+[features]
+initialize-c-runtime = ["origin/initialize-c-runtime"]

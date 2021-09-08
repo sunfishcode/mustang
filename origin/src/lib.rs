@@ -115,7 +115,9 @@ unsafe extern "C" fn rust(mem: *mut usize) -> ! {
     debug_assert_eq!(*mem, argc as _);
     debug_assert_eq!(*argv.add(argc as usize), std::ptr::null_mut());
 
-    // Call the `.init_array` functions.
+    // Call the `.init_array` functions (unless the C runtime is doing it;
+    // see below).
+    #[cfg(not(feature = "initialize-c-runtime"))]
     {
         type InitFn = fn(c_int, *mut *mut c_char, *mut *mut c_char);
         let mut init = &__init_array_start as *const _ as usize as *const InitFn;
@@ -128,6 +130,11 @@ unsafe extern "C" fn rust(mem: *mut usize) -> ! {
             init = init.add(1);
         }
     }
+
+    // If enabled, initialize the C runtime. This also handles calling the
+    // .init_array functions.
+    #[cfg(feature = "initialize-c-runtime")]
+    initialize_c_runtime(argc, argv);
 
     // Call `main`.
     let ret = main(argc, argv, envp);
@@ -147,3 +154,16 @@ unsafe impl Sync for SendSyncVoidStar {}
 #[no_mangle]
 #[used]
 static __dso_handle: SendSyncVoidStar = SendSyncVoidStar(&__dso_handle as *const _ as *mut c_void);
+
+#[cfg(feature = "initialize-c-runtime")]
+unsafe fn initialize_c_runtime(argc: c_int, argv: *mut *mut c_char) {
+    #[link(name = "initialize-c-runtime")]
+    extern "C" {
+        fn mustang_initialize_c_runtime(argc: c_int, argv: *mut *mut c_char);
+    }
+
+    #[cfg(debug_assertions)]
+    eprintln!(".｡oO(C runtime initialization called by origin! ℂ)");
+
+    mustang_initialize_c_runtime(argc, argv);
+}
