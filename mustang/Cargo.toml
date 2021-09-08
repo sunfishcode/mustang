@@ -18,4 +18,6 @@ origin = { path = "../origin" }
 wee_alloc = "0.4.5"
 
 [features]
+# Off by default; enable this to initialize the C runtime, so that C libraries
+# can be called.
 initialize-c-runtime = ["origin/initialize-c-runtime"]
