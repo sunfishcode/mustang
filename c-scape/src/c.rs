@@ -185,9 +185,13 @@ pub unsafe extern "C" fn pipe2() {
 
 // malloc
 
+// Large enough for any C type, including v128.
+const MALLOC_ALIGN: usize = 16;
+
 #[no_mangle]
-pub unsafe extern "C" fn malloc(_size: usize) -> *mut c_void {
-    unimplemented!("malloc")
+pub unsafe extern "C" fn malloc(size: usize) -> *mut c_void {
+    let layout = std::alloc::Layout::from_size_align(size, MALLOC_ALIGN).unwrap();
+    std::alloc::alloc(layout).cast::<_>()
 }
 
 #[no_mangle]
@@ -208,11 +212,15 @@ pub unsafe extern "C" fn calloc(nmemb: usize, size: usize) -> *mut c_void {
 
 #[no_mangle]
 pub unsafe extern "C" fn posix_memalign(
-    _memptr: *mut *mut c_void,
-    _alignment: usize,
-    _size: usize,
+    memptr: *mut *mut c_void,
+    alignment: usize,
+    size: usize,
 ) -> c_int {
-    unimplemented!("posix_memalign")
+    // Note that we don't currently record `alignment` anywhere. This is only
+    // safe because our `free` doesn't actually call `dealloc`.
+    let layout = std::alloc::Layout::from_size_align(size, alignment).unwrap();
+    *memptr = std::alloc::alloc(layout).cast::<_>();
+    0
 }
 
 #[no_mangle]

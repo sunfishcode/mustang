@@ -89,15 +89,18 @@ $ nm -u target/x86_64-unknown-linux-mustang/debug/examples/hello
 $
 ```
 
+## The C Runtime
+
+C has a runtime, and if you wish to link with any C libraries, the C runtime
+needs to be initialized. `mustang` doesn't do this by default, but it does
+support this when the cargo feature "initialize-c-runtime" is enabled.
+
 ## Known Limitations
 
 Known limitations in `mustang` include:
 
  - Lots of stuff in `std` doesn't work yet. Hello world works, but lots of
    other stuff doesn't yet.
- - Linking to C libraries is not supported. There doesn't appear to be a
-   robust way to initialize the C runtime without letting the C runtime
-   start up and shutdown the process.
  - No support for dynamic linking yet.
  - No support for stack smashing protection (ssp) yet.
  - The ELF `init` function is not supported, however the more modern

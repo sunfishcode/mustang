@@ -10,7 +10,7 @@ macro_rules! assert_eq_str {
     }};
 }
 
-fn test_example(name: &str, stdout: &str, stderr: &str) {
+fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
     use std::process::Command;
 
     #[cfg(target_arch = "x86_64")]
@@ -26,6 +26,8 @@ fn test_example(name: &str, stdout: &str, stderr: &str) {
         .arg("+nightly")
         .arg("run")
         .arg("--quiet")
+        .arg("--features")
+        .arg(features)
         .arg("-Z")
         .arg("build-std")
         .arg(&format!(
@@ -63,6 +65,7 @@ fn test_example(name: &str, stdout: &str, stderr: &str) {
 fn test() {
     test_example(
         "hello",
+        "",
         "Hello, world!\n",
         ".｡oO(This process was started by origin! 🎯)\n\
          .｡oO(Environment variables initialized by c-scape! 🌱)\n\
@@ -72,6 +75,7 @@ fn test() {
     test_example(
         "test-args",
         "",
+        "",
         ".｡oO(This process was started by origin! 🎯)\n\
          .｡oO(Environment variables initialized by c-scape! 🌱)\n\
          .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
@@ -79,10 +83,12 @@ fn test() {
     test_example(
         "test-backtrace",
         "",
+        "",
         ".｡oO(This process was started by origin! 🎯)\n",
     );
     test_example(
         "test-ctor",
+        "",
         "",
         ".｡oO(This process was started by origin! 🎯)\n\
          .｡oO(Environment variables initialized by c-scape! 🌱)\n\
@@ -91,12 +97,14 @@ fn test() {
     test_example(
         "test-environ",
         "",
+        "",
         ".｡oO(This process was started by origin! 🎯)\n\
          .｡oO(Environment variables initialized by c-scape! 🌱)\n\
          .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
     );
     test_example(
         "test-simd",
+        "",
         "",
         ".｡oO(This process was started by origin! 🎯)\n\
          .｡oO(Environment variables initialized by c-scape! 🌱)\n\
@@ -105,6 +113,16 @@ fn test() {
     test_example(
         "test-tls",
         "",
+        "",
         ".｡oO(This process was started by origin! 🎯)\n",
+    );
+    test_example(
+        "test-initialize-c-runtime",
+        "initialize-c-runtime",
+        "Hello from C!\n",
+        ".｡oO(This process was started by origin! 🎯)\n\
+         .｡oO(C runtime initialization called by origin! ℂ)\n\
+         .｡oO(Environment variables initialized by c-scape! 🌱)\n\
+         .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
     );
 }
