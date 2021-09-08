@@ -133,7 +133,7 @@ Let's find out! Come say hi in the [chat] or an [issue].
  - Create a target file in `specs/`, by first following
    [these instructions] to generate a default target file, and then:
      - change `dynamic-linking` to false
-     - add `-nostdlib`, `-Wl,--require-defined_start`, and
+     - add `-nostdlib`, `-Wl,--require-defined=start`, and
        `-Wl,--require-defined=environ` to pre-link-args
    See other targets in the `specs/` directory for examples.
  - Add the architecture to example/test/test.rs.
