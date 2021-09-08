@@ -95,6 +95,9 @@ Known limitations in `mustang` include:
 
  - Lots of stuff in `std` doesn't work yet. Hello world works, but lots of
    other stuff doesn't yet.
+ - Linking to C libraries is not supported. There doesn't appear to be a
+   robust way to initialize the C runtime without letting the C runtime
+   start up and shutdown the process.
  - No support for dynamic linking yet.
  - No support for stack smashing protection (ssp) yet.
  - The ELF `init` function is not supported, however the more modern
