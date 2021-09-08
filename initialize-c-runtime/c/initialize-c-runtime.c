@@ -86,5 +86,5 @@ static void cleanup(void) { (void)fflush(NULL); }
 
 /// Register the `cleanup` function, with priority 0, so that it runs after
 /// other cleanups.
-__attribute__((section(".fini_array.00000"))) static void (*register_cleanup)(
-    void) = cleanup;
+__attribute__((used, section(".fini_array.00000"))) static void (
+    *register_cleanup)(void) = cleanup;
