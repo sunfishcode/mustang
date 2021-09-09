@@ -19,5 +19,6 @@ wee_alloc = "0.4.5"
 
 [features]
 # Off by default; enable this to initialize the C runtime, so that C libraries
-# can be called.
+# can be called. See [here] for details.
+# [here]: https://github.com/sunfishcode/mustang/blob/main/README.md#the-c-runtime
 initialize-c-runtime = ["origin/initialize-c-runtime"]
