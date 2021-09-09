@@ -83,6 +83,9 @@ jobs:
         echo CARGO_TARGET_${upcase}_LINKER=${{ matrix.gcc }} >> $GITHUB_ENV
         upcase=$(echo ${{ matrix.mustang_target }} | awk '{ print toupper($0) }' | sed 's/-/_/g')
         echo CARGO_TARGET_${upcase}_LINKER=${{ matrix.gcc }} >> $GITHUB_ENV
+        # Configure the `*-mustang` C compiler for the `cc` crate per
+        # <https://github.com/sunfishcode/mustang/blob/main/README.md#the-c-runtime>
+        echo CC_${{ matrix.mustang_target }}=${{ matrix.gcc }} >> $GITHUB_ENV
       if: matrix.gcc_package != '' && matrix.os == 'ubuntu-latest'
 
     - name: Install cross-compilation libraries

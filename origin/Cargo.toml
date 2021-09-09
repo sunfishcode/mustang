@@ -12,5 +12,6 @@ edition = "2018"
 
 [dependencies]
 # Off by default; enable this to initialize the C runtime, so that C libraries
-# can be called.
+# can be called. See [here] for details.
+# [here]: https://github.com/sunfishcode/mustang/blob/main/README.md#the-c-runtime
 initialize-c-runtime = { path = "../initialize-c-runtime", optional = true }
