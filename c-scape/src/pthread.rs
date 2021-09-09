@@ -143,3 +143,45 @@ pub unsafe extern "C" fn pthread_sigmask() -> c_int {
 pub unsafe extern "C" fn pthread_attr_setstacksize() -> c_int {
     0
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn pthread_cancel() -> c_int {
+    // `pthread_cancel` may be tricky to implement, because it seems glibc's
+    // cancellation mechanism uses `setjmp` to a `jmp_buf` store in
+    // `__libc_start_main`'s stack, and the `initialize-c-runtime` crate
+    // itself `longjmp`s out of `__libc_start_main`.
+    //
+    // <https://github.com/sunfishcode/mustang/pull/4#issuecomment-915872029>
+    unimplemented!("pthread_cancel")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn pthread_exit() -> c_int {
+    // As with `pthread_cancel`, `pthread_exit` may be tricky to implement.
+    unimplemented!("pthread_exit")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn pthread_cleanup_push() -> c_int {
+    unimplemented!("pthread_cleanup_push")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn pthread_cleanup_pop() -> c_int {
+    unimplemented!("pthread_cleanup_pop")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn pthread_setcancelstate() -> c_int {
+    unimplemented!("pthread_setcancelstate")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn pthread_setcanceltype() -> c_int {
+    unimplemented!("pthread_setcanceltype")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn pthread_testcancel() -> c_int {
+    unimplemented!("pthread_testcancel")
+}
