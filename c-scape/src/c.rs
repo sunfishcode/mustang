@@ -36,12 +36,14 @@ pub unsafe extern "C" fn __errno_location() -> *mut c_int {
 
 #[no_mangle]
 pub unsafe extern "C" fn __xpg_strerror_r(errnum: c_int, buf: *mut c_char, buflen: usize) -> c_int {
-    // Ideally we'd print a nicer message here.
-    let s = format!("errno({})", errnum);
-    let min = std::cmp::min(buflen, s.len());
+    let message = match crate::error_str::error_str(rsix::io::Error::from_raw_os_error(errnum)) {
+        Some(s) => s.to_owned(),
+        None => format!("Unknown error {}", errnum),
+    };
+    let min = std::cmp::min(buflen, message.len());
     let out = slice::from_raw_parts_mut(buf.cast::<u8>(), min);
-    out.copy_from_slice(s.as_bytes());
-    out[out.len() - 1] = 0;
+    out.copy_from_slice(message.as_bytes());
+    out[out.len() - 1] = b'\0';
     0
 }
 
