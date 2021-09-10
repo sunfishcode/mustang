@@ -54,10 +54,7 @@ pub unsafe extern "C" fn open64(pathname: *const c_char, flags: c_int, mode: c_i
     let flags = OFlags::from_bits(flags as _).unwrap();
     let mode = Mode::from_bits(mode as _).unwrap();
     match set_errno(openat(&cwd(), CStr::from_ptr(pathname), flags, mode)) {
-        Some(fd) => {
-            let fd: OwnedFd = fd.into();
-            fd.into_raw_fd()
-        }
+        Some(fd) => fd.into_raw_fd(),
         None => return -1,
     }
 }
@@ -204,10 +201,7 @@ pub unsafe extern "C" fn fcntl(fd: c_int, cmd: c_int, mut args: ...) -> c_int {
         },
         F_DUPFD_CLOEXEC => match set_errno(rsix::fs::fcntl_dupfd_cloexec(&fd, args.arg::<c_int>()))
         {
-            Some(fd) => {
-                let fd: OwnedFd = fd.into();
-                fd.into_raw_fd()
-            }
+            Some(fd) => fd.into_raw_fd(),
             None => -1,
         },
         _ => panic!("unrecognized fnctl({})", cmd),
@@ -350,10 +344,7 @@ pub unsafe extern "C" fn opendir(pathname: *const c_char) -> *mut rsix::fs::Dir 
         OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC,
         Mode::empty(),
     )) {
-        Some(fd) => {
-            let fd: OwnedFd = fd.into();
-            fdopendir(fd.into_raw_fd())
-        }
+        Some(fd) => fdopendir(fd.into_raw_fd()),
         None => return null_mut(),
     }
 }
@@ -710,9 +701,7 @@ pub unsafe extern "C" fn pipe2(pipefd: *mut c_int, flags: c_int) -> c_int {
     let flags = PipeFlags::from_bits(flags as _).unwrap();
     match set_errno(rsix::io::pipe_with(flags)) {
         Some((a, b)) => {
-            let a: OwnedFd = a.into();
             *pipefd = a.into_raw_fd();
-            let b: OwnedFd = b.into();
             *pipefd.add(1) = b.into_raw_fd();
             0
         }
