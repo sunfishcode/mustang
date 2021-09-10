@@ -140,6 +140,7 @@ Let's find out! Come say hi in the [chat] or an [issue].
      - change `dynamic-linking` to false
      - add `-nostdlib`, `-Wl,--require-defined=start`, and
        `-Wl,--require-defined=environ` to pre-link-args
+     - add `"vendor": "mustang"`
    See other targets in the `specs/` directory for examples.
  - Add the architecture to example/test/test.rs.
  - Add CI testing to .github/workflows/main.yml, by copying what's done
