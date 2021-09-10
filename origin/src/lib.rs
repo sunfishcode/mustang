@@ -1,8 +1,11 @@
 #![doc = include_str!("../README.md")]
 #![deny(missing_docs)]
-#![feature(asm)]
-#![feature(naked_functions)]
-#![cfg_attr(debug_assertions, feature(link_llvm_intrinsics))]
+#![cfg_attr(target_vendor = "mustang", feature(asm))]
+#![cfg_attr(target_vendor = "mustang", feature(naked_functions))]
+#![cfg_attr(
+    all(target_vendor = "mustang", debug_assertions),
+    feature(link_llvm_intrinsics)
+)]
 
 #[cfg(target_vendor = "mustang")]
 use std::os::raw::{c_char, c_int, c_void};
