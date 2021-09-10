@@ -40,15 +40,15 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
         .unwrap();
 
     assert_eq_str!(
-        &output.stderr,
         stderr.as_bytes(),
+        &output.stderr,
         "example {} had unexpected stderr, with {:?}",
         name,
         output
     );
     assert_eq_str!(
-        &output.stdout,
         stdout.as_bytes(),
+        &output.stdout,
         "example {} had unexpected stdout, with {:?}",
         name,
         output
