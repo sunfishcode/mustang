@@ -37,15 +37,15 @@ pub unsafe extern "C" fn __xpg_strerror_r() {
 
 #[no_mangle]
 pub unsafe extern "C" fn open64(pathname: *const c_char, flags: c_int, mode: c_int) -> c_int {
-    let fd: OwnedFd = openat(
-        &cwd(),
-        CStr::from_ptr(pathname),
-        OFlags::from_bits(flags as _).unwrap(),
-        Mode::from_bits(mode as _).unwrap(),
-    )
-    .unwrap()
-    .into();
-    fd.into_raw_fd()
+    let flags = OFlags::from_bits(flags as _).unwrap();
+    let mode = Mode::from_bits(mode as _).unwrap();
+    match set_errno(openat(&cwd(), CStr::from_ptr(pathname), flags, mode)) {
+        Some(fd) => {
+            let fd: OwnedFd = fd.into();
+            fd.into_raw_fd()
+        }
+        None => return -1,
+    }
 }
 
 #[no_mangle]
@@ -70,9 +70,13 @@ pub unsafe extern "C" fn fstat(_fd: c_int, _stat: *mut rsix::fs::Stat) -> c_int 
 
 #[no_mangle]
 pub unsafe extern "C" fn fstat64(fd: c_int, stat: *mut rsix::fs::Stat) -> c_int {
-    let r = rsix::fs::fstat(&BorrowedFd::borrow_raw_fd(fd)).unwrap();
-    *stat = r;
-    0
+    match set_errno(rsix::fs::fstat(&BorrowedFd::borrow_raw_fd(fd))) {
+        Some(r) => {
+            *stat = r;
+            0
+        }
+        None => -1,
+    }
 }
 
 #[no_mangle]
@@ -84,19 +88,22 @@ pub unsafe extern "C" fn statx(
     stat: *mut rsix::fs::Statx,
 ) -> c_int {
     if path.is_null() || stat.is_null() {
-        (*__errno_location()) = rsix::io::Error::FAULT.raw_os_error();
+        *__errno_location() = rsix::io::Error::FAULT.raw_os_error();
         return -1;
     }
 
-    let r = rsix::fs::statx(
+    match set_errno(rsix::fs::statx(
         &BorrowedFd::borrow_raw_fd(dirfd),
         CStr::from_ptr(path),
         rsix::fs::AtFlags::from_bits(flags as _).unwrap(),
         rsix::fs::StatxFlags::from_bits(mask).unwrap(),
-    )
-    .unwrap();
-    *stat = r;
-    0
+    )) {
+        Some(r) => {
+            *stat = r;
+            0
+        }
+        None => -1,
+    }
 }
 
 #[no_mangle]
@@ -121,11 +128,13 @@ pub unsafe extern "C" fn write(fd: c_int, ptr: *const c_void, len: usize) -> isi
         eprintln!(".｡oO(I/O performed by c-scape using rsix! 🌊)");
     }
 
-    rsix::io::write(
+    match set_errno(rsix::io::write(
         &BorrowedFd::borrow_raw_fd(fd),
         slice::from_raw_parts(ptr.cast::<u8>(), len),
-    )
-    .unwrap() as isize
+    )) {
+        Some(nwritten) => nwritten as isize,
+        None => -1,
+    }
 }
 
 #[no_mangle]
@@ -143,11 +152,13 @@ pub unsafe extern "C" fn read(fd: c_int, ptr: *mut c_void, len: usize) -> isize 
         eprintln!(".｡oO(I/O performed by c-scape using rsix! 🌊)");
     }
 
-    rsix::io::read(
+    match set_errno(rsix::io::read(
         &BorrowedFd::borrow_raw_fd(fd),
         slice::from_raw_parts_mut(ptr.cast::<u8>(), len),
-    )
-    .unwrap() as isize
+    )) {
+        Some(nread) => nread as isize,
+        None => -1,
+    }
 }
 
 #[no_mangle]
@@ -208,7 +219,13 @@ pub unsafe extern "C" fn realloc(ptr: *mut c_void, size: usize) -> *mut c_void {
 
 #[no_mangle]
 pub unsafe extern "C" fn calloc(nmemb: usize, size: usize) -> *mut c_void {
-    let product = nmemb.checked_mul(size).unwrap();
+    let product = match nmemb.checked_mul(size) {
+        Some(product) => product,
+        None => {
+            *__errno_location() = rsix::io::Error::NOMEM.raw_os_error();
+            return null_mut();
+        }
+    };
     let ptr = malloc(product);
     memset(ptr, 0, product)
 }
@@ -330,6 +347,8 @@ pub unsafe extern "C" fn strlen(mut s: *const c_char) -> usize {
 #[cfg(any(target_os = "android", target_os = "linux"))]
 const MAP_ANONYMOUS: i32 = 32;
 
+const MAP_ERR: *mut c_void = -1_isize as usize as *mut c_void;
+
 #[no_mangle]
 pub unsafe extern "C" fn mmap(
     addr: *mut c_void,
@@ -339,7 +358,7 @@ pub unsafe extern "C" fn mmap(
     fd: c_int,
     offset: i64,
 ) -> *mut c_void {
-    if flags & MAP_ANONYMOUS == MAP_ANONYMOUS {
+    match set_errno(if flags & MAP_ANONYMOUS == MAP_ANONYMOUS {
         let flags = flags & !MAP_ANONYMOUS;
         rsix::io::mmap_anonymous(
             addr,
@@ -347,7 +366,6 @@ pub unsafe extern "C" fn mmap(
             ProtFlags::from_bits(prot as _).unwrap(),
             MapFlags::from_bits(flags as _).unwrap(),
         )
-        .unwrap()
     } else {
         rsix::io::mmap(
             addr,
@@ -357,20 +375,30 @@ pub unsafe extern "C" fn mmap(
             &BorrowedFd::borrow_raw_fd(fd),
             offset as _,
         )
-        .unwrap()
+    }) {
+        Some(ptr) => ptr,
+        None => MAP_ERR,
     }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn munmap(ptr: *mut c_void, len: usize) -> c_int {
-    rsix::io::munmap(ptr, len).unwrap();
-    0
+    match set_errno(rsix::io::munmap(ptr, len)) {
+        Some(()) => 0,
+        None => -1,
+    }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn mprotect(addr: *mut c_void, length: usize, prot: c_int) -> c_int {
-    rsix::io::mprotect(addr, length, MprotectFlags::from_bits(prot as _).unwrap()).unwrap();
-    0
+    match set_errno(rsix::io::mprotect(
+        addr,
+        length,
+        MprotectFlags::from_bits(prot as _).unwrap(),
+    )) {
+        Some(()) => 0,
+        None => -1,
+    }
 }
 
 // process
@@ -1067,4 +1095,14 @@ pub unsafe extern "C" fn fork() {
 #[no_mangle]
 pub unsafe extern "C" fn waitpid() {
     unimplemented!("waitpid")
+}
+
+// utilities
+
+fn set_errno<T>(result: Result<T, rsix::io::Error>) -> Option<T> {
+    result
+        .map_err(|err| unsafe {
+            *__errno_location() = err.raw_os_error();
+        })
+        .ok()
 }
