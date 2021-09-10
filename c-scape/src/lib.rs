@@ -9,3 +9,11 @@ mod error_str;
 mod exit;
 mod pthread;
 mod unwind;
+mod data;
+
+type GlobalAlloc = wee_alloc::WeeAlloc<'static>;
+
+const GLOBAL_ALLOC: GlobalAlloc = wee_alloc::WeeAlloc::INIT;
+
+#[global_allocator]
+static ALLOC: crate::GlobalAlloc = crate::GLOBAL_ALLOC;
