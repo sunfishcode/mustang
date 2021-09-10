@@ -95,9 +95,9 @@ C has a runtime, and if you wish to link with any C libraries, the C runtime
 needs to be initialized. `mustang` doesn't do this by default, but it does
 support this when the cargo feature "initialize-c-runtime" is enabled.
 
-To compile C code with a `*-mustang` target, you may need to
-[tell the `cc` crate which C compiler to use]; for example, for `i686-unknown-linux-mustang`,
-set the environment variable `CC_i686-unknown-linux-mustang` to
+To compile C code with a `*-mustang-*` target, you may need to
+[tell the `cc` crate which C compiler to use]; for example, for `i686-mustang-linux-gnu`,
+set the environment variable `CC_i686-mustang-linux-gnu` to
 `i686-linux-gnu-gcc`.
 
 [tell the `cc` crate which C compiler to use]: https://github.com/alexcrichton/cc-rs#external-configuration-via-environment-variables
