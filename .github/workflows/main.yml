@@ -86,6 +86,7 @@ jobs:
         # Configure the `*-mustang` C compiler for the `cc` crate per
         # <https://github.com/sunfishcode/mustang/blob/main/README.md#the-c-runtime>
         echo CC_${{ matrix.mustang_target }}=${{ matrix.gcc }} >> $GITHUB_ENV
+        echo CC_${{ matrix.target }}=${{ matrix.gcc }} >> $GITHUB_ENV
       if: matrix.gcc_package != '' && matrix.os == 'ubuntu-latest'
 
     - name: Install cross-compilation libraries
