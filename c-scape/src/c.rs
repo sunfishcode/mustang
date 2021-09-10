@@ -14,7 +14,7 @@ use std::ffi::{c_void, CStr};
 use std::os::raw::{c_char, c_int, c_long, c_uint, c_ulong};
 #[cfg(debug_assertions)]
 use std::os::unix::io::AsRawFd;
-use std::os::unix::io::IntoRawFd;
+use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::ptr::{null, null_mut};
 use std::slice;
 
@@ -173,18 +173,28 @@ pub unsafe extern "C" fn poll(_fds: c_void, _nfds: c_ulong, _timeout: c_int) -> 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn close(_fd: c_int) -> c_int {
-    unimplemented!("close")
+pub unsafe extern "C" fn close(fd: c_int) -> c_int {
+    rsix::io::close(fd);
+    0
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn dup2() {
-    unimplemented!("dup2")
+pub unsafe extern "C" fn dup2(fd: c_int, to: c_int) -> c_int {
+    let to = OwnedFd::from_raw_fd(to).into();
+    match set_errno(rsix::io::dup2(&BorrowedFd::borrow_raw_fd(fd), &to)) {
+        Some(()) => OwnedFd::from(to).into_raw_fd(),
+        None => -1,
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn isatty() {
-    unimplemented!("isatty")
+pub unsafe extern "C" fn isatty(fd: c_int) -> c_int {
+    if rsix::io::isatty(&BorrowedFd::borrow_raw_fd(fd)) {
+        1
+    } else {
+        *__errno_location() = rsix::io::Error::NOTTY.raw_os_error();
+        0
+    }
 }
 
 #[no_mangle]
