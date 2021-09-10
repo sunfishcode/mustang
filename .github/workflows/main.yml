@@ -115,13 +115,27 @@ jobs:
         echo CARGO_TARGET_${upcase}_RUNNER=$HOME/qemu/bin/${{ matrix.qemu }} >> $GITHUB_ENV
       if: matrix.qemu != '' && matrix.os == 'ubuntu-latest'
 
-    - run: |
+    - name: Install rust-src
+      run: |
         rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
+
+    - name: cargo test
+      run: |
         # Run the tests using the host target rather than the mustang target,
         # as mustang doesn't yet support everything needed by the test harness.
         # The test uses a mustang target as needed for the actual test cases.
         cargo +nightly test --workspace --verbose
+      env:
+        RUST_BACKTRACE: 1
+
+    - name: cargo test --release
+      run: |
         cargo +nightly test --workspace --verbose --release
+      env:
+        RUST_BACKTRACE: 1
+
+    - name: test mustang_use_libc
+      run: |
         RUSTFLAGS=--cfg=mustang_use_libc cargo +nightly check --workspace
       env:
         RUST_BACKTRACE: 1
