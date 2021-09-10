@@ -782,23 +782,41 @@ pub unsafe extern "C" fn pipe2(pipefd: *mut c_int, flags: c_int) -> c_int {
 
 // malloc
 
+// Keep track of every `malloc`'d pointer. This isn't amazingly efficient,
+// but it works.
+const METADATA: once_cell::sync::Lazy<
+    std::sync::Mutex<std::collections::HashMap<usize, std::alloc::Layout>>,
+> = once_cell::sync::Lazy::new(|| std::sync::Mutex::new(std::collections::HashMap::new()));
+
 #[no_mangle]
 pub unsafe extern "C" fn malloc(size: usize) -> *mut c_void {
     libc!(malloc(size));
 
     let layout = std::alloc::Layout::from_size_align(size, data::SIZEOF_MAXALIGN_T).unwrap();
-    std::alloc::alloc(layout).cast::<_>()
+    let ptr = std::alloc::alloc(layout).cast::<_>();
+
+    METADATA.lock().unwrap().insert(ptr as usize, layout);
+
+    ptr
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn realloc(ptr: *mut c_void, size: usize) -> *mut c_void {
-    libc!(realloc(ptr, size));
+pub unsafe extern "C" fn realloc(old: *mut c_void, size: usize) -> *mut c_void {
+    libc!(realloc(old, size));
 
-    // Somehow we never end up reusing `ptr`.
-    let new = malloc(size);
-    memcpy(new, ptr, size);
-    free(ptr);
-    new
+    if old.is_null() {
+        malloc(size)
+    } else {
+        let old_layout = METADATA.lock().unwrap().remove(&(old as usize)).unwrap();
+        if old_layout.size() >= size {
+            return old;
+        }
+
+        let new = malloc(size);
+        memcpy(new, old, std::cmp::min(size, old_layout.size()));
+        std::alloc::dealloc(old.cast::<_>(), old_layout);
+        new
+    }
 }
 
 #[no_mangle]
@@ -812,6 +830,7 @@ pub unsafe extern "C" fn calloc(nmemb: usize, size: usize) -> *mut c_void {
             return null_mut();
         }
     };
+
     let ptr = malloc(product);
     memset(ptr, 0, product)
 }
@@ -824,18 +843,23 @@ pub unsafe extern "C" fn posix_memalign(
 ) -> c_int {
     libc!(posix_memalign(memptr, alignment, size));
 
-    // Note that we don't currently record `alignment` anywhere. This is only
-    // safe because our `free` doesn't actually call `dealloc`.
     let layout = std::alloc::Layout::from_size_align(size, alignment).unwrap();
-    *memptr = std::alloc::alloc(layout).cast::<_>();
+    let ptr = std::alloc::alloc(layout).cast::<_>();
+
+    METADATA.lock().unwrap().insert(ptr as usize, layout);
+
+    *memptr = ptr;
     0
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn free(_ptr: *mut c_void) {
-    libc!(free(_ptr));
+pub unsafe extern "C" fn free(ptr: *mut c_void) {
+    libc!(free(ptr));
 
-    // Somehow we don't actually release any resources.
+    std::alloc::dealloc(
+        ptr.cast::<_>(),
+        METADATA.lock().unwrap().remove(&(ptr as usize)).unwrap(),
+    );
 }
 
 // mem
