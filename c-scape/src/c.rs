@@ -118,6 +118,71 @@ pub unsafe extern "C" fn fcntl() {
     unimplemented!("fcntl")
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn mkdir() {
+    unimplemented!("mkdir")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn fdatasync() {
+    unimplemented!("fdatasync")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn fstatat64() {
+    unimplemented!("fstatat64")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn fsync() {
+    unimplemented!("fsync")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn ftruncate64() {
+    unimplemented!("ftruncate64")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rename() {
+    unimplemented!("rename")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rmdir() {
+    unimplemented!("rmdir")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn unlink() {
+    unimplemented!("unlink")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn lseek64() {
+    unimplemented!("lseek64")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn lstat64() {
+    unimplemented!("lstat64")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn opendir() {
+    unimplemented!("opendir")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn readdir64_r() {
+    unimplemented!("readdir64_r")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn closedir() {
+    unimplemented!("closedir")
+}
+
 // io
 
 #[no_mangle]
@@ -166,6 +231,11 @@ pub unsafe extern "C" fn read(fd: c_int, ptr: *mut c_void, len: usize) -> isize 
 #[no_mangle]
 pub unsafe extern "C" fn readv() {
     unimplemented!("readv")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn pread64() {
+    unimplemented!("pread64")
 }
 
 #[no_mangle]
@@ -432,6 +502,11 @@ pub unsafe extern "C" fn mprotect(addr: *mut c_void, length: usize, prot: c_int)
 
 // process
 
+#[no_mangle]
+pub unsafe extern "C" fn getpid() {
+    unimplemented!("getpid")
+}
+
 #[cfg(any(target_os = "android", target_os = "linux"))]
 const _SC_PAGESIZE: c_int = 30;
 
@@ -484,6 +559,21 @@ pub unsafe extern "C" fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *m
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn dlclose() {
+    unimplemented!("dlclose")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn dlerror() {
+    unimplemented!("dlerror")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn dlopen() {
+    unimplemented!("dlopen")
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn __tls_get_addr() {
     unimplemented!("__tls_get_addr")
 }
@@ -508,6 +598,11 @@ pub unsafe extern "C" fn __cxa_thread_atexit_impl(
 pub unsafe extern "C" fn sched_yield() -> c_int {
     rsix::process::sched_yield();
     0
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn sched_getaffinity() {
+    unimplemented!("sched_getaffinity")
 }
 
 #[no_mangle]
@@ -644,6 +739,11 @@ pub unsafe extern "C" fn posix_spawn_file_actions_init() {
 #[no_mangle]
 pub unsafe extern "C" fn clock_gettime(_id: c_int, _tp: *mut rsix::time::Timespec) {
     unimplemented!("clock_gettime")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn nanosleep() {
+    unimplemented!("nanosleep")
 }
 
 // math
@@ -1124,6 +1224,18 @@ pub unsafe extern "C" fn fork() {
 #[no_mangle]
 pub unsafe extern "C" fn waitpid() {
     unimplemented!("waitpid")
+}
+
+// setjmp
+
+#[no_mangle]
+pub unsafe extern "C" fn siglongjmp() {
+    unimplemented!("siglongjmp")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn __sigsetjmp() {
+    unimplemented!("__sigsetjmp")
 }
 
 // utilities
