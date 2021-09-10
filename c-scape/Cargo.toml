@@ -17,3 +17,11 @@ libm = "0.2.1"
 rsix = "0.22.3"
 memoffset = "0.6"
 realpath-ext = "0.1.0"
+
+# A minimal `global_allocator` implementation.
+wee_alloc = "0.4.5"
+
+[dev-dependencies]
+libc = "0.2.99"
+static_assertions = "1.1.0"
+paste = "1.0.5"

@@ -51,9 +51,7 @@ pub unsafe extern "C" fn __cxa_atexit(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn __cxa_finalize() {
-    unimplemented!("__cxa_finalize")
-}
+pub unsafe extern "C" fn __cxa_finalize(_d: *mut c_void) {}
 
 /// C-compatible `atexit`. Consider using `__cxa_atexit` instead.
 #[no_mangle]

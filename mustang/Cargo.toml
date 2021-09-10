@@ -14,9 +14,6 @@ edition = "2018"
 c-scape = { path = "../c-scape" }
 origin = { path = "../origin" }
 
-# A minimal `global_allocator` implementation.
-wee_alloc = "0.4.5"
-
 [features]
 # Off by default; enable this to initialize the C runtime, so that C libraries
 # can be called. See [here] for details.

@@ -9,6 +9,7 @@
 //! the `rsix` APIs directly, which are safer, more ergonomic, and skip this
 //! whole layer.
 
+use crate::data;
 use memoffset::offset_of;
 use rsix::fs::{cwd, openat, AtFlags, FdFlags, Mode, OFlags};
 #[cfg(debug_assertions)]
@@ -183,29 +184,22 @@ pub unsafe extern "C" fn realpath(path: *const c_char, resolved_path: *mut c_cha
     }
 }
 
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const F_SETFD: c_int = 2;
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const F_GETFL: c_int = 3;
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const F_DUPFD_CLOEXEC: c_int = 1030;
-
 #[no_mangle]
 pub unsafe extern "C" fn fcntl(fd: c_int, cmd: c_int, mut args: ...) -> c_int {
     let fd = BorrowedFd::borrow_raw_fd(fd);
     match cmd {
-        F_GETFL => match set_errno(rsix::fs::fcntl_getfl(&fd)) {
+        data::F_GETFL => match set_errno(rsix::fs::fcntl_getfl(&fd)) {
             Some(flags) => flags.bits() as _,
             None => -1,
         }
-        F_SETFD => match set_errno(rsix::fs::fcntl_setfd(
+        data::F_SETFD => match set_errno(rsix::fs::fcntl_setfd(
             &fd,
             FdFlags::from_bits(args.arg::<c_int>() as _).unwrap(),
         )) {
             Some(()) => 0,
             None => -1,
         },
-        F_DUPFD_CLOEXEC => match set_errno(rsix::fs::fcntl_dupfd_cloexec(&fd, args.arg::<c_int>()))
+        data::F_DUPFD_CLOEXEC => match set_errno(rsix::fs::fcntl_dupfd_cloexec(&fd, args.arg::<c_int>()))
         {
             Some(fd) => fd.into_raw_fd(),
             None => -1,
@@ -306,19 +300,12 @@ pub unsafe extern "C" fn unlink(pathname: *const c_char) -> c_int {
     }
 }
 
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const SEEK_SET: c_int = 0;
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const SEEK_CUR: c_int = 1;
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const SEEK_END: c_int = 2;
-
 #[no_mangle]
 pub unsafe extern "C" fn lseek64(fd: c_int, offset: i64, whence: c_int) -> i64 {
     let seek_from = match whence {
-        SEEK_SET => std::io::SeekFrom::Start(offset as u64),
-        SEEK_CUR => std::io::SeekFrom::Current(offset),
-        SEEK_END => std::io::SeekFrom::End(offset),
+        data::SEEK_SET => std::io::SeekFrom::Start(offset as u64),
+        data::SEEK_CUR => std::io::SeekFrom::Current(offset),
+        data::SEEK_END => std::io::SeekFrom::End(offset),
         _ => panic!("unrecognized whence({})", whence),
     };
     match set_errno(rsix::fs::seek(&BorrowedFd::borrow_raw_fd(fd), seek_from)) {
@@ -374,23 +361,6 @@ pub struct Dirent64 {
     d_name: [u8; 256],
 }
 
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const DT_UNKNOWN: u8 = 0;
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const DT_FIFO: u8 = 1;
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const DT_CHR: u8 = 2;
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const DT_DIR: u8 = 4;
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const DT_BLK: u8 = 6;
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const DT_REG: u8 = 8;
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const DT_LNK: u8 = 10;
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const DT_SOCK: u8 = 12;
-
 #[no_mangle]
 pub unsafe extern "C" fn readdir64_r(
     dir: *mut rsix::fs::Dir,
@@ -404,14 +374,14 @@ pub unsafe extern "C" fn readdir64_r(
         }
         Some(Ok(e)) => {
             let file_type = match e.file_type() {
-                rsix::fs::FileType::RegularFile => DT_REG,
-                rsix::fs::FileType::Directory => DT_DIR,
-                rsix::fs::FileType::Symlink => DT_LNK,
-                rsix::fs::FileType::Fifo => DT_FIFO,
-                rsix::fs::FileType::Socket => DT_SOCK,
-                rsix::fs::FileType::CharacterDevice => DT_CHR,
-                rsix::fs::FileType::BlockDevice => DT_BLK,
-                rsix::fs::FileType::Unknown => DT_UNKNOWN,
+                rsix::fs::FileType::RegularFile => data::DT_REG,
+                rsix::fs::FileType::Directory => data::DT_DIR,
+                rsix::fs::FileType::Symlink => data::DT_LNK,
+                rsix::fs::FileType::Fifo => data::DT_FIFO,
+                rsix::fs::FileType::Socket => data::DT_SOCK,
+                rsix::fs::FileType::CharacterDevice => data::DT_CHR,
+                rsix::fs::FileType::BlockDevice => data::DT_BLK,
+                rsix::fs::FileType::Unknown => data::DT_UNKNOWN,
             };
             *entry = Dirent64 {
                 d_ino: e.ino(),
@@ -684,14 +654,11 @@ pub unsafe extern "C" fn isatty(fd: c_int) -> c_int {
     }
 }
 
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const TCGETS: c_long = 0x5401;
-
 #[no_mangle]
 pub unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
     let fd = BorrowedFd::borrow_raw_fd(fd);
     match request {
-        TCGETS => match set_errno(rsix::io::ioctl_tcgets(&fd)) {
+        data::TCGETS => match set_errno(rsix::io::ioctl_tcgets(&fd)) {
             Some(x) => {
                 *args.arg::<*mut rsix::io::Termios>() = x;
                 0
@@ -717,12 +684,9 @@ pub unsafe extern "C" fn pipe2(pipefd: *mut c_int, flags: c_int) -> c_int {
 
 // malloc
 
-// Large enough for any C type, including v128.
-const MALLOC_ALIGN: usize = 16;
-
 #[no_mangle]
 pub unsafe extern "C" fn malloc(size: usize) -> *mut c_void {
-    let layout = std::alloc::Layout::from_size_align(size, MALLOC_ALIGN).unwrap();
+    let layout = std::alloc::Layout::from_size_align(size, data::SIZEOF_MAXALIGN_T).unwrap();
     std::alloc::alloc(layout).cast::<_>()
 }
 
@@ -862,11 +826,6 @@ pub unsafe extern "C" fn strlen(mut s: *const c_char) -> usize {
 
 // mmap
 
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const MAP_ANONYMOUS: i32 = 32;
-
-const MAP_ERR: *mut c_void = -1_isize as usize as *mut c_void;
-
 #[no_mangle]
 pub unsafe extern "C" fn mmap(
     addr: *mut c_void,
@@ -876,9 +835,9 @@ pub unsafe extern "C" fn mmap(
     fd: c_int,
     offset: i64,
 ) -> *mut c_void {
-    let anon = flags & MAP_ANONYMOUS == MAP_ANONYMOUS;
+    let anon = flags & data::MAP_ANONYMOUS == data::MAP_ANONYMOUS;
     let prot = ProtFlags::from_bits(prot as _).unwrap();
-    let flags = MapFlags::from_bits((flags & !MAP_ANONYMOUS) as _).unwrap();
+    let flags = MapFlags::from_bits((flags & !data::MAP_ANONYMOUS) as _).unwrap();
     match set_errno(if anon {
         rsix::io::mmap_anonymous(addr, length, prot, flags)
     } else {
@@ -892,7 +851,7 @@ pub unsafe extern "C" fn mmap(
         )
     }) {
         Some(ptr) => ptr,
-        None => MAP_ERR,
+        None => data::MAP_FAILED,
     }
 }
 
@@ -932,26 +891,14 @@ pub unsafe extern "C" fn getrandom(buf: *mut c_void, buflen: usize, flags: u32) 
 
 // process
 
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const _SC_PAGESIZE: c_int = 30;
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const _SC_GETPW_R_SIZE_MAX: c_int = 70;
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const _SC_NPROCESSORS_ONLN: c_int = 84;
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const _SC_SYMLOOP_MAX: c_int = 173;
-
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const SYMLOOP_MAX: c_long = 40;
-
 #[no_mangle]
 pub unsafe extern "C" fn sysconf(name: c_int) -> c_long {
     match name {
-        _SC_PAGESIZE => rsix::process::page_size() as _,
-        _SC_GETPW_R_SIZE_MAX => -1,
+        data::_SC_PAGESIZE => rsix::process::page_size() as _,
+        data::_SC_GETPW_R_SIZE_MAX => -1,
         // Oddly, only ever one processor seems to be online.
-        _SC_NPROCESSORS_ONLN => 1 as _,
-        _SC_SYMLOOP_MAX => SYMLOOP_MAX,
+        data::_SC_NPROCESSORS_ONLN => 1 as _,
+        data::_SC_SYMLOOP_MAX => data::SYMLOOP_MAX,
         _ => panic!("unrecognized sysconf({})", name),
     }
 }
@@ -1138,13 +1085,10 @@ pub unsafe extern "C" fn sigemptyset() {
 
 // syscall
 
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const SYS_GETRANDOM: c_long = 318;
-
 #[no_mangle]
 pub unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
     match number {
-        SYS_GETRANDOM => getrandom(
+        data::SYS_getrandom => getrandom(
             args.arg::<*mut c_void>(),
             args.arg::<usize>(),
             args.arg::<u32>(),
@@ -1202,16 +1146,11 @@ pub unsafe extern "C" fn posix_spawn_file_actions_init() {
 
 // time
 
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const CLOCK_MONOTONIC: c_int = 0;
-#[cfg(any(target_os = "android", target_os = "linux"))]
-const CLOCK_REALTIME: c_int = 1;
-
 #[no_mangle]
 pub unsafe extern "C" fn clock_gettime(id: c_int, tp: *mut rsix::time::Timespec) -> c_int {
     let id = match id {
-        CLOCK_MONOTONIC => rsix::time::ClockId::Monotonic,
-        CLOCK_REALTIME => rsix::time::ClockId::Realtime,
+        data::CLOCK_MONOTONIC => rsix::time::ClockId::Monotonic,
+        data::CLOCK_REALTIME => rsix::time::ClockId::Realtime,
         _ => panic!("unimplemented clock({})", id),
     };
     *tp = rsix::time::clock_gettime(id);
