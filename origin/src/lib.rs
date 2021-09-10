@@ -4,6 +4,7 @@
 #![feature(naked_functions)]
 #![cfg_attr(debug_assertions, feature(link_llvm_intrinsics))]
 
+#[cfg(target_vendor = "mustang")]
 use std::os::raw::{c_char, c_int, c_void};
 
 /// The program entry point.
@@ -13,6 +14,7 @@ use std::os::raw::{c_char, c_int, c_void};
 /// This function should never be called explicitly. It is the first thing
 /// executed in the program, and it assumes that memory is layed out
 /// according to the operating system convention for starting a new program.
+#[cfg(target_vendor = "mustang")]
 #[naked]
 #[no_mangle]
 unsafe extern "C" fn _start() -> ! {
@@ -59,6 +61,7 @@ unsafe extern "C" fn _start() -> ! {
 /// # Safety
 ///
 /// `mem` should point to the stack as provided by the operating system.
+#[cfg(target_vendor = "mustang")]
 unsafe extern "C" fn rust(mem: *mut usize) -> ! {
     #[cfg(debug_assertions)]
     extern "C" {
@@ -145,16 +148,23 @@ unsafe extern "C" fn rust(mem: *mut usize) -> ! {
     exit(ret)
 }
 
+#[cfg(target_vendor = "mustang")]
 #[repr(transparent)]
 struct SendSyncVoidStar(*mut c_void);
+
+#[cfg(target_vendor = "mustang")]
 unsafe impl Send for SendSyncVoidStar {}
+
+#[cfg(target_vendor = "mustang")]
 unsafe impl Sync for SendSyncVoidStar {}
 
 /// An ABI-conforming `__dso_handle`.
+#[cfg(target_vendor = "mustang")]
 #[no_mangle]
 #[used]
 static __dso_handle: SendSyncVoidStar = SendSyncVoidStar(&__dso_handle as *const _ as *mut c_void);
 
+#[cfg(target_vendor = "mustang")]
 #[cfg(feature = "initialize-c-runtime")]
 unsafe fn initialize_c_runtime(argc: c_int, argv: *mut *mut c_char) {
     #[link(name = "initialize-c-runtime")]

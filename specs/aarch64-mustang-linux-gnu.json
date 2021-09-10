@@ -30,5 +30,6 @@
       "-Wl,--require-defined=_start",
       "-Wl,--require-defined=environ"
     ]
-  }
+  },
+  "vendor": "mustang"
 }
