@@ -186,12 +186,18 @@ pub unsafe extern "C" fn realpath(path: *const c_char, resolved_path: *mut c_cha
 #[cfg(any(target_os = "android", target_os = "linux"))]
 const F_SETFD: c_int = 2;
 #[cfg(any(target_os = "android", target_os = "linux"))]
+const F_GETFL: c_int = 3;
+#[cfg(any(target_os = "android", target_os = "linux"))]
 const F_DUPFD_CLOEXEC: c_int = 1030;
 
 #[no_mangle]
 pub unsafe extern "C" fn fcntl(fd: c_int, cmd: c_int, mut args: ...) -> c_int {
     let fd = BorrowedFd::borrow_raw_fd(fd);
     match cmd {
+        F_GETFL => match set_errno(rsix::fs::fcntl_getfl(&fd)) {
+            Some(flags) => flags.bits() as _,
+            None => -1,
+        }
         F_SETFD => match set_errno(rsix::fs::fcntl_setfd(
             &fd,
             FdFlags::from_bits(args.arg::<c_int>() as _).unwrap(),
