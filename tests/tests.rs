@@ -30,10 +30,7 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
         .arg(features)
         .arg("-Z")
         .arg("build-std")
-        .arg(&format!(
-            "--target=specs/{}-unknown-linux-mustang.json",
-            arch
-        ))
+        .arg(&format!("--target=specs/{}-mustang-linux-gnu.json", arch))
         .arg("--example")
         .arg(name)
         .output()

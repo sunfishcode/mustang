@@ -30,17 +30,17 @@ jobs:
             os: ubuntu-latest
             rust: nightly
             host_target: x86_64-unknown-linux-gnu
-            mustang_target: x86_64-unknown-linux-mustang
+            mustang_target: x86_64-mustang-linux-gnu
           - build: ubuntu-16.04
             os: ubuntu-16.04
             rust: nightly
             host_target: x86_64-unknown-linux-gnu
-            mustang_target: x86_64-unknown-linux-mustang
+            mustang_target: x86_64-mustang-linux-gnu
           - build: ubuntu-18.04
             os: ubuntu-18.04
             rust: nightly
             host_target: x86_64-unknown-linux-gnu
-            mustang_target: x86_64-unknown-linux-mustang
+            mustang_target: x86_64-mustang-linux-gnu
           - build: i686-linux
             os: ubuntu-latest
             rust: nightly
@@ -49,7 +49,7 @@ jobs:
             gcc: i686-linux-gnu-gcc
             libc_package: libc-dev-i386-cross
             host_target: i686-unknown-linux-gnu
-            mustang_target: i686-unknown-linux-mustang
+            mustang_target: i686-mustang-linux-gnu
           - build: aarch64-linux
             os: ubuntu-latest
             rust: nightly
@@ -59,7 +59,7 @@ jobs:
             qemu: qemu-aarch64 -L /usr/aarch64-linux-gnu
             qemu_target: aarch64-linux-user
             host_target: aarch64-unknown-linux-gnu
-            mustang_target: aarch64-unknown-linux-mustang
+            mustang_target: aarch64-mustang-linux-gnu
     steps:
     - uses: actions/checkout@v2
       with:
