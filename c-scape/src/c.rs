@@ -165,7 +165,7 @@ pub unsafe extern "C" fn realpath(path: *const c_char, resolved_path: *mut c_cha
                 }
                 slice::from_raw_parts_mut(ptr, path.as_os_str().len())
                     .copy_from_slice(path.as_os_str().as_bytes());
-                *ptr.add(path.as_os_str().len()) = 0;
+                *ptr.add(path.as_os_str().len()) = b'\0';
                 ptr.cast::<c_char>()
             } else {
                 memcpy(
@@ -173,7 +173,7 @@ pub unsafe extern "C" fn realpath(path: *const c_char, resolved_path: *mut c_cha
                     path.as_os_str().as_bytes().as_ptr().cast::<c_void>(),
                     path.as_os_str().len(),
                 );
-                *resolved_path.add(path.as_os_str().len()) = 0;
+                *resolved_path.add(path.as_os_str().len()) = b'\0' as _;
                 resolved_path
             }
         }
@@ -856,7 +856,7 @@ pub unsafe extern "C" fn memset(dst: *mut c_void, fill: c_int, len: usize) -> *m
 #[no_mangle]
 pub unsafe extern "C" fn strlen(mut s: *const c_char) -> usize {
     let mut len = 0;
-    while *s != 0 {
+    while *s != b'\0' as _ {
         len += 1;
         s = s.add(1);
     }
