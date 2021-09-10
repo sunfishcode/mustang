@@ -16,6 +16,7 @@ publish = false
 c-scape = { path = "c-scape" }
 origin = { path = "origin" }
 mustang = { path = "mustang" }
+pretty_assertions = "0.7.2"
 
 # Test that the ctor crate works under mustang.
 ctor = "0.1.21"

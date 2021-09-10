@@ -1,3 +1,6 @@
+#[allow(unused_imports)]
+use pretty_assertions::{assert_eq, assert_ne};
+
 macro_rules! assert_eq_str {
     ($a:expr, $b:expr) => {{
         assert_eq!(String::from_utf8_lossy($a), String::from_utf8_lossy($b));
