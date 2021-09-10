@@ -3,18 +3,24 @@
 //! The goal here isn't necessarily to build a complete libc; it's primarily
 //! to provide things that `std` and possibly popular crates are currently
 //! using.
+//!
+//! This effectively undoes the work that `rsix` does: it calls `rsix` and
+//! translates it back into a C-like ABI. Ideally, Rust code should just call
+//! the `rsix` APIs directly, which are safer, more ergonomic, and skip this
+//! whole layer.
 
-use rsix::fs::{cwd, openat, Mode, OFlags};
+use memoffset::offset_of;
+use rsix::fs::{cwd, openat, AtFlags, FdFlags, Mode, OFlags};
 #[cfg(debug_assertions)]
 use rsix::io::stderr;
 use rsix::io::{MapFlags, MprotectFlags, PipeFlags, ProtFlags};
-use rsix::io_lifetimes::{BorrowedFd, OwnedFd};
+use rsix::io_lifetimes::{AsFd, BorrowedFd, OwnedFd};
 use std::cmp::Ordering;
+use std::convert::TryInto;
 use std::ffi::{c_void, CStr};
 use std::os::raw::{c_char, c_int, c_long, c_uint, c_ulong};
-#[cfg(debug_assertions)]
-use std::os::unix::io::AsRawFd;
-use std::os::unix::io::{FromRawFd, IntoRawFd};
+use std::os::unix::ffi::OsStrExt;
+use std::os::unix::io::{FromRawFd, IntoRawFd, AsRawFd};
 use std::ptr::{null, null_mut};
 use std::slice;
 
@@ -29,8 +35,14 @@ pub unsafe extern "C" fn __errno_location() -> *mut c_int {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn __xpg_strerror_r() {
-    unimplemented!("__xpg_strerror_r")
+pub unsafe extern "C" fn __xpg_strerror_r(errnum: c_int, buf: *mut c_char, buflen: usize) -> c_int {
+    // Ideally we'd print a nicer message here.
+    let s = format!("errno({})", errnum);
+    let min = std::cmp::min(buflen, s.len());
+    let out = slice::from_raw_parts_mut(buf.cast::<u8>(), min);
+    out.copy_from_slice(s.as_bytes());
+    out[out.len() - 1] = 0;
+    0
 }
 
 // fs
@@ -54,13 +66,38 @@ pub unsafe extern "C" fn open() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn readlink() {
-    unimplemented!("readlink")
+pub unsafe extern "C" fn readlink(
+    pathname: *const c_char,
+    buf: *mut c_char,
+    bufsiz: usize,
+) -> isize {
+    let path = match set_errno(rsix::fs::readlinkat(
+        &cwd(),
+        CStr::from_ptr(pathname),
+        std::ffi::OsString::new(),
+    )) {
+        Some(path) => path,
+        None => return -1,
+    };
+    let bytes = path.as_bytes();
+    let min = std::cmp::min(bytes.len(), bufsiz);
+    slice::from_raw_parts_mut(buf.cast::<_>(), min).copy_from_slice(bytes);
+    min as isize
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn stat64() {
-    unimplemented!("stat64")
+pub unsafe extern "C" fn stat64(pathname: *const c_char, stat: *mut rsix::fs::Stat) -> c_int {
+    match set_errno(rsix::fs::statat(
+        &cwd(),
+        CStr::from_ptr(pathname),
+        AtFlags::empty(),
+    )) {
+        Some(r) => {
+            *stat = r;
+            0
+        }
+        None => -1,
+    }
 }
 
 #[no_mangle]
@@ -92,7 +129,7 @@ pub unsafe extern "C" fn statx(
         return -1;
     }
 
-    let flags = rsix::fs::AtFlags::from_bits(flags as _).unwrap();
+    let flags = AtFlags::from_bits(flags as _).unwrap();
     let mask = rsix::fs::StatxFlags::from_bits(mask).unwrap();
     match set_errno(rsix::fs::statx(
         &BorrowedFd::borrow_raw_fd(dirfd),
@@ -113,74 +150,375 @@ pub unsafe extern "C" fn realpath() {
     unimplemented!("realpath")
 }
 
+#[cfg(any(target_os = "android", target_os = "linux"))]
+const F_SETFD: c_int = 2;
+#[cfg(any(target_os = "android", target_os = "linux"))]
+const F_DUPFD_CLOEXEC: c_int = 1030;
+
 #[no_mangle]
-pub unsafe extern "C" fn fcntl() {
-    unimplemented!("fcntl")
+pub unsafe extern "C" fn fcntl(fd: c_int, cmd: c_int, mut args: ...) -> c_int {
+    let fd = BorrowedFd::borrow_raw_fd(fd);
+    match cmd {
+        F_SETFD => match set_errno(rsix::fs::fcntl_setfd(
+            &fd,
+            FdFlags::from_bits(args.arg::<c_int>() as _).unwrap(),
+        )) {
+            Some(()) => 0,
+            None => -1,
+        },
+        F_DUPFD_CLOEXEC => match set_errno(rsix::fs::fcntl_dupfd_cloexec(&fd, args.arg::<c_int>()))
+        {
+            Some(fd) => {
+                let fd: OwnedFd = fd.into();
+                fd.into_raw_fd()
+            }
+            None => -1,
+        },
+        _ => panic!("unrecognized fnctl({})", cmd),
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn mkdir() {
-    unimplemented!("mkdir")
+pub unsafe extern "C" fn mkdir(pathname: *const c_char, mode: c_int) -> c_int {
+    let mode = Mode::from_bits(mode as _).unwrap();
+    match set_errno(rsix::fs::mkdirat(&cwd(), CStr::from_ptr(pathname), mode)) {
+        Some(()) => 0,
+        None => -1,
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn fdatasync() {
-    unimplemented!("fdatasync")
+pub unsafe extern "C" fn fdatasync(fd: c_int) -> c_int {
+    match set_errno(rsix::fs::fdatasync(&BorrowedFd::borrow_raw_fd(fd))) {
+        Some(()) => 0,
+        None => -1,
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn fstatat64() {
-    unimplemented!("fstatat64")
+pub unsafe extern "C" fn fstatat64(
+    fd: c_int,
+    pathname: *const c_char,
+    stat: *mut rsix::fs::Stat,
+) -> c_int {
+    match set_errno(rsix::fs::statat(
+        &BorrowedFd::borrow_raw_fd(fd),
+        CStr::from_ptr(pathname),
+        AtFlags::empty(),
+    )) {
+        Some(r) => {
+            *stat = r;
+            0
+        }
+        None => -1,
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn fsync() {
-    unimplemented!("fsync")
+pub unsafe extern "C" fn fsync(fd: c_int) -> c_int {
+    match set_errno(rsix::fs::fdatasync(&BorrowedFd::borrow_raw_fd(fd))) {
+        Some(()) => 0,
+        None => -1,
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ftruncate64() {
-    unimplemented!("ftruncate64")
+pub unsafe extern "C" fn ftruncate64(fd: c_int, length: i64) -> c_int {
+    match set_errno(rsix::fs::ftruncate(
+        &BorrowedFd::borrow_raw_fd(fd),
+        length as u64,
+    )) {
+        Some(()) => 0,
+        None => -1,
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rename() {
-    unimplemented!("rename")
+pub unsafe extern "C" fn rename(old: *const c_char, new: *const c_char) -> c_int {
+    match set_errno(rsix::fs::renameat(
+        &cwd(),
+        CStr::from_ptr(old),
+        &cwd(),
+        CStr::from_ptr(new),
+    )) {
+        Some(()) => 0,
+        None => -1,
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rmdir() {
-    unimplemented!("rmdir")
+pub unsafe extern "C" fn rmdir(pathname: *const c_char) -> c_int {
+    match set_errno(rsix::fs::unlinkat(
+        &cwd(),
+        CStr::from_ptr(pathname),
+        AtFlags::REMOVEDIR,
+    )) {
+        Some(()) => 0,
+        None => -1,
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn unlink() {
-    unimplemented!("unlink")
+pub unsafe extern "C" fn unlink(pathname: *const c_char) -> c_int {
+    match set_errno(rsix::fs::unlinkat(
+        &cwd(),
+        CStr::from_ptr(pathname),
+        AtFlags::empty(),
+    )) {
+        Some(()) => 0,
+        None => -1,
+    }
+}
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+const SEEK_SET: c_int = 0;
+#[cfg(any(target_os = "android", target_os = "linux"))]
+const SEEK_CUR: c_int = 1;
+#[cfg(any(target_os = "android", target_os = "linux"))]
+const SEEK_END: c_int = 2;
+
+#[no_mangle]
+pub unsafe extern "C" fn lseek64(fd: c_int, offset: i64, whence: c_int) -> i64 {
+    let seek_from = match whence {
+        SEEK_SET => std::io::SeekFrom::Start(offset as u64),
+        SEEK_CUR => std::io::SeekFrom::Current(offset),
+        SEEK_END => std::io::SeekFrom::End(offset),
+        _ => panic!("unrecognized whence({})", whence),
+    };
+    match set_errno(rsix::fs::seek(&BorrowedFd::borrow_raw_fd(fd), seek_from)) {
+        Some(offset) => offset as i64,
+        None => -1,
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn lseek64() {
-    unimplemented!("lseek64")
+pub unsafe extern "C" fn lstat64(pathname: *const c_char, stat: *mut rsix::fs::Stat) -> c_int {
+    match set_errno(rsix::fs::statat(
+        &cwd(),
+        CStr::from_ptr(pathname),
+        AtFlags::SYMLINK_NOFOLLOW,
+    )) {
+        Some(r) => {
+            *stat = r;
+            0
+        }
+        None => -1,
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn lstat64() {
-    unimplemented!("lstat64")
+pub unsafe extern "C" fn opendir(pathname: *const c_char) -> *mut rsix::fs::Dir {
+    match set_errno(rsix::fs::openat(
+        &cwd(),
+        CStr::from_ptr(pathname),
+        OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC,
+        Mode::empty(),
+    )) {
+        Some(fd) => {
+            let fd: OwnedFd = fd.into();
+            fdopendir(fd.into_raw_fd())
+        }
+        None => return null_mut(),
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn opendir() {
-    unimplemented!("opendir")
+pub unsafe extern "C" fn fdopendir(fd: c_int) -> *mut rsix::fs::Dir {
+    let dir = match set_errno(rsix::fs::Dir::from(OwnedFd::from_raw_fd(fd))) {
+        Some(dir) => dir,
+        None => return null_mut(),
+    };
+    Box::into_raw(Box::new(dir))
+}
+
+#[cfg(target_env = "gnu")]
+#[repr(C)]
+pub struct Dirent64 {
+    d_ino: u64,
+    d_off: u64,
+    d_reclen: u16,
+    d_type: u8,
+    d_name: [u8; 256],
+}
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+const DT_UNKNOWN: u8 = 0;
+#[cfg(any(target_os = "android", target_os = "linux"))]
+const DT_FIFO: u8 = 1;
+#[cfg(any(target_os = "android", target_os = "linux"))]
+const DT_CHR: u8 = 2;
+#[cfg(any(target_os = "android", target_os = "linux"))]
+const DT_DIR: u8 = 4;
+#[cfg(any(target_os = "android", target_os = "linux"))]
+const DT_BLK: u8 = 6;
+#[cfg(any(target_os = "android", target_os = "linux"))]
+const DT_REG: u8 = 8;
+#[cfg(any(target_os = "android", target_os = "linux"))]
+const DT_LNK: u8 = 10;
+#[cfg(any(target_os = "android", target_os = "linux"))]
+const DT_SOCK: u8 = 12;
+
+#[no_mangle]
+pub unsafe extern "C" fn readdir64_r(
+    dir: *mut rsix::fs::Dir,
+    entry: *mut Dirent64,
+    ptr: *mut *mut Dirent64,
+) -> c_int {
+    match (*dir).read() {
+        None => {
+            *ptr = null_mut();
+            0
+        }
+        Some(Ok(e)) => {
+            let file_type = match e.file_type() {
+                rsix::fs::FileType::RegularFile => DT_REG,
+                rsix::fs::FileType::Directory => DT_DIR,
+                rsix::fs::FileType::Symlink => DT_LNK,
+                rsix::fs::FileType::Fifo => DT_FIFO,
+                rsix::fs::FileType::Socket => DT_SOCK,
+                rsix::fs::FileType::CharacterDevice => DT_CHR,
+                rsix::fs::FileType::BlockDevice => DT_BLK,
+                rsix::fs::FileType::Unknown => DT_UNKNOWN,
+            };
+            *entry = Dirent64 {
+                d_ino: e.ino(),
+                d_off: 0, // We don't implement `seekdir` yet anyway.
+                d_reclen: (offset_of!(Dirent64, d_name) + e.file_name().to_bytes().len() + 1)
+                    .try_into()
+                    .unwrap(),
+                d_type: file_type,
+                d_name: [0u8; 256],
+            };
+            let len = std::cmp::min(256, e.file_name().to_bytes().len());
+            (*entry).d_name[..len].copy_from_slice(e.file_name().to_bytes());
+            *ptr = entry;
+            0
+        }
+        Some(Err(err)) => err.raw_os_error(),
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn readdir64_r() {
-    unimplemented!("readdir64_r")
+pub unsafe extern "C" fn closedir(dir: *mut rsix::fs::Dir) -> c_int {
+    drop(Box::from_raw(dir));
+    0
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn closedir() {
-    unimplemented!("closedir")
+pub unsafe extern "C" fn dirfd(dir: *mut rsix::fs::Dir) -> c_int {
+    (*dir).as_fd().as_raw_fd()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn readdir() {
+    unimplemented!("readdir")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rewinddir() {
+    unimplemented!("rewinddir")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn scandir() {
+    unimplemented!("scandir")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn seekdir() {
+    unimplemented!("seekdir")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn telldir() {
+    unimplemented!("telldir")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn copy_file_range(
+    fd_in: c_int,
+    off_in: *mut i64,
+    fd_out: c_int,
+    off_out: *mut i64,
+    len: usize,
+    flags: c_uint,
+) -> isize {
+    if fd_in == -1 || fd_out == -1 {
+        *__errno_location() = rsix::io::Error::BADF.raw_os_error();
+        return -1;
+    }
+    assert_eq!(flags, 0);
+    let off_in = if off_in.is_null() {
+        None
+    } else {
+        Some(&mut *off_in.cast::<u64>())
+    };
+    let off_out = if off_out.is_null() {
+        None
+    } else {
+        Some(&mut *off_out.cast::<u64>())
+    };
+    match set_errno(rsix::fs::copy_file_range(
+        &BorrowedFd::borrow_raw_fd(fd_in),
+        off_in,
+        &BorrowedFd::borrow_raw_fd(fd_out),
+        off_out,
+        len as u64,
+    )) {
+        Some(n) => n as _,
+        None => -1,
+    }
+}
+
+#[no_mangle]
+unsafe extern "C" fn chmod(pathname: *const c_char, mode: c_int) -> c_int {
+    let mode = Mode::from_bits(mode as _).unwrap();
+    match set_errno(rsix::fs::chmodat(&cwd(), CStr::from_ptr(pathname), mode)) {
+        Some(()) => 0,
+        None => -1,
+    }
+}
+
+#[no_mangle]
+unsafe extern "C" fn fchmod(fd: c_int, mode: c_int) -> c_int {
+    let mode = Mode::from_bits(mode as _).unwrap();
+    match set_errno(rsix::fs::fchmod(&BorrowedFd::borrow_raw_fd(fd), mode)) {
+        Some(()) => 0,
+        None => -1,
+    }
+}
+
+#[no_mangle]
+unsafe extern "C" fn linkat(
+    olddirfd: c_int,
+    oldpath: *const c_char,
+    newdirfd: c_int,
+    newpath: *const c_char,
+    flags: c_int,
+) -> c_int {
+    let flags = AtFlags::from_bits(flags as _).unwrap();
+    match set_errno(rsix::fs::linkat(
+        &BorrowedFd::borrow_raw_fd(olddirfd),
+        CStr::from_ptr(oldpath),
+        &BorrowedFd::borrow_raw_fd(newdirfd),
+        CStr::from_ptr(newpath),
+        flags,
+    )) {
+        Some(()) => 0,
+        None => -1,
+    }
+}
+
+#[no_mangle]
+unsafe extern "C" fn symlink(target: *const c_char, linkpath: *const c_char) -> c_int {
+    match set_errno(rsix::fs::symlinkat(
+        CStr::from_ptr(target),
+        &cwd(),
+        CStr::from_ptr(linkpath),
+    )) {
+        Some(()) => 0,
+        None => -1,
+    }
 }
 
 // io
@@ -205,8 +543,19 @@ pub unsafe extern "C" fn write(fd: c_int, ptr: *const c_void, len: usize) -> isi
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn writev() {
-    unimplemented!("writev")
+pub unsafe extern "C" fn writev(fd: c_int, iov: *const std::io::IoSlice, iovcnt: c_int) -> isize {
+    if iovcnt < 0 {
+        *__errno_location() = rsix::io::Error::INVAL.raw_os_error();
+        return -1;
+    }
+
+    match set_errno(rsix::io::writev(
+        &BorrowedFd::borrow_raw_fd(fd),
+        slice::from_raw_parts(iov, iovcnt as usize),
+    )) {
+        Some(nwritten) => nwritten as isize,
+        None => -1,
+    }
 }
 
 #[no_mangle]
@@ -229,19 +578,52 @@ pub unsafe extern "C" fn read(fd: c_int, ptr: *mut c_void, len: usize) -> isize 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn readv() {
-    unimplemented!("readv")
+pub unsafe extern "C" fn readv(fd: c_int, iov: *const std::io::IoSliceMut, iovcnt: c_int) -> isize {
+    if iovcnt < 0 {
+        *__errno_location() = rsix::io::Error::INVAL.raw_os_error();
+        return -1;
+    }
+
+    match set_errno(rsix::io::readv(
+        &BorrowedFd::borrow_raw_fd(fd),
+        slice::from_raw_parts(iov, iovcnt as usize),
+    )) {
+        Some(nread) => nread as isize,
+        None => -1,
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn pread64() {
-    unimplemented!("pread64")
+pub unsafe extern "C" fn pread64(fd: c_int, ptr: *mut c_void, len: usize, offset: i64) -> isize {
+    match set_errno(rsix::io::pread(
+        &BorrowedFd::borrow_raw_fd(fd),
+        slice::from_raw_parts_mut(ptr.cast::<u8>(), len),
+        offset as u64,
+    )) {
+        Some(nread) => nread as isize,
+        None => -1,
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn poll(_fds: c_void, _nfds: c_ulong, _timeout: c_int) -> c_int {
-    // Somehow we timed out before anything happened. Huh.
-    0
+pub unsafe extern "C" fn pwrite64(fd: c_int, ptr: *const c_void, len: usize, offset: i64) -> isize {
+    match set_errno(rsix::io::pwrite(
+        &BorrowedFd::borrow_raw_fd(fd),
+        slice::from_raw_parts(ptr.cast::<u8>(), len),
+        offset as u64,
+    )) {
+        Some(nwritten) => nwritten as isize,
+        None => -1,
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn poll(fds: *mut rsix::io::PollFd, nfds: c_ulong, timeout: c_int) -> c_int {
+    let fds = slice::from_raw_parts_mut(fds, nfds.try_into().unwrap());
+    match set_errno(rsix::io::poll(fds, timeout)) {
+        Some(num) => num.try_into().unwrap(),
+        None => -1,
+    }
 }
 
 #[no_mangle]
@@ -500,16 +882,29 @@ pub unsafe extern "C" fn mprotect(addr: *mut c_void, length: usize, prot: c_int)
     }
 }
 
-// process
+// rand
 
 #[no_mangle]
-pub unsafe extern "C" fn getpid() {
-    unimplemented!("getpid")
+pub unsafe extern "C" fn getrandom(buf: *mut c_void, buflen: usize, flags: u32) -> isize {
+    if buflen == 0 {
+        return 0;
+    }
+    let flags = rsix::rand::GetRandomFlags::from_bits(flags).unwrap();
+    match set_errno(rsix::rand::getrandom(
+        slice::from_raw_parts_mut(buf.cast::<u8>(), buflen),
+        flags,
+    )) {
+        Some(num) => num as isize,
+        None => -1,
+    }
 }
+
+// process
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
 const _SC_PAGESIZE: c_int = 30;
-
+#[cfg(any(target_os = "android", target_os = "linux"))]
+const _SC_GETPW_R_SIZE_MAX: c_int = 70;
 #[cfg(any(target_os = "android", target_os = "linux"))]
 const _SC_NPROCESSORS_ONLN: c_int = 84;
 
@@ -517,6 +912,7 @@ const _SC_NPROCESSORS_ONLN: c_int = 84;
 pub unsafe extern "C" fn sysconf(name: c_int) -> c_long {
     match name {
         _SC_PAGESIZE => rsix::process::page_size() as _,
+        _SC_GETPW_R_SIZE_MAX => -1,
         // Oddly, only ever one processor seems to be online.
         _SC_NPROCESSORS_ONLN => 1 as _,
         _ => panic!("unrecognized sysconf({})", name),
@@ -544,16 +940,29 @@ pub unsafe extern "C" fn dl_iterate_phdr() {
 
 #[no_mangle]
 pub unsafe extern "C" fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c_void {
-    if handle.is_null() && CStr::from_ptr(symbol).to_bytes() == b"statx" {
-        return statx as *mut c_void;
-    }
-    if handle.is_null() && CStr::from_ptr(symbol).to_bytes() == b"__pthread_get_minstack" {
-        // Let's just say we don't support this for now.
-        return null_mut();
-    }
-    if handle.is_null() && CStr::from_ptr(symbol).to_bytes() == b"gnu_get_libc_version" {
-        // Let's just say we don't support this for now.
-        return null_mut();
+    if handle.is_null() {
+        // `std` uses `dlsym` to dynamically detect feature availability; recognize
+        // functions it asks for.
+        if CStr::from_ptr(symbol).to_bytes() == b"statx" {
+            return statx as *mut c_void;
+        }
+        if CStr::from_ptr(symbol).to_bytes() == b"getrandom" {
+            return getrandom as *mut c_void;
+        }
+        if CStr::from_ptr(symbol).to_bytes() == b"clone3" {
+            return clone3 as *mut c_void;
+        }
+        if CStr::from_ptr(symbol).to_bytes() == b"copy_file_range" {
+            return copy_file_range as *mut c_void;
+        }
+        if CStr::from_ptr(symbol).to_bytes() == b"__pthread_get_minstack" {
+            // Let's just say we don't support this for now.
+            return null_mut();
+        }
+        if CStr::from_ptr(symbol).to_bytes() == b"gnu_get_libc_version" {
+            // Let's just say we don't support this for now.
+            return null_mut();
+        }
     }
     unimplemented!("dlsym({:?})", CStr::from_ptr(symbol))
 }
@@ -626,8 +1035,18 @@ pub unsafe extern "C" fn setuid() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn getuid() {
-    unimplemented!("getuid")
+pub unsafe extern "C" fn getpid() -> c_uint {
+    rsix::process::getpid().as_raw()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn getuid() -> c_uint {
+    rsix::process::getuid().as_raw()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn getgid() -> c_uint {
+    rsix::process::getgid().as_raw()
 }
 
 // nss
@@ -682,9 +1101,19 @@ pub unsafe extern "C" fn sigemptyset() {
 
 // syscall
 
+#[cfg(any(target_os = "android", target_os = "linux"))]
+const SYS_GETRANDOM: c_long = 318;
+
 #[no_mangle]
-pub unsafe extern "C" fn syscall() {
-    unimplemented!("syscall")
+pub unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
+    match number {
+        SYS_GETRANDOM => getrandom(
+            args.arg::<*mut c_void>(),
+            args.arg::<usize>(),
+            args.arg::<u32>(),
+        ) as _,
+        _ => unimplemented!("syscall({:?})", number),
+    }
 }
 
 // posix_spawn
@@ -736,14 +1165,39 @@ pub unsafe extern "C" fn posix_spawn_file_actions_init() {
 
 // time
 
+#[cfg(any(target_os = "android", target_os = "linux"))]
+const CLOCK_MONOTONIC: c_int = 0;
+#[cfg(any(target_os = "android", target_os = "linux"))]
+const CLOCK_REALTIME: c_int = 1;
+
 #[no_mangle]
-pub unsafe extern "C" fn clock_gettime(_id: c_int, _tp: *mut rsix::time::Timespec) {
-    unimplemented!("clock_gettime")
+pub unsafe extern "C" fn clock_gettime(id: c_int, tp: *mut rsix::time::Timespec) -> c_int {
+    let id = match id {
+        CLOCK_MONOTONIC => rsix::time::ClockId::Monotonic,
+        CLOCK_REALTIME => rsix::time::ClockId::Realtime,
+        _ => panic!("unimplemented clock({})", id),
+    };
+    *tp = rsix::time::clock_gettime(id);
+    0
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn nanosleep() {
-    unimplemented!("nanosleep")
+pub unsafe extern "C" fn nanosleep(
+    req: *const rsix::time::Timespec,
+    rem: *mut rsix::time::Timespec,
+) -> c_int {
+    match rsix::time::nanosleep(&*req) {
+        rsix::time::NanosleepRelativeResult::Ok => 0,
+        rsix::time::NanosleepRelativeResult::Interrupted(remaining) => {
+            *rem = remaining;
+            *__errno_location() = rsix::io::Error::INTR.raw_os_error();
+            -1
+        }
+        rsix::time::NanosleepRelativeResult::Err(err) => {
+            *__errno_location() = err.raw_os_error();
+            -1
+        }
+    }
 }
 
 // math
@@ -1219,6 +1673,11 @@ pub unsafe extern "C" fn execvp() {
 #[no_mangle]
 pub unsafe extern "C" fn fork() {
     unimplemented!("fork")
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn clone3() {
+    unimplemented!("clone3")
 }
 
 #[no_mangle]
