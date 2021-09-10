@@ -5,6 +5,7 @@
 
 mod c;
 mod environ;
+mod error_str;
 mod exit;
 mod pthread;
 mod unwind;
