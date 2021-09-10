@@ -7,7 +7,7 @@
 use rsix::fs::{cwd, openat, Mode, OFlags};
 #[cfg(debug_assertions)]
 use rsix::io::stderr;
-use rsix::io::{MapFlags, MprotectFlags, ProtFlags};
+use rsix::io::{MapFlags, MprotectFlags, PipeFlags, ProtFlags};
 use rsix::io_lifetimes::{BorrowedFd, OwnedFd};
 use std::cmp::Ordering;
 use std::ffi::{c_void, CStr};
@@ -92,11 +92,13 @@ pub unsafe extern "C" fn statx(
         return -1;
     }
 
+    let flags = rsix::fs::AtFlags::from_bits(flags as _).unwrap();
+    let mask = rsix::fs::StatxFlags::from_bits(mask).unwrap();
     match set_errno(rsix::fs::statx(
         &BorrowedFd::borrow_raw_fd(dirfd),
         CStr::from_ptr(path),
-        rsix::fs::AtFlags::from_bits(flags as _).unwrap(),
-        rsix::fs::StatxFlags::from_bits(mask).unwrap(),
+        flags,
+        mask,
     )) {
         Some(r) => {
             *stat = r;
@@ -197,14 +199,37 @@ pub unsafe extern "C" fn isatty(fd: c_int) -> c_int {
     }
 }
 
+#[cfg(any(target_os = "android", target_os = "linux"))]
+const TCGETS: c_long = 0x5401;
+
 #[no_mangle]
-pub unsafe extern "C" fn ioctl() {
-    unimplemented!("ioctl")
+pub unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
+    let fd = BorrowedFd::borrow_raw_fd(fd);
+    match request {
+        TCGETS => match set_errno(rsix::io::ioctl_tcgets(&fd)) {
+            Some(x) => {
+                *args.arg::<*mut rsix::io::Termios>() = x;
+                0
+            }
+            None => -1,
+        },
+        _ => panic!("unrecognized ioctl({})", request),
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn pipe2() {
-    unimplemented!("pipe2")
+pub unsafe extern "C" fn pipe2(pipefd: *mut c_int, flags: c_int) -> c_int {
+    let flags = PipeFlags::from_bits(flags as _).unwrap();
+    match set_errno(rsix::io::pipe_with(flags)) {
+        Some((a, b)) => {
+            let a: OwnedFd = a.into();
+            *pipefd = a.into_raw_fd();
+            let b: OwnedFd = b.into();
+            *pipefd.add(1) = b.into_raw_fd();
+            0
+        }
+        None => -1,
+    }
 }
 
 // malloc
@@ -368,20 +393,17 @@ pub unsafe extern "C" fn mmap(
     fd: c_int,
     offset: i64,
 ) -> *mut c_void {
-    match set_errno(if flags & MAP_ANONYMOUS == MAP_ANONYMOUS {
-        let flags = flags & !MAP_ANONYMOUS;
-        rsix::io::mmap_anonymous(
-            addr,
-            length,
-            ProtFlags::from_bits(prot as _).unwrap(),
-            MapFlags::from_bits(flags as _).unwrap(),
-        )
+    let anon = flags & MAP_ANONYMOUS == MAP_ANONYMOUS;
+    let prot = ProtFlags::from_bits(prot as _).unwrap();
+    let flags = MapFlags::from_bits((flags & !MAP_ANONYMOUS) as _).unwrap();
+    match set_errno(if anon {
+        rsix::io::mmap_anonymous(addr, length, prot, flags)
     } else {
         rsix::io::mmap(
             addr,
             length,
-            ProtFlags::from_bits(prot as _).unwrap(),
-            MapFlags::from_bits(flags as _).unwrap(),
+            prot,
+            flags,
             &BorrowedFd::borrow_raw_fd(fd),
             offset as _,
         )
@@ -401,11 +423,8 @@ pub unsafe extern "C" fn munmap(ptr: *mut c_void, len: usize) -> c_int {
 
 #[no_mangle]
 pub unsafe extern "C" fn mprotect(addr: *mut c_void, length: usize, prot: c_int) -> c_int {
-    match set_errno(rsix::io::mprotect(
-        addr,
-        length,
-        MprotectFlags::from_bits(prot as _).unwrap(),
-    )) {
+    let prot = MprotectFlags::from_bits(prot as _).unwrap();
+    match set_errno(rsix::io::mprotect(addr, length, prot)) {
         Some(()) => 0,
         None => -1,
     }
