@@ -22,7 +22,10 @@ use std::slice;
 
 #[no_mangle]
 pub unsafe extern "C" fn __errno_location() -> *mut c_int {
-    unimplemented!("__errno_location")
+    // When threads are supported, this will need to return a per-thread
+    // pointer, but for now, we can just return a single static address.
+    static mut ERRNO: i32 = 0;
+    &mut ERRNO
 }
 
 #[no_mangle]
