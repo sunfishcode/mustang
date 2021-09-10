@@ -17,10 +17,10 @@ use rsix::io::{MapFlags, MprotectFlags, PipeFlags, ProtFlags};
 use rsix::io_lifetimes::{AsFd, BorrowedFd, OwnedFd};
 use std::cmp::Ordering;
 use std::convert::TryInto;
-use std::ffi::{c_void, CStr};
+use std::ffi::{c_void, CStr, OsStr};
 use std::os::raw::{c_char, c_int, c_long, c_uint, c_ulong};
 use std::os::unix::ffi::OsStrExt;
-use std::os::unix::io::{FromRawFd, IntoRawFd, AsRawFd};
+use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd};
 use std::ptr::{null, null_mut};
 use std::slice;
 
@@ -86,6 +86,11 @@ pub unsafe extern "C" fn readlink(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn stat() -> c_int {
+    unimplemented!("stat")
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn stat64(pathname: *const c_char, stat: *mut rsix::fs::Stat) -> c_int {
     match set_errno(rsix::fs::statat(
         &cwd(),
@@ -146,8 +151,37 @@ pub unsafe extern "C" fn statx(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn realpath() {
-    unimplemented!("realpath")
+pub unsafe extern "C" fn realpath(path: *const c_char, resolved_path: *mut c_char) -> *mut c_char {
+    match realpath_ext::realpath(
+        OsStr::from_bytes(CStr::from_ptr(path).to_bytes()),
+        realpath_ext::RealpathFlags::empty(),
+    ) {
+        Ok(path) => {
+            if resolved_path.is_null() {
+                let ptr = malloc(path.as_os_str().len() + 1).cast::<u8>();
+                if ptr.is_null() {
+                    *__errno_location() = rsix::io::Error::NOMEM.raw_os_error();
+                    return null_mut();
+                }
+                slice::from_raw_parts_mut(ptr, path.as_os_str().len())
+                    .copy_from_slice(path.as_os_str().as_bytes());
+                *ptr.add(path.as_os_str().len()) = 0;
+                ptr.cast::<c_char>()
+            } else {
+                memcpy(
+                    resolved_path.cast::<c_void>(),
+                    path.as_os_str().as_bytes().as_ptr().cast::<c_void>(),
+                    path.as_os_str().len(),
+                );
+                *resolved_path.add(path.as_os_str().len()) = 0;
+                resolved_path
+            }
+        }
+        Err(err) => {
+            *__errno_location() = err.raw_os_error().unwrap();
+            null_mut()
+        }
+    }
 }
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
@@ -907,6 +941,11 @@ const _SC_PAGESIZE: c_int = 30;
 const _SC_GETPW_R_SIZE_MAX: c_int = 70;
 #[cfg(any(target_os = "android", target_os = "linux"))]
 const _SC_NPROCESSORS_ONLN: c_int = 84;
+#[cfg(any(target_os = "android", target_os = "linux"))]
+const _SC_SYMLOOP_MAX: c_int = 173;
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+const SYMLOOP_MAX: c_long = 40;
 
 #[no_mangle]
 pub unsafe extern "C" fn sysconf(name: c_int) -> c_long {
@@ -915,6 +954,7 @@ pub unsafe extern "C" fn sysconf(name: c_int) -> c_long {
         _SC_GETPW_R_SIZE_MAX => -1,
         // Oddly, only ever one processor seems to be online.
         _SC_NPROCESSORS_ONLN => 1 as _,
+        _SC_SYMLOOP_MAX => SYMLOOP_MAX,
         _ => panic!("unrecognized sysconf({})", name),
     }
 }
@@ -1673,6 +1713,18 @@ pub unsafe extern "C" fn execvp() {
 #[no_mangle]
 pub unsafe extern "C" fn fork() {
     unimplemented!("fork")
+}
+
+// <https://refspecs.linuxbase.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/baselib---register-atfork.html>
+#[no_mangle]
+pub unsafe extern "C" fn __register_atfork(
+    _prepare: unsafe extern "C" fn(),
+    _parent: unsafe extern "C" fn(),
+    _child: unsafe extern "C" fn(),
+    _dso_handle: *mut c_void,
+) -> c_int {
+    // We don't implement `fork` yet, so there's nothing to do.
+    0
 }
 
 #[no_mangle]
