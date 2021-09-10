@@ -23,7 +23,7 @@ pub const DT_SOCK: u8 = 12;
 
 pub const TCGETS: c_long = 0x5401;
 
-pub const SIZEOF_MAXALIGN_T: usize = 32;
+pub const ALIGNOF_MAXALIGN_T: usize = 16;
 
 pub const MAP_ANONYMOUS: i32 = 32;
 
