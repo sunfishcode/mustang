@@ -90,10 +90,13 @@ constant!(DT_LNK);
 constant!(DT_SOCK);
 constant!(TCGETS);
 constant!(FIONBIO);
+#[cfg(not(target_arch = "riscv64"))] // libc for riscv64 doesn't have max_align_t yet
 constant_same_as!(
     ALIGNOF_MAXALIGN_T,
     std::mem::align_of::<libc::max_align_t>()
 );
+#[cfg(target_arch = "riscv64")]
+constant_same_as!(ALIGNOF_MAXALIGN_T, 16);
 constant!(MAP_ANONYMOUS);
 constant!(MREMAP_MAYMOVE);
 constant!(MREMAP_FIXED);
