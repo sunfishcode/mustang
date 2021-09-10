@@ -984,9 +984,40 @@ pub unsafe extern "C" fn mmap(
     prot: c_int,
     flags: c_int,
     fd: c_int,
-    offset: i64,
+    offset: c_long,
 ) -> *mut c_void {
     libc!(mmap(addr, length, prot, flags, fd, offset));
+
+    let anon = flags & data::MAP_ANONYMOUS == data::MAP_ANONYMOUS;
+    let prot = ProtFlags::from_bits(prot as _).unwrap();
+    let flags = MapFlags::from_bits((flags & !data::MAP_ANONYMOUS) as _).unwrap();
+    match set_errno(if anon {
+        rsix::io::mmap_anonymous(addr, length, prot, flags)
+    } else {
+        rsix::io::mmap(
+            addr,
+            length,
+            prot,
+            flags,
+            &BorrowedFd::borrow_raw_fd(fd),
+            offset as _,
+        )
+    }) {
+        Some(ptr) => ptr,
+        None => data::MAP_FAILED,
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn mmap64(
+    addr: *mut c_void,
+    length: usize,
+    prot: c_int,
+    flags: c_int,
+    fd: c_int,
+    offset: i64,
+) -> *mut c_void {
+    libc!(mmap64(addr, length, prot, flags, fd, offset));
 
     let anon = flags & data::MAP_ANONYMOUS == data::MAP_ANONYMOUS;
     let prot = ProtFlags::from_bits(prot as _).unwrap();
