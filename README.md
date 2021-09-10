@@ -66,7 +66,7 @@ Then, compile with Rust nightly, using `-Z build-std` and
 `--target=<mustang-target>`. For example:
 
 ```
-$ cargo +nightly run --quiet -Z build-std --target=x86_64-unknown-linux-mustang --example hello
+$ cargo +nightly run --quiet -Z build-std --target=x86_64-mustang-linux-gnu --example hello
 .｡oO(This process was started by origin! 🎯)
 .｡oO(Environment variables initialized by c-scape! 🌱)
 .｡oO(I/O performed by c-scape using rsix! 🌊)
@@ -85,7 +85,7 @@ the above commands are configured to link libc dynamically. If `mustang` has
 everything covered, there should be no output:
 
 ```
-$ nm -u target/x86_64-unknown-linux-mustang/debug/examples/hello
+$ nm -u target/x86_64-mustang-linux-gnu/debug/examples/hello
 $
 ```
 
