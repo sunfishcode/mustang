@@ -3,13 +3,17 @@
 #![feature(asm)]
 #![feature(c_variadic)]
 
+#[cfg(mustang_use_libc)]
+#[macro_use]
+mod use_libc;
+
 mod c;
+mod data;
 mod environ;
 mod error_str;
 mod exit;
 mod pthread;
 mod unwind;
-mod data;
 
 type GlobalAlloc = wee_alloc::WeeAlloc<'static>;
 

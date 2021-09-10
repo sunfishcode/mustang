@@ -21,6 +21,10 @@ realpath-ext = "0.1.0"
 # A minimal `global_allocator` implementation.
 wee_alloc = "0.4.5"
 
+# When requested, check against libc signatures.
+[target.'cfg(mustang_use_libc)'.dependencies]
+libc = "0.2.99"
+
 [dev-dependencies]
 libc = "0.2.99"
 static_assertions = "1.1.0"

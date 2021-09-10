@@ -1,7 +1,8 @@
-// Constants and types used in `*-*-linux-gnu` targets.
+// Constants and types used in `*-*-linux-gnu` targets. These are
+// checked against `libc` by the parent mod.rs.
 
-use std::os::raw::{c_int, c_long};
 use std::ffi::c_void;
+use std::os::raw::{c_int, c_long};
 
 pub const F_SETFD: c_int = 2;
 pub const F_GETFL: c_int = 3;
@@ -35,7 +36,25 @@ pub const _SC_SYMLOOP_MAX: c_int = 173;
 
 pub const SYMLOOP_MAX: c_long = 40;
 
+#[cfg(target_arch = "x86_64")]
 pub const SYS_getrandom: c_long = 318;
+#[cfg(target_arch = "x86")]
+pub const SYS_getrandom: c_long = 355;
+#[cfg(target_arch = "aarch64")]
+pub const SYS_getrandom: c_long = 278;
+#[cfg(target_arch = "riscv64")]
+pub const SYS_getrandom: c_long = 278;
 
 pub const CLOCK_REALTIME: c_int = 0;
 pub const CLOCK_MONOTONIC: c_int = 1;
+
+pub const SIG_DFL: usize = 0;
+
+#[repr(C)]
+pub struct Dirent64 {
+    pub d_ino: u64,
+    pub d_off: u64,
+    pub d_reclen: u16,
+    pub d_type: u8,
+    pub d_name: [u8; 256],
+}

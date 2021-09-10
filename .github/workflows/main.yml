@@ -120,7 +120,8 @@ jobs:
         # Run the tests using the host target rather than the mustang target,
         # as mustang doesn't yet support everything needed by the test harness.
         # The test uses a mustang target as needed for the actual test cases.
-        cargo +nightly test --verbose
-        cargo +nightly test --release --verbose
+        cargo +nightly test --workspace --verbose
+        cargo +nightly test --workspace --verbose --release
+        RUSTFLAGS=--cfg=mustang_use_libc cargo +nightly check --workspace
       env:
         RUST_BACKTRACE: 1
