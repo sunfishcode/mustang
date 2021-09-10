@@ -65,7 +65,10 @@ constant!(DT_REG);
 constant!(DT_LNK);
 constant!(DT_SOCK);
 constant!(TCGETS);
-constant_same_as!(SIZEOF_MAXALIGN_T, std::mem::size_of::<libc::max_align_t>());
+constant_same_as!(
+    ALIGNOF_MAXALIGN_T,
+    std::mem::align_of::<libc::max_align_t>()
+);
 constant!(MAP_ANONYMOUS);
 constant_same_as!(MAP_FAILED, libc::MAP_FAILED);
 constant!(_SC_PAGESIZE);

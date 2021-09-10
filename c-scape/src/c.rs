@@ -794,7 +794,7 @@ const METADATA: once_cell::sync::Lazy<
 pub unsafe extern "C" fn malloc(size: usize) -> *mut c_void {
     libc!(malloc(size));
 
-    let layout = std::alloc::Layout::from_size_align(size, data::SIZEOF_MAXALIGN_T).unwrap();
+    let layout = std::alloc::Layout::from_size_align(size, data::ALIGNOF_MAXALIGN_T).unwrap();
     let ptr = std::alloc::alloc(layout).cast::<_>();
 
     METADATA.lock().unwrap().insert(ptr as usize, layout);
