@@ -74,3 +74,8 @@ pub unsafe extern "C" fn _Unwind_FindEnclosingFUnction() {
 pub unsafe extern "C" fn _Unwind_GetCFA() {
     unimplemented!("_Unwind_GetCFA")
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn _Unwind_FindEnclosingFunction() {
+    unimplemented!("_Unwind_FindEnclosingFunction")
+}

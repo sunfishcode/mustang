@@ -120,6 +120,56 @@ pub unsafe extern "C" fn pthread_attr_setguardsize() -> c_int {
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn pthread_condattr_destroy() -> c_int {
+    0
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn pthread_condattr_init() -> c_int {
+    0
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn pthread_condattr_setclock() -> c_int {
+    0
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn pthread_cond_broadcast() -> c_int {
+    0
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn pthread_cond_destroy() -> c_int {
+    0
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn pthread_cond_init() -> c_int {
+    0
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn pthread_cond_signal() -> c_int {
+    0
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn pthread_cond_wait() -> c_int {
+    0
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn pthread_rwlock_destroy() -> c_int {
+    0
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn pthread_rwlock_wrlock() -> c_int {
+    0
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn pthread_create() -> c_int {
     unimplemented!("pthread_create")
 }
