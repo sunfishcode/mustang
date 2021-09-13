@@ -1,4 +1,4 @@
-extern crate mustang;
+mustang::can_compile_this!();
 
 fn main() {
     let mut args = std::env::args_os();

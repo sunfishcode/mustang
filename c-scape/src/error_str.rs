@@ -1,6 +1,6 @@
 use rsix::io::Error;
 
-pub const fn error_str(e: Error) -> Option<&'static str> {
+pub(crate) const fn error_str(e: Error) -> Option<&'static str> {
     // Recognize errors documented in POSIX and use the documented strings.
     // <https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/errno.h.html>
     Some(match e {

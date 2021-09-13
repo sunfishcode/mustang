@@ -1,4 +1,4 @@
-extern crate mustang;
+mustang::can_compile_this!();
 
 #[cfg(feature = "initialize-c-runtime")]
 #[link(name = "hello-c-world")]

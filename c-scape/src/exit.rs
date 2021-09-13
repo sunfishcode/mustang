@@ -32,8 +32,10 @@ static DTORS: Lazy<Mutex<SmallVec<[(SendFunc, SendArg); 32]>>> =
 /// This function conforms to the [LSB `__cxa_atexit`] ABI.
 ///
 /// [LSB `__cxa_atexit`]: <https://refspecs.linuxbase.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/baselib---cxa-atexit.html>
+#[inline(never)]
+#[link_section = ".mustang"]
 #[no_mangle]
-pub unsafe extern "C" fn __cxa_atexit(
+unsafe extern "C" fn __cxa_atexit(
     func: unsafe extern "C" fn(*mut c_void),
     arg: *mut c_void,
     _dso: *mut c_void,
@@ -50,12 +52,16 @@ pub unsafe extern "C" fn __cxa_atexit(
     }
 }
 
+#[inline(never)]
+#[link_section = ".mustang"]
 #[no_mangle]
-pub unsafe extern "C" fn __cxa_finalize(_d: *mut c_void) {}
+unsafe extern "C" fn __cxa_finalize(_d: *mut c_void) {}
 
 /// C-compatible `atexit`. Consider using `__cxa_atexit` instead.
+#[inline(never)]
+#[link_section = ".mustang"]
 #[no_mangle]
-pub unsafe extern "C" fn atexit(func: unsafe extern "C" fn()) -> c_int {
+unsafe extern "C" fn atexit(func: unsafe extern "C" fn()) -> c_int {
     /// Adapter to let `atexit`-style functions be called in the same manner as
     /// `__cxa_atexit` functions.
     unsafe extern "C" fn adapter(func: *mut c_void) {
@@ -68,8 +74,10 @@ pub unsafe extern "C" fn atexit(func: unsafe extern "C" fn()) -> c_int {
 /// C-compatible `exit`.
 ///
 /// Call all the registered at-exit functions, and exit the process.
+#[inline(never)]
+#[link_section = ".mustang"]
 #[no_mangle]
-pub extern "C" fn exit(status: c_int) -> ! {
+extern "C" fn exit(status: c_int) -> ! {
     extern "C" {
         static __fini_array_start: c_void;
         static __fini_array_end: c_void;
@@ -105,9 +113,10 @@ pub extern "C" fn exit(status: c_int) -> ! {
 /// POSIX-compatible `_exit`.
 ///
 /// Just exit the process.
-#[inline]
+#[inline(never)]
+#[link_section = ".mustang"]
 #[no_mangle]
-pub extern "C" fn _exit(status: c_int) -> ! {
+extern "C" fn _exit(status: c_int) -> ! {
     // For now, print a message, so that we know we're doing something. We'll
     // probably remove this at some point, but for now, things are fragile
     // enough that it's nice to have this confirmation.
@@ -116,3 +125,10 @@ pub extern "C" fn _exit(status: c_int) -> ! {
 
     rsix::process::exit_group(status)
 }
+
+/// Ensure that this module is linked in.
+#[inline(never)]
+#[link_section = ".mustang"]
+#[no_mangle]
+#[cold]
+unsafe extern "C" fn __mustang_c_scape__exit() {}

@@ -3,8 +3,10 @@ use std::os::raw::{c_char, c_int};
 use std::ptr::null_mut;
 use std::slice;
 
+#[inline(never)]
+#[link_section = ".mustang"]
 #[no_mangle]
-pub unsafe extern "C" fn getenv(key: *const c_char) -> *mut c_char {
+unsafe extern "C" fn getenv(key: *const c_char) -> *mut c_char {
     let key = CStr::from_ptr(key);
     let mut ptr = environ;
     loop {
@@ -29,8 +31,8 @@ pub unsafe extern "C" fn getenv(key: *const c_char) -> *mut c_char {
 /// non-standard extension. Use priority 99 so that we run before any
 /// normal user-defined constructor functions.
 #[cfg(target_env = "gnu")]
-#[used]
 #[link_section = ".init_array.00099"]
+#[used]
 static INIT_ARRAY: unsafe extern "C" fn(c_int, *mut *mut c_char, *mut *mut c_char) = {
     unsafe extern "C" fn function(_argc: c_int, _argv: *mut *mut c_char, envp: *mut *mut c_char) {
         init_from_envp(envp);
@@ -45,8 +47,8 @@ static INIT_ARRAY: unsafe extern "C" fn(c_int, *mut *mut c_char, *mut *mut c_cha
 ///
 /// <https://refspecs.linuxbase.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/baselib---environ.html>
 #[cfg(not(target_env = "gnu"))]
-#[used]
 #[link_section = ".init_array.00099"]
+#[used]
 static INIT_ARRAY: unsafe extern "C" fn() = {
     unsafe extern "C" fn function() {
         extern "C" {
@@ -68,6 +70,14 @@ fn init_from_envp(envp: *mut *mut c_char) {
     unsafe { environ = envp };
 }
 
+#[link_section = ".mustang.data"]
 #[no_mangle]
 #[used]
-pub static mut environ: *mut *mut c_char = null_mut();
+static mut environ: *mut *mut c_char = null_mut();
+
+/// Ensure that this module is linked in.
+#[inline(never)]
+#[link_section = ".mustang"]
+#[no_mangle]
+#[cold]
+unsafe extern "C" fn __mustang_c_scape__environ() {}

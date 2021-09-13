@@ -54,12 +54,12 @@ Then, in your own crate, add a dependency on `mustang`:
 mustang = { git = "https://github.com/sunfishcode/mustang" }
 ```
 
-And add an `extern crate` declaration for `mustang` to your top-level module
-(eg. main.rs). This is needed even in Rust 2018 Edition, to ensure that
-`mustang` is linked in even though no functions in it are explicitly called:
+And add a `mustang::can_compile_this!();` to your top-level module (eg. main.rs). This
+does nothing in non-`mustang`-target builds, but in `mustang`-target builds
+arranges for `mustang`'s libraries to be linked in.
 
 ```rust
-extern crate mustang;
+mustang::can_compile_this!();
 ```
 
 Then, compile with Rust nightly, using `-Z build-std` and
@@ -89,7 +89,7 @@ $ nm -u target/x86_64-mustang-linux-gnu/debug/examples/hello
 $
 ```
 
-## The C Runtime
+## C Runtime interop
 
 C has a runtime, and if you wish to link with any C libraries, the C runtime
 needs to be initialized. `mustang` doesn't do this by default, but it does

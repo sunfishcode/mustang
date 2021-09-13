@@ -1,4 +1,4 @@
-extern crate mustang;
+mustang::can_compile_this!();
 
 use std::ffi::{CStr, OsStr, OsString};
 use std::os::raw::{c_char, c_int};
@@ -28,8 +28,8 @@ fn dtor() {
     DTOR_PERFORMED.store(true, Ordering::Relaxed);
 }
 
-#[used]
 #[link_section = ".init_array"]
+#[used]
 static INIT_ARRAY: unsafe extern "C" fn(c_int, *mut *mut c_char, *mut *mut c_char) = {
     unsafe extern "C" fn function(argc: c_int, argv: *mut *mut c_char, envp: *mut *mut c_char) {
         assert_eq!(argc as usize, std::env::args_os().len());
@@ -72,8 +72,8 @@ static INIT_ARRAY: unsafe extern "C" fn(c_int, *mut *mut c_char, *mut *mut c_cha
     function
 };
 
-#[used]
 #[link_section = ".init_array.00000"]
+#[used]
 static EARLY_INIT_ARRAY: unsafe extern "C" fn(c_int, *mut *mut c_char, *mut *mut c_char) = {
     unsafe extern "C" fn function(_argc: c_int, _argv: *mut *mut c_char, _envp: *mut *mut c_char) {
         EARLY_CTOR_INITIALIZED.store(true, Ordering::Relaxed);
@@ -83,8 +83,8 @@ static EARLY_INIT_ARRAY: unsafe extern "C" fn(c_int, *mut *mut c_char, *mut *mut
     function
 };
 
-#[used]
 #[link_section = ".fini_array.00000"]
+#[used]
 static LATE_FINI_ARRAY: unsafe extern "C" fn(c_int, *mut *mut c_char, *mut *mut c_char) = {
     unsafe extern "C" fn function(_argc: c_int, _argv: *mut *mut c_char, _envp: *mut *mut c_char) {
         assert!(DTOR_PERFORMED.load(Ordering::Relaxed));

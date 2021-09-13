@@ -10,7 +10,7 @@ license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
 repository = "https://github.com/sunfishcode/mustang"
 edition = "2018"
 
-[dependencies]
+[target.'cfg(target_vendor = "mustang")'.dependencies]
 c-scape = { path = "../c-scape" }
 origin = { path = "../origin" }
 
