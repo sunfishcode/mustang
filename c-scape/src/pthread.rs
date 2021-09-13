@@ -10,35 +10,35 @@ use std::ptr::null;
 type pthread_t = usize;
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_self() -> pthread_t {
     1
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_getattr_np(_thread: pthread_t, _attr: *mut c_void) -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_attr_init(_attr: *mut c_void) -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_attr_destroy(_attr: *mut c_void) -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_attr_getstack(
     _attr: *const c_void,
@@ -51,224 +51,224 @@ unsafe extern "C" fn pthread_attr_getstack(
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_getspecific() -> *const c_void {
     null()
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_key_create() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_key_delete() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_mutexattr_destroy() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_mutexattr_init() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_mutexattr_settype() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_mutex_destroy() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_mutex_init() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_mutex_lock() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_mutex_trylock() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_mutex_unlock() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_rwlock_rdlock() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_rwlock_unlock() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_setspecific() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_attr_getguardsize() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_attr_setguardsize() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_condattr_destroy() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_condattr_init() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_condattr_setclock() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_cond_broadcast() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_cond_destroy() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_cond_init() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_cond_signal() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_cond_wait() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_rwlock_destroy() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_rwlock_wrlock() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_create() -> c_int {
     unimplemented!("pthread_create")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_detach() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_join() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_sigmask() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_attr_setstacksize() -> c_int {
     0
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_cancel() -> c_int {
     // `pthread_cancel` may be tricky to implement, because it seems glibc's
@@ -281,7 +281,7 @@ unsafe extern "C" fn pthread_cancel() -> c_int {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_exit() -> c_int {
     // As with `pthread_cancel`, `pthread_exit` may be tricky to implement.
@@ -289,35 +289,35 @@ unsafe extern "C" fn pthread_exit() -> c_int {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_cleanup_push() -> c_int {
     unimplemented!("pthread_cleanup_push")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_cleanup_pop() -> c_int {
     unimplemented!("pthread_cleanup_pop")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_setcancelstate() -> c_int {
     unimplemented!("pthread_setcancelstate")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_setcanceltype() -> c_int {
     unimplemented!("pthread_setcanceltype")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_testcancel() -> c_int {
     unimplemented!("pthread_testcancel")
@@ -325,7 +325,7 @@ unsafe extern "C" fn pthread_testcancel() -> c_int {
 
 /// Ensure that this module is linked in.
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 #[cold]
 unsafe extern "C" fn __mustang_c_scape__pthread() {}

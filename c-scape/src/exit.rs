@@ -33,7 +33,7 @@ static DTORS: Lazy<Mutex<SmallVec<[(SendFunc, SendArg); 32]>>> =
 ///
 /// [LSB `__cxa_atexit`]: <https://refspecs.linuxbase.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/baselib---cxa-atexit.html>
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn __cxa_atexit(
     func: unsafe extern "C" fn(*mut c_void),
@@ -53,13 +53,13 @@ unsafe extern "C" fn __cxa_atexit(
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn __cxa_finalize(_d: *mut c_void) {}
 
 /// C-compatible `atexit`. Consider using `__cxa_atexit` instead.
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn atexit(func: unsafe extern "C" fn()) -> c_int {
     /// Adapter to let `atexit`-style functions be called in the same manner as
@@ -75,7 +75,7 @@ unsafe extern "C" fn atexit(func: unsafe extern "C" fn()) -> c_int {
 ///
 /// Call all the registered at-exit functions, and exit the process.
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 extern "C" fn exit(status: c_int) -> ! {
     extern "C" {
@@ -114,7 +114,7 @@ extern "C" fn exit(status: c_int) -> ! {
 ///
 /// Just exit the process.
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 extern "C" fn _exit(status: c_int) -> ! {
     // For now, print a message, so that we know we're doing something. We'll
@@ -128,7 +128,7 @@ extern "C" fn _exit(status: c_int) -> ! {
 
 /// Ensure that this module is linked in.
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 #[cold]
 unsafe extern "C" fn __mustang_c_scape__exit() {}
