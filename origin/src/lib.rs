@@ -15,7 +15,7 @@ use std::os::raw::{c_char, c_int, c_void};
 /// # Safety
 ///
 /// This function should never be called explicitly. It is the first thing
-/// executed in the program, and it assumes that memory is layed out
+/// executed in the program, and it assumes that memory is laid out
 /// according to the operating system convention for starting a new program.
 #[cfg(target_vendor = "mustang")]
 #[naked]
