@@ -15,7 +15,7 @@ use std::os::raw::{c_char, c_int, c_void};
 /// executed in the program, and it assumes that memory is laid out
 /// according to the operating system convention for starting a new program.
 #[naked]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn _start() -> ! {
     // Jump to `rust`, passing it the initial stack pointer value as an
@@ -156,7 +156,7 @@ unsafe impl Send for SendSyncVoidStar {}
 unsafe impl Sync for SendSyncVoidStar {}
 
 /// An ABI-conforming `__dso_handle`.
-#[link_section = ".mustang.data"]
+#[link_section = ".data.__mustang"]
 #[no_mangle]
 #[used]
 static __dso_handle: SendSyncVoidStar = SendSyncVoidStar(&__dso_handle as *const _ as *mut c_void);
@@ -176,7 +176,7 @@ unsafe fn initialize_c_runtime(argc: c_int, argv: *mut *mut c_char) {
 
 /// Ensure that this module is linked in.
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 #[cold]
 unsafe extern "C" fn __mustang_origin() {

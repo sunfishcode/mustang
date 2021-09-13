@@ -26,7 +26,7 @@ static ALLOC: crate::GlobalAlloc = crate::GLOBAL_ALLOC;
 
 /// Ensure that `mustang`'s modules are linked in.
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 #[cold]
 unsafe extern "C" fn __mustang_c_scape() {

@@ -43,7 +43,7 @@ macro_rules! libc {
 // errno
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn __errno_location() -> *mut c_int {
     libc!(__errno_location());
@@ -55,7 +55,7 @@ unsafe extern "C" fn __errno_location() -> *mut c_int {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn __xpg_strerror_r(errnum: c_int, buf: *mut c_char, buflen: usize) -> c_int {
     libc!(strerror_r(errnum, buf, buflen));
@@ -74,7 +74,7 @@ unsafe extern "C" fn __xpg_strerror_r(errnum: c_int, buf: *mut c_char, buflen: u
 // fs
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn open64(pathname: *const c_char, flags: c_int, mode: c_int) -> c_int {
     libc!(open64(pathname, flags, mode));
@@ -88,14 +88,14 @@ unsafe extern "C" fn open64(pathname: *const c_char, flags: c_int, mode: c_int) 
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn open() {
     unimplemented!("open")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn readlink(pathname: *const c_char, buf: *mut c_char, bufsiz: usize) -> isize {
     libc!(readlink(pathname, buf, bufsiz));
@@ -115,14 +115,14 @@ unsafe extern "C" fn readlink(pathname: *const c_char, buf: *mut c_char, bufsiz:
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn stat() -> c_int {
     unimplemented!("stat")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn stat64(pathname: *const c_char, stat_: *mut rsix::fs::Stat) -> c_int {
     libc!(stat64(pathname, same_ptr_mut(stat_)));
@@ -141,14 +141,14 @@ unsafe extern "C" fn stat64(pathname: *const c_char, stat_: *mut rsix::fs::Stat)
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn fstat(_fd: c_int, _stat: *mut rsix::fs::Stat) -> c_int {
     unimplemented!("fstat")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn fstat64(fd: c_int, stat_: *mut rsix::fs::Stat) -> c_int {
     libc!(fstat64(fd, same_ptr_mut(stat_)));
@@ -163,7 +163,7 @@ unsafe extern "C" fn fstat64(fd: c_int, stat_: *mut rsix::fs::Stat) -> c_int {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn statx(
     dirfd_: c_int,
@@ -196,7 +196,7 @@ unsafe extern "C" fn statx(
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn realpath(path: *const c_char, resolved_path: *mut c_char) -> *mut c_char {
     libc!(realpath(path, resolved_path));
@@ -234,7 +234,7 @@ unsafe extern "C" fn realpath(path: *const c_char, resolved_path: *mut c_char) -
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn fcntl(fd: c_int, cmd: c_int, mut args: ...) -> c_int {
     match cmd {
@@ -272,7 +272,7 @@ unsafe extern "C" fn fcntl(fd: c_int, cmd: c_int, mut args: ...) -> c_int {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn mkdir(pathname: *const c_char, mode: c_uint) -> c_int {
     libc!(mkdir(pathname, mode));
@@ -285,7 +285,7 @@ unsafe extern "C" fn mkdir(pathname: *const c_char, mode: c_uint) -> c_int {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn fdatasync(fd: c_int) -> c_int {
     libc!(fdatasync(fd));
@@ -297,7 +297,7 @@ unsafe extern "C" fn fdatasync(fd: c_int) -> c_int {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn fstatat64(
     fd: c_int,
@@ -322,7 +322,7 @@ unsafe extern "C" fn fstatat64(
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn fsync(fd: c_int) -> c_int {
     libc!(fsync(fd));
@@ -334,7 +334,7 @@ unsafe extern "C" fn fsync(fd: c_int) -> c_int {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn ftruncate64(fd: c_int, length: i64) -> c_int {
     libc!(ftruncate64(fd, length));
@@ -349,7 +349,7 @@ unsafe extern "C" fn ftruncate64(fd: c_int, length: i64) -> c_int {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn rename(old: *const c_char, new: *const c_char) -> c_int {
     libc!(rename(old, new));
@@ -366,7 +366,7 @@ unsafe extern "C" fn rename(old: *const c_char, new: *const c_char) -> c_int {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn rmdir(pathname: *const c_char) -> c_int {
     libc!(rmdir(pathname));
@@ -382,7 +382,7 @@ unsafe extern "C" fn rmdir(pathname: *const c_char) -> c_int {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn unlink(pathname: *const c_char) -> c_int {
     libc!(unlink(pathname));
@@ -398,7 +398,7 @@ unsafe extern "C" fn unlink(pathname: *const c_char) -> c_int {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn lseek64(fd: c_int, offset: i64, whence: c_int) -> i64 {
     libc!(lseek64(fd, offset, whence));
@@ -416,7 +416,7 @@ unsafe extern "C" fn lseek64(fd: c_int, offset: i64, whence: c_int) -> i64 {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn lstat64(pathname: *const c_char, stat_: *mut rsix::fs::Stat) -> c_int {
     libc!(lstat64(pathname, same_ptr_mut(stat_)));
@@ -435,7 +435,7 @@ unsafe extern "C" fn lstat64(pathname: *const c_char, stat_: *mut rsix::fs::Stat
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn opendir(pathname: *const c_char) -> *mut c_void {
     libc!(opendir(pathname).cast::<_>());
@@ -452,7 +452,7 @@ unsafe extern "C" fn opendir(pathname: *const c_char) -> *mut c_void {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn fdopendir(fd: c_int) -> *mut c_void {
     libc!(fdopendir(fd).cast::<_>());
@@ -465,7 +465,7 @@ unsafe extern "C" fn fdopendir(fd: c_int) -> *mut c_void {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn readdir64_r(
     dir: *mut c_void,
@@ -514,7 +514,7 @@ unsafe extern "C" fn readdir64_r(
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn closedir(dir: *mut c_void) -> c_int {
     libc!(closedir(dir.cast::<_>()));
@@ -524,7 +524,7 @@ unsafe extern "C" fn closedir(dir: *mut c_void) -> c_int {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn dirfd(dir: *mut c_void) -> c_int {
     libc!(dirfd(dir.cast::<_>()));
@@ -534,42 +534,42 @@ unsafe extern "C" fn dirfd(dir: *mut c_void) -> c_int {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn readdir() {
     unimplemented!("readdir")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn rewinddir() {
     unimplemented!("rewinddir")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn scandir() {
     unimplemented!("scandir")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn seekdir() {
     unimplemented!("seekdir")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn telldir() {
     unimplemented!("telldir")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn copy_file_range(
     fd_in: c_int,
@@ -609,7 +609,7 @@ unsafe extern "C" fn copy_file_range(
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn chmod(pathname: *const c_char, mode: c_uint) -> c_int {
     libc!(chmod(pathname, mode));
@@ -622,7 +622,7 @@ unsafe extern "C" fn chmod(pathname: *const c_char, mode: c_uint) -> c_int {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn fchmod(fd: c_int, mode: c_uint) -> c_int {
     libc!(fchmod(fd, mode));
@@ -635,7 +635,7 @@ unsafe extern "C" fn fchmod(fd: c_int, mode: c_uint) -> c_int {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn linkat(
     olddirfd: c_int,
@@ -660,7 +660,7 @@ unsafe extern "C" fn linkat(
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn symlink(target: *const c_char, linkpath: *const c_char) -> c_int {
     libc!(symlink(target, linkpath));
@@ -678,7 +678,7 @@ unsafe extern "C" fn symlink(target: *const c_char, linkpath: *const c_char) -> 
 // io
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn write(fd: c_int, ptr: *const c_void, len: usize) -> isize {
     libc!(write(fd, ptr, len));
@@ -701,7 +701,7 @@ unsafe extern "C" fn write(fd: c_int, ptr: *const c_void, len: usize) -> isize {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn writev(fd: c_int, iov: *const std::io::IoSlice, iovcnt: c_int) -> isize {
     libc!(writev(fd, same_ptr(iov), iovcnt));
@@ -721,7 +721,7 @@ unsafe extern "C" fn writev(fd: c_int, iov: *const std::io::IoSlice, iovcnt: c_i
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn read(fd: c_int, ptr: *mut c_void, len: usize) -> isize {
     libc!(read(fd, ptr, len));
@@ -744,7 +744,7 @@ unsafe extern "C" fn read(fd: c_int, ptr: *mut c_void, len: usize) -> isize {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn readv(fd: c_int, iov: *const std::io::IoSliceMut, iovcnt: c_int) -> isize {
     libc!(readv(fd, same_ptr(iov), iovcnt));
@@ -764,7 +764,7 @@ unsafe extern "C" fn readv(fd: c_int, iov: *const std::io::IoSliceMut, iovcnt: c
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pread64(fd: c_int, ptr: *mut c_void, len: usize, offset: i64) -> isize {
     libc!(pread64(fd, ptr, len, offset));
@@ -780,7 +780,7 @@ unsafe extern "C" fn pread64(fd: c_int, ptr: *mut c_void, len: usize, offset: i6
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pwrite64(fd: c_int, ptr: *const c_void, len: usize, offset: i64) -> isize {
     libc!(pwrite64(fd, ptr, len, offset));
@@ -796,7 +796,7 @@ unsafe extern "C" fn pwrite64(fd: c_int, ptr: *const c_void, len: usize, offset:
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn poll(fds: *mut rsix::io::PollFd, nfds: c_ulong, timeout: c_int) -> c_int {
     libc!(poll(same_ptr_mut(fds), nfds, timeout));
@@ -809,7 +809,7 @@ unsafe extern "C" fn poll(fds: *mut rsix::io::PollFd, nfds: c_ulong, timeout: c_
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn close(fd: c_int) -> c_int {
     libc!(close(fd));
@@ -819,7 +819,7 @@ unsafe extern "C" fn close(fd: c_int) -> c_int {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn dup2(fd: c_int, to: c_int) -> c_int {
     libc!(dup2(fd, to));
@@ -832,7 +832,7 @@ unsafe extern "C" fn dup2(fd: c_int, to: c_int) -> c_int {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn isatty(fd: c_int) -> c_int {
     libc!(isatty(fd));
@@ -846,7 +846,7 @@ unsafe extern "C" fn isatty(fd: c_int) -> c_int {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
     match request {
@@ -866,7 +866,7 @@ unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pipe2(pipefd: *mut c_int, flags: c_int) -> c_int {
     libc!(pipe2(pipefd, flags));
@@ -891,7 +891,7 @@ const METADATA: once_cell::sync::Lazy<
 > = once_cell::sync::Lazy::new(|| std::sync::Mutex::new(std::collections::HashMap::new()));
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn malloc(size: usize) -> *mut c_void {
     libc!(malloc(size));
@@ -905,7 +905,7 @@ unsafe extern "C" fn malloc(size: usize) -> *mut c_void {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn realloc(old: *mut c_void, size: usize) -> *mut c_void {
     libc!(realloc(old, size));
@@ -926,7 +926,7 @@ unsafe extern "C" fn realloc(old: *mut c_void, size: usize) -> *mut c_void {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn calloc(nmemb: usize, size: usize) -> *mut c_void {
     libc!(calloc(nmemb, size));
@@ -944,7 +944,7 @@ unsafe extern "C" fn calloc(nmemb: usize, size: usize) -> *mut c_void {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn posix_memalign(
     memptr: *mut *mut c_void,
@@ -963,7 +963,7 @@ unsafe extern "C" fn posix_memalign(
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn free(ptr: *mut c_void) {
     libc!(free(ptr));
@@ -977,7 +977,7 @@ unsafe extern "C" fn free(ptr: *mut c_void) {
 // mem
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn memchr(s: *const c_void, c: c_int, len: usize) -> *mut c_void {
     libc!(memchr(s, c, len));
@@ -990,7 +990,7 @@ unsafe extern "C" fn memchr(s: *const c_void, c: c_int, len: usize) -> *mut c_vo
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn memrchr(s: *const c_void, c: c_int, len: usize) -> *mut c_void {
     libc!(memrchr(s, c, len));
@@ -1003,7 +1003,7 @@ unsafe extern "C" fn memrchr(s: *const c_void, c: c_int, len: usize) -> *mut c_v
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn strlen(mut s: *const c_char) -> usize {
     libc!(strlen(s));
@@ -1019,7 +1019,7 @@ unsafe extern "C" fn strlen(mut s: *const c_char) -> usize {
 // mmap
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn mmap(
     addr: *mut c_void,
@@ -1052,7 +1052,7 @@ unsafe extern "C" fn mmap(
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn mmap64(
     addr: *mut c_void,
@@ -1085,7 +1085,7 @@ unsafe extern "C" fn mmap64(
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn munmap(ptr: *mut c_void, len: usize) -> c_int {
     libc!(munmap(ptr, len));
@@ -1097,7 +1097,7 @@ unsafe extern "C" fn munmap(ptr: *mut c_void, len: usize) -> c_int {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn mprotect(addr: *mut c_void, length: usize, prot: c_int) -> c_int {
     libc!(mprotect(addr, length, prot));
@@ -1112,7 +1112,7 @@ unsafe extern "C" fn mprotect(addr: *mut c_void, length: usize, prot: c_int) -> 
 // rand
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn getrandom(buf: *mut c_void, buflen: usize, flags: u32) -> isize {
     libc!(getrandom(buf, buflen, flags));
@@ -1133,7 +1133,7 @@ unsafe extern "C" fn getrandom(buf: *mut c_void, buflen: usize, flags: u32) -> i
 // process
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn sysconf(name: c_int) -> c_long {
     libc!(sysconf(name));
@@ -1149,7 +1149,7 @@ unsafe extern "C" fn sysconf(name: c_int) -> c_long {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn getcwd(buf: *mut c_char, len: usize) -> *mut c_char {
     libc!(getcwd(buf, len));
@@ -1162,7 +1162,7 @@ unsafe extern "C" fn getcwd(buf: *mut c_char, len: usize) -> *mut c_char {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn chdir(_path: *const c_char) -> c_int {
     libc!(chdir(_path));
@@ -1171,14 +1171,14 @@ unsafe extern "C" fn chdir(_path: *const c_char) -> c_int {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn dl_iterate_phdr() {
     unimplemented!("dl_iterate_phdr")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c_void {
     libc!(dlsym(handle, symbol));
@@ -1211,28 +1211,28 @@ unsafe extern "C" fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn dlclose() {
     unimplemented!("dlclose")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn dlerror() {
     unimplemented!("dlerror")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn dlopen() {
     unimplemented!("dlopen")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn __tls_get_addr() {
     unimplemented!("__tls_get_addr")
@@ -1240,14 +1240,14 @@ unsafe extern "C" fn __tls_get_addr() {
 
 #[cfg(target_arch = "x86")]
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn ___tls_get_addr() {
     unimplemented!("___tls_get_addr")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn __cxa_thread_atexit_impl(
     _func: unsafe extern "C" fn(*mut c_void),
@@ -1261,7 +1261,7 @@ unsafe extern "C" fn __cxa_thread_atexit_impl(
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn sched_yield() -> c_int {
     libc!(sched_yield());
@@ -1271,56 +1271,56 @@ unsafe extern "C" fn sched_yield() -> c_int {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn sched_getaffinity() {
     unimplemented!("sched_getaffinity")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn prctl() {
     unimplemented!("prctl")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn setgid() {
     unimplemented!("setgid")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn setgroups() {
     unimplemented!("setgroups")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn setuid() {
     unimplemented!("setuid")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn getpid() -> c_uint {
     rsix::process::getpid().as_raw()
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn getuid() -> c_uint {
     rsix::process::getuid().as_raw()
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn getgid() -> c_uint {
     rsix::process::getgid().as_raw()
@@ -1329,7 +1329,7 @@ unsafe extern "C" fn getgid() -> c_uint {
 // nss
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn getpwuid_r() {
     unimplemented!("getpwuid_r")
@@ -1338,14 +1338,14 @@ unsafe extern "C" fn getpwuid_r() {
 // signal
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn abort() {
     unimplemented!("abort")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn signal(_num: c_int, _handler: usize) -> usize {
     libc!(signal(_num, _handler));
@@ -1355,7 +1355,7 @@ unsafe extern "C" fn signal(_num: c_int, _handler: usize) -> usize {
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn sigaction(_signum: c_int, _act: *const c_void, _oldact: *mut c_void) -> c_int {
     libc!(sigaction(_signum, _act.cast::<_>(), _oldact.cast::<_>()));
@@ -1365,7 +1365,7 @@ unsafe extern "C" fn sigaction(_signum: c_int, _act: *const c_void, _oldact: *mu
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn sigaltstack(_ss: *const c_void, _old_ss: *mut c_void) -> c_int {
     libc!(sigaltstack(_ss.cast::<_>(), _old_ss.cast::<_>()));
@@ -1375,14 +1375,14 @@ unsafe extern "C" fn sigaltstack(_ss: *const c_void, _old_ss: *mut c_void) -> c_
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn sigaddset() {
     unimplemented!("sigaddset")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn sigemptyset() {
     unimplemented!("sigemptyset")
@@ -1391,7 +1391,7 @@ unsafe extern "C" fn sigemptyset() {
 // syscall
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
     match number {
@@ -1409,63 +1409,63 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
 // posix_spawn
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn posix_spawnp() {
     unimplemented!("posix_spawnp");
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn posix_spawnattr_destroy() {
     unimplemented!("posix_spawnattr_destroy")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn posix_spawnattr_init() {
     unimplemented!("posix_spawnattr_init")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn posix_spawnattr_setflags() {
     unimplemented!("posix_spawnattr_setflags")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn posix_spawnattr_setsigdefault() {
     unimplemented!("posix_spawnattr_setsigdefault")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn posix_spawnattr_setsigmask() {
     unimplemented!("posix_spawnsetsigmask")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn posix_spawn_file_actions_adddup2() {
     unimplemented!("posix_spawn_file_actions_adddup2")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn posix_spawn_file_actions_destroy() {
     unimplemented!("posix_spawn_file_actions_destroy")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn posix_spawn_file_actions_init() {
     unimplemented!("posix_spawn_file_actions_init")
@@ -1474,7 +1474,7 @@ unsafe extern "C" fn posix_spawn_file_actions_init() {
 // time
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn clock_gettime(id: c_int, tp: *mut rsix::time::Timespec) -> c_int {
     libc!(clock_gettime(id, same_ptr_mut(tp)));
@@ -1489,7 +1489,7 @@ unsafe extern "C" fn clock_gettime(id: c_int, tp: *mut rsix::time::Timespec) -> 
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn nanosleep(
     req: *const rsix::time::Timespec,
@@ -1514,14 +1514,14 @@ unsafe extern "C" fn nanosleep(
 // exec
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn execvp() {
     unimplemented!("execvp")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn fork() {
     unimplemented!("fork")
@@ -1529,7 +1529,7 @@ unsafe extern "C" fn fork() {
 
 // <https://refspecs.linuxbase.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/baselib---register-atfork.html>
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn __register_atfork(
     _prepare: unsafe extern "C" fn(),
@@ -1544,14 +1544,14 @@ unsafe extern "C" fn __register_atfork(
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn clone3() {
     unimplemented!("clone3")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn waitpid() {
     unimplemented!("waitpid")
@@ -1560,14 +1560,14 @@ unsafe extern "C" fn waitpid() {
 // setjmp
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn siglongjmp() {
     unimplemented!("siglongjmp")
 }
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn __sigsetjmp() {
     unimplemented!("__sigsetjmp")
@@ -1585,7 +1585,7 @@ fn set_errno<T>(result: Result<T, rsix::io::Error>) -> Option<T> {
 
 /// Ensure that this module is linked in.
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 #[cold]
 unsafe extern "C" fn __mustang_c_scape__c() {

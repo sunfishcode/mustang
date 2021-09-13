@@ -4,7 +4,7 @@ use std::ptr::null_mut;
 use std::slice;
 
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn getenv(key: *const c_char) -> *mut c_char {
     let key = CStr::from_ptr(key);
@@ -70,14 +70,14 @@ fn init_from_envp(envp: *mut *mut c_char) {
     unsafe { environ = envp };
 }
 
-#[link_section = ".mustang.data"]
+#[link_section = ".data.__mustang"]
 #[no_mangle]
 #[used]
 static mut environ: *mut *mut c_char = null_mut();
 
 /// Ensure that this module is linked in.
 #[inline(never)]
-#[link_section = ".mustang"]
+#[link_section = ".text.__mustang"]
 #[no_mangle]
 #[cold]
 unsafe extern "C" fn __mustang_c_scape__environ() {}
