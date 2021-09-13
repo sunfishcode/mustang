@@ -875,27 +875,25 @@ pub unsafe extern "C" fn free(ptr: *mut c_void) {
 // mem
 
 #[no_mangle]
-pub unsafe extern "C" fn memchr(s: *mut c_void, c: c_int, len: usize) -> *mut c_void {
+pub unsafe extern "C" fn memchr(s: *const c_void, c: c_int, len: usize) -> *mut c_void {
     libc!(memchr(s, c, len));
 
-    for i in 0..len {
-        if *s.cast::<u8>().add(i) == c as u8 {
-            return s.cast::<u8>().add(i).cast::<c_void>();
-        }
+    let slice: &[u8] = slice::from_raw_parts(s.cast(), len);
+    match memchr::memchr(c as u8, slice) {
+        None => null_mut(),
+        Some(i) => s.cast::<u8>().add(i) as *mut c_void,
     }
-    null_mut()
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn memrchr(s: *mut c_void, c: c_int, len: usize) -> *mut c_void {
+pub unsafe extern "C" fn memrchr(s: *const c_void, c: c_int, len: usize) -> *mut c_void {
     libc!(memrchr(s, c, len));
 
-    for i in 0..len {
-        if *s.cast::<u8>().add(len - i - 1) == c as u8 {
-            return s.cast::<u8>().add(len - i - 1).cast::<c_void>();
-        }
+    let slice: &[u8] = slice::from_raw_parts(s.cast(), len);
+    match memchr::memrchr(c as u8, slice) {
+        None => null_mut(),
+        Some(i) => s.cast::<u8>().add(i) as *mut c_void,
     }
-    null_mut()
 }
 
 #[no_mangle]

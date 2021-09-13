@@ -18,6 +18,7 @@ rsix = "0.22.3"
 memoffset = "0.6"
 realpath-ext = "0.1.0"
 compiler_builtins = "0.1.50"
+memchr = "2.4.1"
 
 # A minimal `global_allocator` implementation.
 wee_alloc = "0.4.5"
