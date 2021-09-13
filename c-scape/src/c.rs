@@ -20,7 +20,6 @@ use rsix::fs::{cwd, openat, AtFlags, FdFlags, Mode, OFlags};
 use rsix::io::stderr;
 use rsix::io::{MapFlags, MprotectFlags, PipeFlags, ProtFlags};
 use rsix::io_lifetimes::{AsFd, BorrowedFd, OwnedFd};
-use std::cmp::Ordering;
 use std::convert::TryInto;
 use std::ffi::{c_void, CStr, OsStr};
 use std::os::raw::{c_char, c_int, c_long, c_uint, c_ulong};
@@ -28,6 +27,15 @@ use std::os::unix::ffi::OsStrExt;
 use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd};
 use std::ptr::{null, null_mut};
 use std::slice;
+
+// These are provided by compiler_builtins.
+extern "C" {
+    // pub fn bcmp(a: *const c_void, b: *const c_void, n: usize) -> c_int;
+    // pub fn memcmp(a: *const c_void, b: *const c_void, len: usize) -> c_int;
+    // pub fn memmove(dst: *mut c_void, src: *const c_void, len: usize) -> *mut c_void;
+    pub fn memcpy(dst: *mut c_void, src: *const c_void, len: usize) -> *mut c_void;
+    pub fn memset(s: *mut c_void, c: c_int, n: usize) -> *mut c_void;
+}
 
 #[cfg(not(mustang_use_libc))]
 macro_rules! libc {
@@ -888,79 +896,6 @@ pub unsafe extern "C" fn memrchr(s: *mut c_void, c: c_int, len: usize) -> *mut c
         }
     }
     null_mut()
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn memcmp(a: *const c_void, b: *const c_void, len: usize) -> c_int {
-    libc!(memcmp(a, b, len));
-
-    for i in 0..len {
-        match (*a.cast::<u8>().add(i)).cmp(&*b.cast::<u8>().add(i)) {
-            Ordering::Less => return -1,
-            Ordering::Greater => return 1,
-            Ordering::Equal => (),
-        }
-    }
-    0
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn bcmp(a: *const c_void, b: *const c_void, len: usize) -> c_int {
-    // `bcmp` is just an alias for `memcmp`.
-    libc!(memcmp(a, b, len));
-
-    memcmp(a, b, len)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn memcpy(dst: *mut c_void, src: *const c_void, len: usize) -> *mut c_void {
-    libc!(memcpy(dst, src, len));
-
-    memcpy_forward(dst, src, len)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn memmove(dst: *mut c_void, src: *const c_void, len: usize) -> *mut c_void {
-    libc!(memmove(dst, src, len));
-
-    if (dst as usize) < (src as usize) {
-        memcpy_forward(dst, src, len)
-    } else {
-        memcpy_backward(dst, src, len)
-    }
-}
-
-unsafe fn memcpy_forward(dst: *mut c_void, src: *const c_void, len: usize) -> *mut c_void {
-    // Avoid using `0..len` because that could generate a `memcpy`.
-    let mut i = 0;
-    while i != len {
-        *dst.cast::<u8>().add(i) = *src.cast::<u8>().add(i);
-        i += 1;
-    }
-    dst
-}
-
-unsafe fn memcpy_backward(dst: *mut c_void, src: *const c_void, len: usize) -> *mut c_void {
-    // Avoid using `0..len` because that could generate a `memcpy`.
-    let mut i = 0;
-    while i != len {
-        *dst.cast::<u8>().add(len - i - 1) = *src.cast::<u8>().add(len - i - 1);
-        i += 1;
-    }
-    dst
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn memset(dst: *mut c_void, fill: c_int, len: usize) -> *mut c_void {
-    libc!(memset(dst, fill, len));
-
-    // Avoid using `0..len` because that could generate a `memset`.
-    let mut i = 0;
-    while i != len {
-        *dst.cast::<u8>().add(i) = fill as u8;
-        i += 1;
-    }
-    dst
 }
 
 #[no_mangle]
