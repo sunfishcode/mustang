@@ -16,8 +16,8 @@
     "gcc": [
       "-m32",
       "-nostdlib",
-      "-Wl,--require-defined=_start",
-      "-Wl,--require-defined=environ"
+      "-Wl,--require-defined=__mustang_origin",
+      "-Wl,--require-defined=__mustang_c_scape"
     ]
   },
   "relro-level": "full",

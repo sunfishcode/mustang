@@ -12,13 +12,13 @@ macro_rules! libc {
     };
 }
 
-pub fn same_ptr<T, U>(t: *const T) -> *const U {
+pub(crate) fn same_ptr<T, U>(t: *const T) -> *const U {
     assert_eq!(std::mem::size_of::<T>(), std::mem::size_of::<U>());
     assert_eq!(std::mem::align_of::<T>(), std::mem::align_of::<U>());
     t.cast::<U>()
 }
 
-pub fn same_ptr_mut<T, U>(t: *mut T) -> *mut U {
+pub(crate) fn same_ptr_mut<T, U>(t: *mut T) -> *mut U {
     assert_eq!(std::mem::size_of::<T>(), std::mem::size_of::<U>());
     assert_eq!(std::mem::align_of::<T>(), std::mem::align_of::<U>());
     t.cast::<U>()

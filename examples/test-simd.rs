@@ -2,7 +2,7 @@
 //#![feature(portable_simd)]
 //#![feature(asm)]
 
-extern crate mustang;
+mustang::can_compile_this!();
 
 fn main() {
     // TODO: Re-enable test_simd when core_simd works on Rust nightly.

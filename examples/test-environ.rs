@@ -1,4 +1,4 @@
-extern crate mustang;
+mustang::can_compile_this!();
 
 fn main() {
     // We expect to be passed some environment variables.
