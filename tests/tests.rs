@@ -59,6 +59,25 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
         name,
         output
     );
+
+    // test-backtrace and test-tls are not fully supported by mustang yet.
+    // test-initialize-c-runtime deliberately links in C runtime symbols.
+    if name != "test-backtrace" && name != "test-tls" && name != "test-initialize-c-runtime" {
+        let output = Command::new("nm")
+            .arg("-u")
+            .arg(&format!(
+                "target/{}-mustang-linux-gnu/debug/examples/{}",
+                arch, name
+            ))
+            .output()
+            .unwrap();
+        assert_eq!(
+            "",
+            String::from_utf8_lossy(&output.stdout),
+            "example {} had unexpected undefined symbols",
+            name
+        );
+    }
 }
 
 #[test]

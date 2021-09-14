@@ -26,15 +26,6 @@ use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd};
 use std::ptr::null_mut;
 use std::slice;
 
-// These are provided by compiler_builtins.
-extern "C" {
-    fn bcmp(a: *const c_void, b: *const c_void, n: usize) -> c_int;
-    fn memcmp(a: *const c_void, b: *const c_void, len: usize) -> c_int;
-    fn memmove(dst: *mut c_void, src: *const c_void, len: usize) -> *mut c_void;
-    fn memcpy(dst: *mut c_void, src: *const c_void, len: usize) -> *mut c_void;
-    fn memset(s: *mut c_void, c: c_int, n: usize) -> *mut c_void;
-}
-
 #[cfg(not(mustang_use_libc))]
 macro_rules! libc {
     ($e:expr) => {};
@@ -979,6 +970,52 @@ unsafe extern "C" fn free(ptr: *mut c_void) {
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
+pub unsafe extern "C" fn memcmp(a: *const c_void, b: *const c_void, len: usize) -> c_int {
+    libc!(memcmp(a, b, len));
+
+    compiler_builtins::mem::memcmp(a.cast::<_>(), b.cast::<_>(), len)
+}
+
+#[inline(never)]
+#[link_section = ".text.__mustang"]
+#[no_mangle]
+pub unsafe extern "C" fn bcmp(a: *const c_void, b: *const c_void, len: usize) -> c_int {
+    // `bcmp` is just an alias for `memcmp`.
+    libc!(memcmp(a, b, len));
+
+    compiler_builtins::mem::bcmp(a.cast::<_>(), b.cast::<_>(), len)
+}
+
+#[inline(never)]
+#[link_section = ".text.__mustang"]
+#[no_mangle]
+pub unsafe extern "C" fn memcpy(dst: *mut c_void, src: *const c_void, len: usize) -> *mut c_void {
+    libc!(memcpy(dst, src, len));
+
+    compiler_builtins::mem::memcpy(dst.cast::<_>(), src.cast::<_>(), len).cast::<_>()
+}
+
+#[inline(never)]
+#[link_section = ".text.__mustang"]
+#[no_mangle]
+pub unsafe extern "C" fn memmove(dst: *mut c_void, src: *const c_void, len: usize) -> *mut c_void {
+    libc!(memmove(dst, src, len));
+
+    compiler_builtins::mem::memmove(dst.cast::<_>(), src.cast::<_>(), len).cast::<_>()
+}
+
+#[inline(never)]
+#[link_section = ".text.__mustang"]
+#[no_mangle]
+pub unsafe extern "C" fn memset(dst: *mut c_void, fill: c_int, len: usize) -> *mut c_void {
+    libc!(memset(dst, fill, len));
+
+    compiler_builtins::mem::memset(dst.cast::<_>(), fill, len).cast::<_>()
+}
+
+#[inline(never)]
+#[link_section = ".text.__mustang"]
+#[no_mangle]
 unsafe extern "C" fn memchr(s: *const c_void, c: c_int, len: usize) -> *mut c_void {
     libc!(memchr(s, c, len));
 
@@ -1588,12 +1625,4 @@ fn set_errno<T>(result: Result<T, rsix::io::Error>) -> Option<T> {
 #[link_section = ".text.__mustang"]
 #[no_mangle]
 #[cold]
-unsafe extern "C" fn __mustang_c_scape__c() {
-    // Ensure that `compiler-builtins`' definitions of the `mem` functions
-    // are linked in.
-    asm!("# {}", in(reg) bcmp);
-    asm!("# {}", in(reg) memcmp);
-    asm!("# {}", in(reg) memmove);
-    asm!("# {}", in(reg) memcpy);
-    asm!("# {}", in(reg) memset);
-}
+unsafe extern "C" fn __mustang_c_scape__c() {}

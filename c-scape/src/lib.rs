@@ -2,6 +2,7 @@
 #![no_builtins] // don't let LLVM optimize our `memcpy` into a `memcpy` call
 #![feature(asm)]
 #![feature(c_variadic)] // for `ioctl` etc.
+#![feature(rustc_private)] // for compiler-builtins
 #![cfg(target_vendor = "mustang")]
 
 #[cfg(mustang_use_libc)]
