@@ -913,7 +913,8 @@ unsafe extern "C" fn realloc(old: *mut c_void, size: usize) -> *mut c_void {
     if old.is_null() {
         malloc(size)
     } else {
-        let old_layout = METADATA.lock().unwrap().remove(&(old as usize)).unwrap();
+        let remove = METADATA.lock().unwrap().remove(&(old as usize));
+        let old_layout = remove.unwrap();
         if old_layout.size() >= size {
             return old;
         }
@@ -968,10 +969,9 @@ unsafe extern "C" fn posix_memalign(
 unsafe extern "C" fn free(ptr: *mut c_void) {
     libc!(free(ptr));
 
-    std::alloc::dealloc(
-        ptr.cast::<_>(),
-        METADATA.lock().unwrap().remove(&(ptr as usize)).unwrap(),
-    );
+    let remove = METADATA.lock().unwrap().remove(&(ptr as usize));
+    let layout = remove.unwrap();
+    std::alloc::dealloc(ptr.cast::<_>(), layout);
 }
 
 // mem
