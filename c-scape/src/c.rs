@@ -886,7 +886,7 @@ unsafe extern "C" fn pipe2(pipefd: *mut c_int, flags: c_int) -> c_int {
 
 // Keep track of every `malloc`'d pointer. This isn't amazingly efficient,
 // but it works.
-const METADATA: once_cell::sync::Lazy<
+static METADATA: once_cell::sync::Lazy<
     std::sync::Mutex<std::collections::HashMap<usize, std::alloc::Layout>>,
 > = once_cell::sync::Lazy::new(|| std::sync::Mutex::new(std::collections::HashMap::new()));
 
