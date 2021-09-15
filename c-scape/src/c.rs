@@ -18,6 +18,10 @@ use rsix::fs::{cwd, openat, AtFlags, FdFlags, Mode, OFlags};
 use rsix::io::stderr;
 use rsix::io::{MapFlags, MprotectFlags, PipeFlags, ProtFlags};
 use rsix::io_lifetimes::{AsFd, BorrowedFd, OwnedFd};
+use rsix::net::{
+    AcceptFlags, AddressFamily, Protocol, RecvFlags, SendFlags, Shutdown, SocketAddr,
+    SocketAddrStorage, SocketFlags, SocketType,
+};
 use std::convert::TryInto;
 use std::ffi::{c_void, CStr, OsStr};
 use std::os::raw::{c_char, c_int, c_long, c_uint, c_ulong};
@@ -666,6 +670,448 @@ unsafe extern "C" fn symlink(target: *const c_char, linkpath: *const c_char) -> 
     }
 }
 
+// net
+
+#[inline(never)]
+#[link_section = ".mustang"]
+#[no_mangle]
+unsafe extern "C" fn accept(
+    fd: c_int,
+    addr: *mut SocketAddrStorage,
+    len: *mut data::SockLen,
+) -> c_int {
+    libc!(accept(fd, addr, len));
+
+    match set_errno(rsix::net::acceptfrom(&BorrowedFd::borrow_raw_fd(fd))) {
+        Some((accepted_fd, from)) => {
+            let encoded_len = from.write(addr);
+            *len = encoded_len.try_into().unwrap();
+            accepted_fd.into_raw_fd()
+        }
+        None => -1,
+    }
+}
+
+#[inline(never)]
+#[link_section = ".mustang"]
+#[no_mangle]
+unsafe extern "C" fn accept4(
+    fd: c_int,
+    addr: *mut SocketAddrStorage,
+    len: *mut data::SockLen,
+    flags: c_int,
+) -> c_int {
+    libc!(accept4(fd, addr, len, flags));
+
+    let flags = AcceptFlags::from_bits(flags as _).unwrap();
+    match set_errno(rsix::net::acceptfrom_with(
+        &BorrowedFd::borrow_raw_fd(fd),
+        flags,
+    )) {
+        Some((accepted_fd, from)) => {
+            let encoded_len = from.write(addr);
+            *len = encoded_len.try_into().unwrap();
+            accepted_fd.into_raw_fd()
+        }
+        None => -1,
+    }
+}
+
+#[inline(never)]
+#[link_section = ".mustang"]
+#[no_mangle]
+unsafe extern "C" fn bind(
+    sockfd: c_int,
+    addr: *const SocketAddrStorage,
+    len: data::SockLen,
+) -> c_int {
+    libc!(bind(sockfd, addr, len));
+
+    let addr = match set_errno(SocketAddr::read(addr, len.try_into().unwrap())) {
+        Some(addr) => addr,
+        None => return -1,
+    };
+    match set_errno(match addr {
+        SocketAddr::V4(v4) => rsix::net::bind_v4(&BorrowedFd::borrow_raw_fd(sockfd), &v4),
+        SocketAddr::V6(v6) => rsix::net::bind_v6(&BorrowedFd::borrow_raw_fd(sockfd), &v6),
+        SocketAddr::Unix(unix) => rsix::net::bind_unix(&BorrowedFd::borrow_raw_fd(sockfd), &unix),
+        _ => panic!("unrecognized SocketAddr {:?}", addr),
+    }) {
+        Some(()) => 0,
+        None => -1,
+    }
+}
+
+#[inline(never)]
+#[link_section = ".mustang"]
+#[no_mangle]
+unsafe extern "C" fn connect(
+    sockfd: c_int,
+    addr: *const SocketAddrStorage,
+    len: data::SockLen,
+) -> c_int {
+    libc!(connect(sockfd, addr, len));
+
+    let addr = match set_errno(SocketAddr::read(addr, len.try_into().unwrap())) {
+        Some(addr) => addr,
+        None => return -1,
+    };
+    match set_errno(match addr {
+        SocketAddr::V4(v4) => rsix::net::connect_v4(&BorrowedFd::borrow_raw_fd(sockfd), &v4),
+        SocketAddr::V6(v6) => rsix::net::connect_v6(&BorrowedFd::borrow_raw_fd(sockfd), &v6),
+        SocketAddr::Unix(unix) => {
+            rsix::net::connect_unix(&BorrowedFd::borrow_raw_fd(sockfd), &unix)
+        }
+        _ => panic!("unrecognized SocketAddr {:?}", addr),
+    }) {
+        Some(()) => 0,
+        None => -1,
+    }
+}
+
+#[inline(never)]
+#[link_section = ".mustang"]
+#[no_mangle]
+unsafe extern "C" fn getpeername(
+    fd: c_int,
+    addr: *mut SocketAddrStorage,
+    len: *mut data::SockLen,
+) -> c_int {
+    libc!(getpeername(fd, addr, len));
+
+    match set_errno(rsix::net::getpeername(&BorrowedFd::borrow_raw_fd(fd))) {
+        Some(from) => {
+            let encoded_len = from.write(addr);
+            *len = encoded_len.try_into().unwrap();
+            0
+        }
+        None => -1,
+    }
+}
+
+#[inline(never)]
+#[link_section = ".mustang"]
+#[no_mangle]
+unsafe extern "C" fn getsockname(
+    fd: c_int,
+    addr: *mut SocketAddrStorage,
+    len: *mut data::SockLen,
+) -> c_int {
+    libc!(getsockname(fd, addr, len));
+
+    match set_errno(rsix::net::getsockname(&BorrowedFd::borrow_raw_fd(fd))) {
+        Some(from) => {
+            let encoded_len = from.write(addr);
+            *len = encoded_len.try_into().unwrap();
+            0
+        }
+        None => -1,
+    }
+}
+
+/* FIXME: implement getsockopt, setsockopt, getaddrinfo, and freeaddrinfo
+#[inline(never)]
+#[link_section = ".mustang"]
+#[no_mangle]
+unsafe extern "C" fn getsockopt(
+    _fd: c_int,
+    _level: c_int,
+    _optname: c_int,
+    _optval: *mut c_void,
+    _optlen: *mut data::SockLen,
+) -> c_int {
+    libc!(getsockopt(_fd, _level, _optname, _optval, _optlen));
+
+    unimplemented!("getsockopt")
+}
+
+#[inline(never)]
+#[link_section = ".mustang"]
+#[no_mangle]
+unsafe extern "C" fn setsockopt(
+    _fd: c_int,
+    _level: c_int,
+    _optname: c_int,
+    _optval: *const c_void,
+    _optlen: *mut data::SockLen,
+) -> c_int {
+    libc!(setsockopt(_fd, _level, _optname, _optval, _optlen));
+
+    unimplemented!("setsockopt")
+}
+
+#[inline(never)]
+#[link_section = ".mustang"]
+#[no_mangle]
+unsafe extern "C" fn getaddrinfo(
+    _node: *const c_char,
+    _service: *const c_char,
+    _hints: *const data::Addrinfo,
+    _res: *mut *mut data::Addrinfo,
+) -> c_int {
+    libc!(getaddrinfo(_node, _service, _hints, _res));
+
+    unimplemented!("getaddrinfo")
+}
+
+#[inline(never)]
+#[link_section = ".mustang"]
+#[no_mangle]
+unsafe extern "C" fn freeaddrinfo(_res: *mut data::Addrinfo) {
+    libc!(freeaddrinfo(_res));
+
+    unimplemented!("freeaddrinfo")
+}
+*/
+
+#[inline(never)]
+#[link_section = ".mustang"]
+#[no_mangle]
+unsafe extern "C" fn gai_strerror(_errcode: c_int) -> *const c_char {
+    libc!(gai_strerror(_errcode));
+
+    unimplemented!("gai_strerror")
+}
+
+#[inline(never)]
+#[link_section = ".mustang"]
+#[no_mangle]
+unsafe extern "C" fn listen(fd: c_int, backlog: c_int) -> c_int {
+    libc!(listen(fd, backlog));
+
+    match set_errno(rsix::net::listen(&BorrowedFd::borrow_raw_fd(fd), backlog)) {
+        Some(()) => 0,
+        None => -1,
+    }
+}
+
+#[inline(never)]
+#[link_section = ".mustang"]
+#[no_mangle]
+unsafe extern "C" fn recv(fd: c_int, ptr: *mut c_void, len: usize, flags: c_int) -> isize {
+    libc!(recv(fd, buf, len, flags));
+
+    let flags = RecvFlags::from_bits(flags as _).unwrap();
+    match set_errno(rsix::net::recv(
+        &BorrowedFd::borrow_raw_fd(fd),
+        slice::from_raw_parts_mut(ptr.cast::<u8>(), len),
+        flags,
+    )) {
+        Some(nread) => nread as isize,
+        None => -1,
+    }
+}
+
+#[inline(never)]
+#[link_section = ".mustang"]
+#[no_mangle]
+unsafe extern "C" fn recvfrom(
+    fd: c_int,
+    buf: *mut c_void,
+    len: usize,
+    flags: c_int,
+    from: *mut SocketAddrStorage,
+    from_len: *mut data::SockLen,
+) -> isize {
+    libc!(recvfrom(fd, buf, len, flags, from, from_len));
+
+    let flags = RecvFlags::from_bits(flags as _).unwrap();
+    match set_errno(rsix::net::recvfrom(
+        &BorrowedFd::borrow_raw_fd(fd),
+        slice::from_raw_parts_mut(buf.cast::<u8>(), len),
+        flags,
+    )) {
+        Some((nread, addr)) => {
+            let encoded_len = addr.write(from);
+            *from_len = encoded_len.try_into().unwrap();
+            nread as isize
+        }
+        None => -1,
+    }
+}
+
+#[inline(never)]
+#[link_section = ".mustang"]
+#[no_mangle]
+unsafe extern "C" fn send(fd: c_int, buf: *const c_void, len: usize, flags: c_int) -> isize {
+    libc!(send(fd, buf, len, flags));
+
+    let flags = SendFlags::from_bits(flags as _).unwrap();
+    match set_errno(rsix::net::send(
+        &BorrowedFd::borrow_raw_fd(fd),
+        slice::from_raw_parts(buf.cast::<u8>(), len),
+        flags,
+    )) {
+        Some(nwritten) => nwritten as isize,
+        None => -1,
+    }
+}
+
+#[inline(never)]
+#[link_section = ".mustang"]
+#[no_mangle]
+unsafe extern "C" fn sendto(
+    fd: c_int,
+    buf: *const c_void,
+    len: usize,
+    flags: c_int,
+    to: *const SocketAddrStorage,
+    to_len: data::SockLen,
+) -> isize {
+    libc!(sendto(fd, buf, len, flags, to, to_len));
+
+    let flags = SendFlags::from_bits(flags as _).unwrap();
+    let addr = match set_errno(SocketAddr::read(to, to_len.try_into().unwrap())) {
+        Some(addr) => addr,
+        None => return -1,
+    };
+    match set_errno(match addr {
+        SocketAddr::V4(v4) => rsix::net::sendto_v4(
+            &BorrowedFd::borrow_raw_fd(fd),
+            slice::from_raw_parts(buf.cast::<u8>(), len),
+            flags,
+            &v4,
+        ),
+        SocketAddr::V6(v6) => rsix::net::sendto_v6(
+            &BorrowedFd::borrow_raw_fd(fd),
+            slice::from_raw_parts(buf.cast::<u8>(), len),
+            flags,
+            &v6,
+        ),
+        SocketAddr::Unix(unix) => rsix::net::sendto_unix(
+            &BorrowedFd::borrow_raw_fd(fd),
+            slice::from_raw_parts(buf.cast::<u8>(), len),
+            flags,
+            &unix,
+        ),
+        _ => panic!("unrecognized SocketAddr {:?}", addr),
+    }) {
+        Some(nwritten) => nwritten as isize,
+        None => -1,
+    }
+}
+
+#[inline(never)]
+#[link_section = ".mustang"]
+#[no_mangle]
+unsafe extern "C" fn shutdown(fd: c_int, how: c_int) -> c_int {
+    libc!(shutdown(fd, how));
+
+    let how = match how {
+        data::SHUT_RD => Shutdown::Read,
+        data::SHUT_WR => Shutdown::Write,
+        data::SHUT_RDWR => Shutdown::ReadWrite,
+        _ => panic!("unrecognized shutdown kind {}", how),
+    };
+    match set_errno(rsix::net::shutdown(&BorrowedFd::borrow_raw_fd(fd), how)) {
+        Some(()) => 0,
+        None => -1,
+    }
+}
+
+fn convert_domain(domain: c_int) -> AddressFamily {
+    match domain {
+        data::AF_INET => AddressFamily::INET,
+        data::AF_INET6 => AddressFamily::INET6,
+        data::AF_NETLINK => AddressFamily::NETLINK,
+        data::AF_UNIX => AddressFamily::UNIX,
+        _ => panic!("unrecognized domain {}", domain),
+    }
+}
+
+fn convert_type(type_: c_int) -> (SocketType, SocketFlags) {
+    let flags = SocketFlags::from_bits_truncate(type_ as _);
+    let type_ = match type_ & (!SocketFlags::all().bits() as c_int) {
+        data::SOCK_STREAM => SocketType::STREAM,
+        data::SOCK_DGRAM => SocketType::DGRAM,
+        data::SOCK_SEQPACKET => SocketType::SEQPACKET,
+        data::SOCK_RAW => SocketType::RAW,
+        data::SOCK_RDM => SocketType::RDM,
+        _ => panic!("unrecognized socket type {}", type_),
+    };
+    (type_, flags)
+}
+
+fn convert_protocol(protocol: c_int) -> Protocol {
+    match protocol {
+        data::IPPROTO_IP => Protocol::Ip,
+        data::IPPROTO_ICMP => Protocol::Icmp,
+        data::IPPROTO_IGMP => Protocol::Igmp,
+        data::IPPROTO_IPIP => Protocol::Ipip,
+        data::IPPROTO_TCP => Protocol::Tcp,
+        data::IPPROTO_EGP => Protocol::Egp,
+        data::IPPROTO_PUP => Protocol::Pup,
+        data::IPPROTO_UDP => Protocol::Udp,
+        data::IPPROTO_IDP => Protocol::Idp,
+        data::IPPROTO_TP => Protocol::Tp,
+        data::IPPROTO_DCCP => Protocol::Dccp,
+        data::IPPROTO_IPV6 => Protocol::Ipv6,
+        data::IPPROTO_RSVP => Protocol::Rsvp,
+        data::IPPROTO_GRE => Protocol::Gre,
+        data::IPPROTO_ESP => Protocol::Esp,
+        data::IPPROTO_AH => Protocol::Ah,
+        data::IPPROTO_MTP => Protocol::Mtp,
+        data::IPPROTO_BEETPH => Protocol::Beetph,
+        data::IPPROTO_ENCAP => Protocol::Encap,
+        data::IPPROTO_PIM => Protocol::Pim,
+        data::IPPROTO_COMP => Protocol::Comp,
+        data::IPPROTO_SCTP => Protocol::Sctp,
+        data::IPPROTO_UDPLITE => Protocol::Udplite,
+        data::IPPROTO_MPLS => Protocol::Mpls,
+        data::IPPROTO_ETHERNET => Protocol::Ethernet,
+        data::IPPROTO_RAW => Protocol::Raw,
+        data::IPPROTO_MPTCP => Protocol::Mptcp,
+        _ => panic!("unrecognized protocol {}", protocol),
+    }
+}
+
+#[inline(never)]
+#[link_section = ".mustang"]
+#[no_mangle]
+unsafe extern "C" fn socket(domain: c_int, type_: c_int, protocol: c_int) -> c_int {
+    libc!(socket(domain, type_, protocol));
+
+    let domain = convert_domain(domain);
+    let (type_, flags) = convert_type(type_);
+    let protocol = convert_protocol(protocol);
+    match set_errno(rsix::net::socket_with(domain, type_, flags, protocol)) {
+        Some(fd) => fd.into_raw_fd(),
+        None => -1,
+    }
+}
+
+#[inline(never)]
+#[link_section = ".mustang"]
+#[no_mangle]
+unsafe extern "C" fn socketpair(
+    domain: c_int,
+    type_: c_int,
+    protocol: c_int,
+    sv: *mut [c_int; 2],
+) -> c_int {
+    libc!(socketpair(domain, type_, protocol));
+
+    let domain = convert_domain(domain);
+    let (type_, flags) = convert_type(type_);
+    let protocol = convert_protocol(protocol);
+    match set_errno(rsix::net::socketpair(domain, type_, flags, protocol)) {
+        Some((fd0, fd1)) => {
+            (*sv) = [fd0.into_raw_fd(), fd1.into_raw_fd()];
+            0
+        }
+        None => -1,
+    }
+}
+
+#[inline(never)]
+#[link_section = ".mustang"]
+#[no_mangle]
+unsafe extern "C" fn __res_init() -> c_int {
+    libc!(res_init());
+
+    unimplemented!("__res_init")
+}
+
 // io
 
 #[inline(never)]
@@ -852,6 +1298,16 @@ unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
                 None => -1,
             }
         }
+        data::FIONBIO => {
+            libc!(ioctl(fd, FIONBIO));
+            let fd = BorrowedFd::borrow_raw_fd(fd);
+            let ptr = args.arg::<*mut c_int>();
+            let value = *ptr != 0;
+            match set_errno(rsix::io::ioctl_fionbio(&fd, value)) {
+                Some(()) => 0,
+                None => -1,
+            }
+        }
         _ => panic!("unrecognized ioctl({})", request),
     }
 }
@@ -959,6 +1415,10 @@ unsafe extern "C" fn posix_memalign(
 #[no_mangle]
 unsafe extern "C" fn free(ptr: *mut c_void) {
     libc!(free(ptr));
+
+    if ptr.is_null() {
+        return;
+    }
 
     let remove = METADATA.lock().unwrap().remove(&(ptr as usize));
     let layout = remove.unwrap();
