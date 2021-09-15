@@ -1009,71 +1009,16 @@ unsafe extern "C" fn shutdown(fd: c_int, how: c_int) -> c_int {
     }
 }
 
-fn convert_domain(domain: c_int) -> AddressFamily {
-    match domain {
-        data::AF_INET => AddressFamily::INET,
-        data::AF_INET6 => AddressFamily::INET6,
-        data::AF_NETLINK => AddressFamily::NETLINK,
-        data::AF_UNIX => AddressFamily::UNIX,
-        _ => panic!("unrecognized domain {}", domain),
-    }
-}
-
-fn convert_type(type_: c_int) -> (SocketType, SocketFlags) {
-    let flags = SocketFlags::from_bits_truncate(type_ as _);
-    let type_ = match type_ & (!SocketFlags::all().bits() as c_int) {
-        data::SOCK_STREAM => SocketType::STREAM,
-        data::SOCK_DGRAM => SocketType::DGRAM,
-        data::SOCK_SEQPACKET => SocketType::SEQPACKET,
-        data::SOCK_RAW => SocketType::RAW,
-        data::SOCK_RDM => SocketType::RDM,
-        _ => panic!("unrecognized socket type {}", type_),
-    };
-    (type_, flags)
-}
-
-fn convert_protocol(protocol: c_int) -> Protocol {
-    match protocol {
-        data::IPPROTO_IP => Protocol::Ip,
-        data::IPPROTO_ICMP => Protocol::Icmp,
-        data::IPPROTO_IGMP => Protocol::Igmp,
-        data::IPPROTO_IPIP => Protocol::Ipip,
-        data::IPPROTO_TCP => Protocol::Tcp,
-        data::IPPROTO_EGP => Protocol::Egp,
-        data::IPPROTO_PUP => Protocol::Pup,
-        data::IPPROTO_UDP => Protocol::Udp,
-        data::IPPROTO_IDP => Protocol::Idp,
-        data::IPPROTO_TP => Protocol::Tp,
-        data::IPPROTO_DCCP => Protocol::Dccp,
-        data::IPPROTO_IPV6 => Protocol::Ipv6,
-        data::IPPROTO_RSVP => Protocol::Rsvp,
-        data::IPPROTO_GRE => Protocol::Gre,
-        data::IPPROTO_ESP => Protocol::Esp,
-        data::IPPROTO_AH => Protocol::Ah,
-        data::IPPROTO_MTP => Protocol::Mtp,
-        data::IPPROTO_BEETPH => Protocol::Beetph,
-        data::IPPROTO_ENCAP => Protocol::Encap,
-        data::IPPROTO_PIM => Protocol::Pim,
-        data::IPPROTO_COMP => Protocol::Comp,
-        data::IPPROTO_SCTP => Protocol::Sctp,
-        data::IPPROTO_UDPLITE => Protocol::Udplite,
-        data::IPPROTO_MPLS => Protocol::Mpls,
-        data::IPPROTO_ETHERNET => Protocol::Ethernet,
-        data::IPPROTO_RAW => Protocol::Raw,
-        data::IPPROTO_MPTCP => Protocol::Mptcp,
-        _ => panic!("unrecognized protocol {}", protocol),
-    }
-}
-
 #[inline(never)]
 #[link_section = ".mustang"]
 #[no_mangle]
 unsafe extern "C" fn socket(domain: c_int, type_: c_int, protocol: c_int) -> c_int {
     libc!(socket(domain, type_, protocol));
 
-    let domain = convert_domain(domain);
-    let (type_, flags) = convert_type(type_);
-    let protocol = convert_protocol(protocol);
+    let domain = AddressFamily::from_raw(domain as _);
+    let flags = SocketFlags::from_bits_truncate(type_ as _);
+    let type_ = SocketType::from_raw(type_ as u32 & !SocketFlags::all().bits());
+    let protocol = Protocol::from_raw(protocol as _);
     match set_errno(rsix::net::socket_with(domain, type_, flags, protocol)) {
         Some(fd) => fd.into_raw_fd(),
         None => -1,
@@ -1091,9 +1036,10 @@ unsafe extern "C" fn socketpair(
 ) -> c_int {
     libc!(socketpair(domain, type_, protocol));
 
-    let domain = convert_domain(domain);
-    let (type_, flags) = convert_type(type_);
-    let protocol = convert_protocol(protocol);
+    let domain = AddressFamily::from_raw(domain as _);
+    let flags = SocketFlags::from_bits_truncate(type_ as _);
+    let type_ = SocketType::from_raw(type_ as u32 & !SocketFlags::all().bits());
+    let protocol = Protocol::from_raw(protocol as _);
     match set_errno(rsix::net::socketpair(domain, type_, flags, protocol)) {
         Some((fd0, fd1)) => {
             (*sv) = [fd0.into_raw_fd(), fd1.into_raw_fd()];
