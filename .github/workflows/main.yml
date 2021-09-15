@@ -78,7 +78,7 @@ jobs:
       run: |
         set -ex
         sudo apt-get update
-        sudo apt-get install -y ${{ matrix.gcc_package }}
+        sudo apt-get install -y ${{ matrix.gcc_package }} ninja-build
         upcase=$(echo ${{ matrix.host_target }} | awk '{ print toupper($0) }' | sed 's/-/_/g')
         echo CARGO_TARGET_${upcase}_LINKER=${{ matrix.gcc }} >> $GITHUB_ENV
         upcase=$(echo ${{ matrix.mustang_target }} | awk '{ print toupper($0) }' | sed 's/-/_/g')
