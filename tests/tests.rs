@@ -62,7 +62,15 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
 
     // test-backtrace and test-tls are not fully supported by mustang yet.
     // test-initialize-c-runtime deliberately links in C runtime symbols.
-    if name != "test-backtrace" && name != "test-tls" && name != "test-initialize-c-runtime" {
+    //
+    // Temporarily disable net-tcp and net-udp here until getsockopt,
+    // setsockopt, getaddrinfo, and freeaddrinfo are implemented.
+    if name != "test-backtrace"
+        && name != "test-tls"
+        && name != "test-initialize-c-runtime"
+        && name != "net-tcp"
+        && name != "net-udp"
+    {
         let output = Command::new("nm")
             .arg("-u")
             .arg(&format!(
@@ -143,5 +151,118 @@ fn test() {
          .｡oO(C runtime initialization called by origin! ℂ)\n\
          .｡oO(Environment variables initialized by c-scape! 🌱)\n\
          .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
+    );
+    test_example(
+        "fs",
+        "",
+        "",
+        ".｡oO(This process was started by origin! 🎯)\n\
+.｡oO(Environment variables initialized by c-scape! 🌱)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
+.｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
+    );
+    test_example(
+        "net-tcp",
+        "",
+        "",
+        ".｡oO(This process was started by origin! 🎯)\n\
+.｡oO(Environment variables initialized by c-scape! 🌱)\n\
+.｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
+    );
+    test_example(
+        "net-udp",
+        "",
+        "",
+        ".｡oO(This process was started by origin! 🎯)\n\
+.｡oO(Environment variables initialized by c-scape! 🌱)\n\
+.｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
     );
 }
