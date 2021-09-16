@@ -241,6 +241,7 @@ fn oneshot_single_thread_send_port_close() {
 }
 
 #[test]
+#[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
 fn oneshot_single_thread_recv_chan_close() {
     // Receiving on a closed chan will panic
     let res = thread::spawn(move || {
@@ -321,6 +322,7 @@ fn oneshot_multi_task_recv_then_send() {
 }
 
 #[test]
+#[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
 fn oneshot_multi_task_recv_then_close() {
     let (tx, rx) = channel::<Box<i32>>();
     let _t = thread::spawn(move || {
@@ -345,6 +347,7 @@ fn oneshot_multi_thread_close_stress() {
 }
 
 #[test]
+#[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
 fn oneshot_multi_thread_send_close_stress() {
     for _ in 0..stress_factor() {
         let (tx, rx) = channel::<i32>();

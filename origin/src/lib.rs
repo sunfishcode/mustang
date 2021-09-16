@@ -21,6 +21,9 @@ mod arch;
 #[cfg(all(target_arch = "riscv64", feature = "threads"))]
 #[path = "arch-riscv64.rs"]
 mod arch;
+#[cfg(all(target_arch = "arm", feature = "threads"))]
+#[path = "arch-arm.rs"]
+mod arch;
 
 use std::ffi::c_void;
 
@@ -59,6 +62,13 @@ unsafe extern "C" fn _start() -> ! {
     #[cfg(target_arch = "aarch64")]
     asm!("mov x0, sp",
          "mov x30, xzr",
+         "b {entry}",
+         entry = sym entry,
+         options(noreturn));
+
+    #[cfg(target_arch = "arm")]
+    asm!("mov r0, sp\n",
+         "mov lr, #0",
          "b {entry}",
          entry = sym entry,
          options(noreturn));

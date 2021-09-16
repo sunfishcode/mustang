@@ -1,0 +1,32 @@
+{
+  "abi": "eabi",
+  "arch": "arm",
+  "crt-static-respected": true,
+  "data-layout": "e-m:e-p:32:32-Fi8-i64:64-v128:64:128-a:0:32-n32-S64",
+  "dynamic-linking": false,
+  "env": "gnu",
+  "executables": true,
+  "features": "+soft-float,+strict-align",
+  "has-elf-tls": true,
+  "has-rpath": true,
+  "has-thumb-interworking": true,
+  "is-builtin": false,
+  "llvm-target": "armv5te-unknown-linux-gnueabi",
+  "max-atomic-width": 32,
+  "os": "linux",
+  "position-independent-executables": true,
+  "relro-level": "full",
+  "target-family": [
+    "unix"
+  ],
+  "target-mcount": "\u0001__gnu_mcount_nc",
+  "target-pointer-width": "32",
+  "pre-link-args": {
+    "gcc": [
+      "-nostdlib",
+      "-Wl,--require-defined=__mustang_origin",
+      "-Wl,--require-defined=__mustang_c_scape"
+    ]
+  },
+  "vendor": "mustang"
+}

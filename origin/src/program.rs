@@ -47,8 +47,10 @@ pub(super) unsafe extern "C" fn entry(mem: *mut usize) -> ! {
         // Check that the incoming stack pointer is where we expect it to be.
         debug_assert_eq!(builtin_return_address(0), std::ptr::null());
         debug_assert_ne!(builtin_frame_address(0), std::ptr::null());
-        #[cfg(not(target_arch = "x86"))]
+        #[cfg(not(any(target_arch = "arm", target_arch = "x86")))]
         debug_assert_eq!(builtin_frame_address(0) as usize & 0xf, 0);
+        #[cfg(target_arch = "arm")]
+        debug_assert_eq!(builtin_frame_address(0) as usize & 0x7, 0);
         #[cfg(target_arch = "x86")]
         debug_assert_eq!(builtin_frame_address(0) as usize & 0xf, 8);
         debug_assert_eq!(builtin_frame_address(1), std::ptr::null());

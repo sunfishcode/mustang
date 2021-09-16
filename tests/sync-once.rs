@@ -56,6 +56,7 @@ fn stampede_once() {
 }
 
 #[test]
+#[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
 fn poison_bad() {
     static O: Once = Once::new();
 
@@ -84,6 +85,7 @@ fn poison_bad() {
 }
 
 #[test]
+#[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
 fn wait_for_force_to_finish() {
     static O: Once = Once::new();
 

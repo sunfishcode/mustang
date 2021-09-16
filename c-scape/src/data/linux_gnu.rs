@@ -49,6 +49,8 @@ pub(crate) const SYS_getrandom: c_long = 355;
 pub(crate) const SYS_getrandom: c_long = 278;
 #[cfg(target_arch = "riscv64")]
 pub(crate) const SYS_getrandom: c_long = 278;
+#[cfg(target_arch = "arm")]
+pub(crate) const SYS_getrandom: c_long = 384;
 
 #[cfg(target_arch = "x86_64")]
 pub(crate) const SYS_futex: c_long = 202;
@@ -58,6 +60,8 @@ pub(crate) const SYS_futex: c_long = 240;
 pub(crate) const SYS_futex: c_long = 98;
 #[cfg(target_arch = "riscv64")]
 pub(crate) const SYS_futex: c_long = 98;
+#[cfg(target_arch = "arm")]
+pub(crate) const SYS_futex: c_long = 240;
 
 pub(crate) const CLOCK_REALTIME: c_int = 0;
 pub(crate) const CLOCK_MONOTONIC: c_int = 1;
