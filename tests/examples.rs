@@ -28,6 +28,12 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
     let arch = "riscv64gc";
     #[cfg(target_arch = "x86")]
     let arch = "i686";
+    #[cfg(target_arch = "arm")]
+    let arch = "armv5te";
+    #[cfg(target_env = "gnueabi")]
+    let env = "gnueabi";
+    #[cfg(not(target_env = "gnueabi"))]
+    let env = "gnu";
 
     let mut command = Command::new("cargo");
     command.arg("+nightly").arg("run").arg("--quiet");
@@ -40,7 +46,10 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
     command
         .arg("-Z")
         .arg("build-std")
-        .arg(&format!("--target=specs/{}-mustang-linux-gnu.json", arch))
+        .arg(&format!(
+            "--target=specs/{}-mustang-linux-{}.json",
+            arch, env
+        ))
         .arg("--example")
         .arg(name);
     let output = command.output().unwrap();

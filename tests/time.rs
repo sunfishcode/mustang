@@ -43,6 +43,7 @@ fn instant_monotonic() {
 #[cfg(feature = "threads")]
 #[test]
 #[cfg(not(target_arch = "wasm32"))]
+#[cfg_attr(all(target_arch = "arm", not(feature = "qemu")), ignore)]
 fn instant_monotonic_concurrent() -> std::thread::Result<()> {
     let threads: Vec<_> = (0..8)
         .map(|_| {
@@ -110,6 +111,7 @@ fn instant_math_is_associative() {
 }
 
 #[test]
+#[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
 #[should_panic]
 fn instant_duration_since_panic() {
     let a = Instant::now();

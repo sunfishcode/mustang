@@ -57,8 +57,10 @@ pub(super) unsafe extern "C" fn entry(
         // Check that the incoming stack pointer is where we expect it to be.
         debug_assert_eq!(builtin_return_address(0), std::ptr::null());
         debug_assert_ne!(builtin_frame_address(0), std::ptr::null());
-        #[cfg(not(target_arch = "x86"))]
+        #[cfg(not(any(target_arch = "x86", target_arch = "arm")))]
         debug_assert_eq!(builtin_frame_address(0) as usize & 0xf, 0);
+        #[cfg(target_arch = "arm")]
+        debug_assert_eq!(builtin_frame_address(0) as usize & 0x3, 0);
         #[cfg(target_arch = "x86")]
         debug_assert_eq!(builtin_frame_address(0) as usize & 0xf, 8);
         debug_assert_eq!(builtin_frame_address(1), std::ptr::null());
@@ -83,7 +85,7 @@ pub(super) unsafe extern "C" fn entry(
 struct Metadata {
     /// Crate-internal fields. On platforms where TLS data goes after the
     /// ABI-exposed fields, we store our fields before them.
-    #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
+    #[cfg(any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"))]
     thread: Thread,
 
     /// ABI-exposed fields. This is allocated at a platform-specific offset
@@ -99,10 +101,11 @@ struct Metadata {
 /// Fields which accessed by user code via known offsets from the platform
 /// thread-pointer register.
 #[repr(C)]
+#[cfg_attr(target_arch = "arm", repr(align(8)))]
 struct Abi {
     /// Aarch64 has an ABI-exposed `dtv` field (though we don't yet implement
     /// dynamic linking).
-    #[cfg(target_arch = "aarch64")]
+    #[cfg(any(target_arch = "aarch64", target_arch = "arm"))]
     dtv: *const c_void,
 
     /// x86 and x86-64 put a copy of the thread-pointer register at the memory
@@ -112,7 +115,7 @@ struct Abi {
     this: *mut Abi,
 
     /// Padding to put the TLS data which follows at its known offset.
-    #[cfg(target_arch = "aarch64")]
+    #[cfg(any(target_arch = "aarch64", target_arch = "arm"))]
     pad: [usize; 1],
 }
 
@@ -182,7 +185,7 @@ pub fn current_thread_id() -> Pid {
 #[inline]
 pub fn current_thread_tls_addr(offset: usize) -> *mut c_void {
     // Platforms where TLS data goes after the ABI-exposed fields.
-    #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
+    #[cfg(any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"))]
     {
         crate::arch::get_thread_pointer()
             .cast::<u8>()
@@ -334,15 +337,15 @@ pub(super) unsafe fn initialize_main_thread(mem: *mut c_void) {
     alloc_size += size_of::<Metadata>();
 
     // Variant I: TLS data goes above the TCB.
-    #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
+    #[cfg(any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"))]
     {
         alloc_size = round_up(alloc_size, tls_data_align);
     }
 
-    #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
+    #[cfg(any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"))]
     let tls_data_bottom = alloc_size;
 
-    #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
+    #[cfg(any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"))]
     {
         alloc_size += round_up(STARTUP_TLS_INFO.mem_size, tls_data_align);
     }
@@ -363,9 +366,9 @@ pub(super) unsafe fn initialize_main_thread(mem: *mut c_void) {
             abi: Abi {
                 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
                 this: newtls,
-                #[cfg(target_arch = "aarch64")]
+                #[cfg(any(target_arch = "aarch64", target_arch = "arm"))]
                 dtv: null(),
-                #[cfg(target_arch = "aarch64")]
+                #[cfg(any(target_arch = "aarch64", target_arch = "arm"))]
                 pad: [0_usize; 1],
             },
             thread: Thread::new(
@@ -451,15 +454,15 @@ pub fn create_thread(
     map_size += size_of::<Metadata>();
 
     // Variant I: TLS data goes above the TCB.
-    #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
+    #[cfg(any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"))]
     {
         map_size = round_up(map_size, tls_data_align);
     }
 
-    #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
+    #[cfg(any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"))]
     let tls_data_bottom = map_size;
 
-    #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
+    #[cfg(any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"))]
     {
         map_size += round_up(startup_tls_mem_size, tls_data_align);
     }
@@ -498,9 +501,9 @@ pub fn create_thread(
                 abi: Abi {
                     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
                     this: newtls,
-                    #[cfg(target_arch = "aarch64")]
+                    #[cfg(any(target_arch = "aarch64", target_arch = "arm"))]
                     dtv: null(),
-                    #[cfg(target_arch = "aarch64")]
+                    #[cfg(any(target_arch = "aarch64", target_arch = "arm"))]
                     pad: [0_usize; 1],
                 },
                 thread: Thread::new(
@@ -558,7 +561,12 @@ pub fn create_thread(
             arg,
             fn_,
         );
-        #[cfg(any(target_arch = "x86", target_arch = "aarch64", target_arch = "riscv64"))]
+        #[cfg(any(
+            target_arch = "x86",
+            target_arch = "aarch64",
+            target_arch = "arm",
+            target_arch = "riscv64"
+        ))]
         let clone_res = clone(
             flags.bits(),
             stack.cast(),
