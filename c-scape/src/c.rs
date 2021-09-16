@@ -23,7 +23,7 @@ use rsix::net::{
     SocketAddrStorage, SocketFlags, SocketType,
 };
 use std::convert::TryInto;
-use std::ffi::{c_void, CStr, OsStr};
+use std::ffi::{c_void, CStr, OsStr, OsString};
 use std::os::raw::{c_char, c_int, c_long, c_uint, c_ulong};
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd};
@@ -98,7 +98,7 @@ unsafe extern "C" fn readlink(pathname: *const c_char, buf: *mut c_char, bufsiz:
     let path = match set_errno(rsix::fs::readlinkat(
         &cwd(),
         CStr::from_ptr(pathname),
-        std::ffi::OsString::new(),
+        OsString::new(),
     )) {
         Some(path) => path,
         None => return -1,
@@ -1601,20 +1601,33 @@ unsafe extern "C" fn sysconf(name: c_int) -> c_long {
 unsafe extern "C" fn getcwd(buf: *mut c_char, len: usize) -> *mut c_char {
     libc!(getcwd(buf, len));
 
-    // For some reason, we always seem to be in the root directory.
-    if len < 2 {
-        return null_mut();
+    match set_errno(rsix::process::getcwd(OsString::new())) {
+        Some(path) => {
+            let path = path.as_bytes();
+            if path.len() + 1 <= len {
+                memcpy(buf.cast(), path.as_ptr().cast(), path.len());
+                *buf.add(path.len()) = 0;
+                buf
+            } else {
+                *__errno_location() = rsix::io::Error::RANGE.raw_os_error();
+                null_mut()
+            }
+        }
+        None => null_mut(),
     }
-    memcpy(buf.cast::<_>(), b"/\0".as_ptr().cast::<_>(), 2).cast::<_>()
 }
 
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-unsafe extern "C" fn chdir(_path: *const c_char) -> c_int {
-    libc!(chdir(_path));
+unsafe extern "C" fn chdir(path: *const c_char) -> c_int {
+    libc!(chdir(path));
 
-    unimplemented!("chdir")
+    let path = CStr::from_ptr(path);
+    match set_errno(rsix::process::chdir(path)) {
+        Some(()) => 0,
+        None => -1,
+    }
 }
 
 #[inline(never)]
