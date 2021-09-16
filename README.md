@@ -139,11 +139,15 @@ Let's find out! Come say hi in the [chat] or an [issue].
    `origin::rust`.
  - Create a target file in `specs/`, by first following
    [these instructions] to generate a default target file, and then:
+     - change `is-builtin` to false
      - change `dynamic-linking` to false
      - add `-nostdlib`, `-Wl,--require-defined=__mustang_origin`, and
       `-Wl,--require-defined=__mustang_c_scape` to pre-link-args
      - add `"vendor": "mustang"`
    See other targets in the `specs/` directory for examples.
+ - Compile some of the programs in the `examples/` directory, using
+   the new target. Try `nm -u` on the binaries to check for undefined
+   symbols which need to be implemented.
  - Add the architecture to tests/tests.rs.
  - Add CI testing to .github/workflows/main.yml, by copying what's done
    for other architectures.
