@@ -1060,6 +1060,10 @@ unsafe extern "C" fn __res_init() -> c_int {
 
 // io
 
+static IO_MESSAGE: once_cell::sync::Lazy<()> = once_cell::sync::Lazy::new(|| {
+    eprintln!(".｡oO(I/O performed by c-scape using rsix! 🌊)");
+});
+
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
@@ -1071,7 +1075,7 @@ unsafe extern "C" fn write(fd: c_int, ptr: *const c_void, len: usize) -> isize {
     // enough that it's nice to have this confirmation.
     #[cfg(debug_assertions)]
     if fd != stderr().as_raw_fd() {
-        eprintln!(".｡oO(I/O performed by c-scape using rsix! 🌊)");
+        *IO_MESSAGE;
     }
 
     match set_errno(rsix::io::write(
@@ -1114,7 +1118,7 @@ unsafe extern "C" fn read(fd: c_int, ptr: *mut c_void, len: usize) -> isize {
     // enough that it's nice to have this confirmation.
     #[cfg(debug_assertions)]
     if fd != stderr().as_raw_fd() {
-        eprintln!(".｡oO(I/O performed by c-scape using rsix! 🌊)");
+        *IO_MESSAGE;
     }
 
     match set_errno(rsix::io::read(
