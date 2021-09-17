@@ -265,4 +265,20 @@ fn test() {
 .｡oO(Environment variables initialized by c-scape! 🌱)\n\
 .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
     );
+    test_example(
+        "env",
+        "",
+        "",
+        ".｡oO(This process was started by origin! 🎯)\n\
+.｡oO(Environment variables initialized by c-scape! 🌱)\n\
+.｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
+    );
+    test_example(
+        "time",
+        "",
+        "",
+        ".｡oO(This process was started by origin! 🎯)\n\
+.｡oO(Environment variables initialized by c-scape! 🌱)\n\
+.｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
+    );
 }
