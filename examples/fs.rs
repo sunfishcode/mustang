@@ -7,8 +7,7 @@
 
 #![feature(io_error_uncategorized)]
 
-extern crate mustang;
-extern crate origin;
+mustang::can_compile_this!();
 
 mod sys_common;
 
