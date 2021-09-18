@@ -130,6 +130,14 @@ fn test() {
          .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
     );
     test_example(
+        "test-workdir",
+        "",
+        "",
+        ".｡oO(This process was started by origin! 🎯)\n\
+         .｡oO(Environment variables initialized by c-scape! 🌱)\n\
+         .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
+    );
+    test_example(
         "test-simd",
         "",
         "",
