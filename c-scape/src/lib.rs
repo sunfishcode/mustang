@@ -21,9 +21,8 @@ mod unwind;
 /// Link in `wee_alloc` as the global allocator, so that we don't call
 /// `malloc`.
 type GlobalAlloc = wee_alloc::WeeAlloc<'static>;
-const GLOBAL_ALLOC: GlobalAlloc = wee_alloc::WeeAlloc::INIT;
 #[global_allocator]
-static ALLOC: crate::GlobalAlloc = crate::GLOBAL_ALLOC;
+static ALLOC: crate::GlobalAlloc = wee_alloc::WeeAlloc::INIT;
 
 /// Ensure that `mustang`'s modules are linked in.
 #[inline(never)]
