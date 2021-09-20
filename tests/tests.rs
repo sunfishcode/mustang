@@ -61,16 +61,8 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
     );
 
     // test-backtrace and test-tls are not fully supported by mustang yet.
-    // test-initialize-c-runtime deliberately links in C runtime symbols.
-    //
-    // Temporarily disable net-tcp and net-udp here until getsockopt,
-    // setsockopt, getaddrinfo, and freeaddrinfo are implemented.
-    if name != "test-backtrace"
-        && name != "test-tls"
-        && name != "test-initialize-c-runtime"
-        && name != "net-tcp"
-        && name != "net-udp"
-    {
+    // test-initialize-c-runtime deliberately link in C runtime symbols.
+    if name != "test-backtrace" && name != "test-tls" && name != "test-initialize-c-runtime" {
         let output = Command::new("nm")
             .arg("-u")
             .arg(&format!(
@@ -175,6 +167,7 @@ fn test() {
         "",
         ".｡oO(This process was started by origin! 🎯)\n\
 .｡oO(Environment variables initialized by c-scape! 🌱)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
 .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
     );
     test_example(
@@ -183,6 +176,23 @@ fn test() {
         "",
         ".｡oO(This process was started by origin! 🎯)\n\
 .｡oO(Environment variables initialized by c-scape! 🌱)\n\
+.｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
+    );
+    test_example(
+        "net-ip",
+        "",
+        "",
+        ".｡oO(This process was started by origin! 🎯)\n\
+.｡oO(Environment variables initialized by c-scape! 🌱)\n\
+.｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
+    );
+    test_example(
+        "net-addr",
+        "",
+        "",
+        ".｡oO(This process was started by origin! 🎯)\n\
+.｡oO(Environment variables initialized by c-scape! 🌱)\n\
+.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
 .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
     );
     test_example(
