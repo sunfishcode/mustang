@@ -1,4 +1,5 @@
 #![allow(non_upper_case_globals)]
+#![allow(unused_imports)]
 #![cfg_attr(test, allow(non_snake_case))]
 
 #[cfg(all(target_os = "linux", target_env = "gnu"))]
@@ -50,6 +51,29 @@ macro_rules! type_ {
     };
 }
 
+macro_rules! struct_ {
+    ($name:ident, $libc:ident, $($field:ident),*) => {
+        // Check the size and alignment.
+        type_!($name, $libc);
+
+        // Check that the fields match libc's fields.
+        #[cfg(test)]
+        paste::paste! {
+            #[allow(dead_code)]
+            const [< TEST_ $name >]: once_cell::sync::Lazy<()> = once_cell::sync::Lazy::new(|| {
+                #[allow(non_snake_case)]
+                let [< struct_ $name >]: $name = $name {
+                    $($field: 0 as _),*
+                };
+                #[allow(non_snake_case)]
+                let [< _libc_ $name >]: libc::$libc = libc::$libc {
+                    $($field: [< struct_ $name >].$field),*
+                };
+            });
+        }
+    };
+}
+
 constant!(F_SETFD);
 constant!(F_GETFL);
 constant!(F_DUPFD_CLOEXEC);
@@ -84,8 +108,171 @@ constant!(SIG_DFL);
 constant!(SHUT_RD);
 constant!(SHUT_WR);
 constant!(SHUT_RDWR);
+constant!(SOL_SOCKET);
+constant!(IPPROTO_IP);
+constant!(IPPROTO_IPV6);
+constant!(IPPROTO_TCP);
+constant!(SO_REUSEADDR);
+constant!(SO_BROADCAST);
+constant!(SO_PASSCRED);
+constant!(SO_DEBUG);
+constant!(SO_TYPE);
+constant!(SO_ERROR);
+constant!(SO_DONTROUTE);
+constant!(SO_SNDBUF);
+constant!(SO_RCVBUF);
+constant!(SO_KEEPALIVE);
+constant!(SO_OOBINLINE);
+constant!(SO_NO_CHECK);
+constant!(SO_PRIORITY);
+constant!(SO_LINGER);
+constant!(SO_BSDCOMPAT);
+constant!(SO_REUSEPORT);
+constant!(SO_RCVLOWAT);
+constant!(SO_SNDLOWAT);
+constant!(SO_PEERCRED);
+constant!(SO_ACCEPTCONN);
+constant!(SO_PEERSEC);
+constant!(SO_SNDBUFFORCE);
+constant!(SO_RCVBUFFORCE);
+constant!(SO_PROTOCOL);
+constant!(SO_DOMAIN);
+constant!(SO_SNDTIMEO);
+constant!(SO_RCVTIMEO);
+constant!(IP_TOS);
+constant!(IP_TTL);
+constant!(IP_HDRINCL);
+constant!(IP_OPTIONS);
+constant!(IP_ROUTER_ALERT);
+constant!(IP_RECVOPTS);
+constant!(IP_RETOPTS);
+constant!(IP_PKTINFO);
+constant!(IP_PKTOPTIONS);
+constant!(IP_MTU_DISCOVER);
+constant!(IP_RECVERR);
+constant!(IP_RECVTTL);
+constant!(IP_RECVTOS);
+constant!(IP_MTU);
+constant!(IP_FREEBIND);
+constant!(IP_IPSEC_POLICY);
+constant!(IP_XFRM_POLICY);
+constant!(IP_PASSSEC);
+constant!(IP_TRANSPARENT);
+constant!(IP_ORIGDSTADDR);
+constant!(IP_MINTTL);
+constant!(IP_NODEFRAG);
+constant!(IP_CHECKSUM);
+constant!(IP_BIND_ADDRESS_NO_PORT);
+constant!(IP_RECVFRAGSIZE);
+constant!(IP_MULTICAST_IF);
+constant!(IP_MULTICAST_TTL);
+constant!(IP_MULTICAST_LOOP);
+constant!(IP_ADD_MEMBERSHIP);
+constant!(IP_DROP_MEMBERSHIP);
+constant!(IP_UNBLOCK_SOURCE);
+constant!(IP_BLOCK_SOURCE);
+constant!(IP_ADD_SOURCE_MEMBERSHIP);
+constant!(IP_DROP_SOURCE_MEMBERSHIP);
+constant!(IP_MSFILTER);
+constant!(IP_MULTICAST_ALL);
+constant!(IP_UNICAST_IF);
+constant!(IPV6_ADDRFORM);
+constant!(IPV6_2292PKTINFO);
+constant!(IPV6_2292HOPOPTS);
+constant!(IPV6_2292DSTOPTS);
+constant!(IPV6_2292RTHDR);
+constant!(IPV6_2292PKTOPTIONS);
+constant!(IPV6_CHECKSUM);
+constant!(IPV6_2292HOPLIMIT);
+constant!(IPV6_NEXTHOP);
+constant!(IPV6_AUTHHDR);
+constant!(IPV6_UNICAST_HOPS);
+constant!(IPV6_MULTICAST_IF);
+constant!(IPV6_MULTICAST_HOPS);
+constant!(IPV6_MULTICAST_LOOP);
+constant!(IPV6_ADD_MEMBERSHIP);
+constant!(IPV6_DROP_MEMBERSHIP);
+constant!(IPV6_ROUTER_ALERT);
+constant!(IPV6_MTU_DISCOVER);
+constant!(IPV6_MTU);
+constant!(IPV6_RECVERR);
+constant!(IPV6_V6ONLY);
+constant!(IPV6_JOIN_ANYCAST);
+constant!(IPV6_LEAVE_ANYCAST);
+constant!(IPV6_MULTICAST_ALL);
+constant!(IPV6_ROUTER_ALERT_ISOLATE);
+constant!(IPV6_IPSEC_POLICY);
+constant!(IPV6_XFRM_POLICY);
+constant!(IPV6_HDRINCL);
+constant!(IPV6_RECVPKTINFO);
+constant!(IPV6_PKTINFO);
+constant!(IPV6_RECVHOPLIMIT);
+constant!(IPV6_HOPLIMIT);
+constant!(IPV6_RECVHOPOPTS);
+constant!(IPV6_HOPOPTS);
+constant!(IPV6_RTHDRDSTOPTS);
+constant!(IPV6_RECVRTHDR);
+constant!(IPV6_RTHDR);
+constant!(IPV6_RECVDSTOPTS);
+constant!(IPV6_DSTOPTS);
+constant!(IPV6_RECVPATHMTU);
+constant!(IPV6_PATHMTU);
+constant!(IPV6_DONTFRAG);
+constant!(IPV6_RECVTCLASS);
+constant!(IPV6_TCLASS);
+constant!(IPV6_AUTOFLOWLABEL);
+constant!(IPV6_ADDR_PREFERENCES);
+constant!(IPV6_MINHOPCOUNT);
+constant!(IPV6_ORIGDSTADDR);
+constant!(IPV6_TRANSPARENT);
+constant!(IPV6_UNICAST_IF);
+constant!(IPV6_RECVFRAGSIZE);
+constant!(IPV6_FREEBIND);
+constant!(TCP_NODELAY);
+constant!(TCP_MAXSEG);
+constant!(TCP_CORK);
+constant!(TCP_KEEPIDLE);
+constant!(TCP_KEEPINTVL);
+constant!(TCP_KEEPCNT);
+constant!(TCP_SYNCNT);
+constant!(TCP_LINGER2);
+constant!(TCP_DEFER_ACCEPT);
+constant!(TCP_WINDOW_CLAMP);
+constant!(TCP_INFO);
+constant!(TCP_QUICKACK);
+constant!(TCP_CONGESTION);
+constant!(TCP_MD5SIG);
+constant!(TCP_THIN_LINEAR_TIMEOUTS);
+constant!(TCP_THIN_DUPACK);
+constant!(TCP_USER_TIMEOUT);
+constant!(TCP_REPAIR);
+constant!(TCP_REPAIR_QUEUE);
+constant!(TCP_QUEUE_SEQ);
+constant!(TCP_REPAIR_OPTIONS);
+constant!(TCP_FASTOPEN);
+constant!(TCP_TIMESTAMP);
+constant!(TCP_NOTSENT_LOWAT);
+constant!(TCP_CC_INFO);
+constant!(TCP_SAVE_SYN);
+constant!(TCP_SAVED_SYN);
+constant!(TCP_REPAIR_WINDOW);
+constant!(TCP_FASTOPEN_CONNECT);
+constant!(TCP_ULP);
+constant!(TCP_MD5SIG_EXT);
+constant!(TCP_FASTOPEN_KEY);
+constant!(TCP_FASTOPEN_NO_COOKIE);
+constant!(TCP_ZEROCOPY_RECEIVE);
+constant!(TCP_INQ);
+constant!(EAI_NONAME);
+constant!(EAI_SYSTEM);
 type_!(Dirent64, dirent64);
 type_!(SockLen, socklen_t);
-/* FIXME: implement getsockopt, setsockopt, getaddrinfo, and freeaddrinfo
- *type_!(Addrinfo, addrinfo);
- */
+type_!(Addrinfo, addrinfo);
+type_!(Linger, linger);
+type_!(Ipv4Addr, in_addr);
+type_!(Ipv6Addr, in6_addr);
+type_!(Ipv4Mreq, ip_mreq);
+type_!(Ipv6Mreq, ipv6_mreq);
+struct_!(Timeval, timeval, tv_sec, tv_usec);
+type_!(Time, time_t);
+type_!(Suseconds, suseconds_t);

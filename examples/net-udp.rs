@@ -16,9 +16,9 @@ use std::net::*;
 use std::os::unix::io::AsRawFd;
 #[cfg(windows)]
 use std::os::unix::io::AsRawSocket;
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 use std::sync::mpsc::channel;
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -44,7 +44,7 @@ fn bind_error() {
     }
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 fn socket_smoke_test_ip4() {
     each_ip(&mut |server_ip, client_ip| {
@@ -90,7 +90,7 @@ fn socket_peer() {
     })
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 fn udp_clone_smoke() {
     each_ip(&mut |addr1, addr2| {
@@ -120,7 +120,7 @@ fn udp_clone_smoke() {
     })
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 fn udp_clone_two_read() {
     each_ip(&mut |addr1, addr2| {
@@ -153,7 +153,7 @@ fn udp_clone_two_read() {
     })
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 fn udp_clone_two_write() {
     each_ip(&mut |addr1, addr2| {
@@ -407,15 +407,15 @@ fn set_nonblocking() {
 
 fn main() {
     bind_error();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     socket_smoke_test_ip4();
     socket_name();
     socket_peer();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     udp_clone_smoke();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     udp_clone_two_read();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     udp_clone_two_write();
     debug();
     timeouts();

@@ -17,9 +17,9 @@ use std::fmt;
 use std::io::prelude::*;
 use std::io::{ErrorKind, IoSlice, IoSliceMut};
 use std::net::*;
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 use std::sync::mpsc::channel;
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -61,7 +61,7 @@ fn connect_error() {
     }
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 fn listen_localhost() {
     let socket_addr = next_test_ip4();
@@ -78,7 +78,7 @@ fn listen_localhost() {
     assert!(buf[0] == 144);
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 fn connect_loopback() {
     each_ip(&mut |addr| {
@@ -100,7 +100,7 @@ fn connect_loopback() {
     })
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 fn smoke_test() {
     each_ip(&mut |addr| {
@@ -121,7 +121,7 @@ fn smoke_test() {
     })
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 fn read_eof() {
     each_ip(&mut |addr| {
@@ -141,7 +141,7 @@ fn read_eof() {
     })
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 fn write_close() {
     each_ip(&mut |addr| {
@@ -171,7 +171,7 @@ fn write_close() {
     })
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 fn multiple_connect_serial() {
     each_ip(&mut |addr| {
@@ -194,7 +194,7 @@ fn multiple_connect_serial() {
     })
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 fn multiple_connect_interleaved_greedy_schedule() {
     const MAX: usize = 10;
@@ -232,7 +232,7 @@ fn multiple_connect_interleaved_greedy_schedule() {
     }
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 fn multiple_connect_interleaved_lazy_schedule() {
     const MAX: usize = 10;
@@ -268,7 +268,7 @@ fn multiple_connect_interleaved_lazy_schedule() {
     }
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 fn socket_and_peer_name() {
     each_ip(&mut |addr| {
@@ -284,7 +284,7 @@ fn socket_and_peer_name() {
     })
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 fn partial_read() {
     each_ip(&mut |addr| {
@@ -379,7 +379,7 @@ fn double_bind() {
     })
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 fn tcp_clone_smoke() {
     each_ip(&mut |addr| {
@@ -411,7 +411,7 @@ fn tcp_clone_smoke() {
     })
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 fn tcp_clone_two_read() {
     each_ip(&mut |addr| {
@@ -446,7 +446,7 @@ fn tcp_clone_two_read() {
     })
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 fn tcp_clone_two_write() {
     each_ip(&mut |addr| {
@@ -474,7 +474,7 @@ fn tcp_clone_two_write() {
     })
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 // FIXME: https://github.com/fortanix/rust-sgx/issues/110
 #[cfg_attr(target_env = "sgx", ignore)]
@@ -497,7 +497,7 @@ fn shutdown_smoke() {
     })
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 // FIXME: https://github.com/fortanix/rust-sgx/issues/110
 #[cfg_attr(target_env = "sgx", ignore)]
@@ -538,7 +538,7 @@ fn close_readwrite_smoke() {
     })
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 #[cfg(unix)] // test doesn't work on Windows, see #31657
 fn close_read_wakes_up() {
@@ -567,7 +567,7 @@ fn close_read_wakes_up() {
     })
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 fn clone_while_reading() {
     each_ip(&mut |addr| {
@@ -608,7 +608,7 @@ fn clone_while_reading() {
     })
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 fn clone_accept_smoke() {
     each_ip(&mut |addr| {
@@ -627,7 +627,7 @@ fn clone_accept_smoke() {
     })
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 fn clone_accept_concurrent() {
     each_ip(&mut |addr| {
@@ -882,7 +882,7 @@ fn set_nonblocking() {
     }
 }
 
-#[cfg(feature = "thread")]
+#[cfg(feature = "threads")]
 //#[test]
 #[cfg_attr(target_env = "sgx", ignore)] // FIXME: https://github.com/fortanix/rust-sgx/issues/31
 fn peek() {
@@ -926,46 +926,46 @@ fn connect_timeout_valid() {
 fn main() {
     bind_error();
     connect_error();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     listen_localhost();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     connect_loopback();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     smoke_test();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     read_eof();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     write_close();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     multiple_connect_serial();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     multiple_connect_interleaved_greedy_schedule();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     multiple_connect_interleaved_lazy_schedule();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     socket_and_peer_name();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     partial_read();
     read_vectored();
     write_vectored();
     double_bind();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     tcp_clone_smoke();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     tcp_clone_two_read();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     tcp_clone_two_write();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     shutdown_smoke();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     close_readwrite_smoke();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     close_read_wakes_up();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     clone_while_reading();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     clone_accept_smoke();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     clone_accept_concurrent();
     debug();
     timeouts();
@@ -976,7 +976,7 @@ fn main() {
     nodelay();
     ttl();
     set_nonblocking();
-    #[cfg(feature = "thread")]
+    #[cfg(feature = "threads")]
     peek();
     connect_timeout_valid();
 }

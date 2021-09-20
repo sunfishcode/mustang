@@ -19,16 +19,18 @@ use rsix::io::stderr;
 use rsix::io::{MapFlags, MprotectFlags, PipeFlags, ProtFlags};
 use rsix::io_lifetimes::{AsFd, BorrowedFd, OwnedFd};
 use rsix::net::{
-    AcceptFlags, AddressFamily, Protocol, RecvFlags, SendFlags, Shutdown, SocketAddr,
-    SocketAddrStorage, SocketFlags, SocketType,
+    AcceptFlags, AddressFamily, IpAddr, Ipv4Addr, Ipv6Addr, Protocol, RecvFlags, SendFlags,
+    Shutdown, SocketAddr, SocketAddrStorage, SocketAddrV4, SocketAddrV6, SocketFlags, SocketType,
 };
 use std::convert::TryInto;
 use std::ffi::{c_void, CStr, OsStr, OsString};
+use std::mem::{size_of, zeroed};
 use std::os::raw::{c_char, c_int, c_long, c_uint, c_ulong};
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd};
 use std::ptr::null_mut;
 use std::slice;
+use sync_resolve::resolve_host;
 
 #[cfg(not(mustang_use_libc))]
 macro_rules! libc {
@@ -808,68 +810,419 @@ unsafe extern "C" fn getsockname(
     }
 }
 
-/* FIXME: implement getsockopt, setsockopt, getaddrinfo, and freeaddrinfo
 #[inline(never)]
 #[link_section = ".mustang"]
 #[no_mangle]
 unsafe extern "C" fn getsockopt(
-    _fd: c_int,
-    _level: c_int,
-    _optname: c_int,
-    _optval: *mut c_void,
-    _optlen: *mut data::SockLen,
+    fd: c_int,
+    level: c_int,
+    optname: c_int,
+    optval: *mut c_void,
+    optlen: *mut data::SockLen,
 ) -> c_int {
-    libc!(getsockopt(_fd, _level, _optname, _optval, _optlen));
+    use rsix::net::sockopt::{self, Timeout};
+    use std::time::Duration;
 
-    unimplemented!("getsockopt")
+    unsafe fn write_bool(
+        value: rsix::io::Result<bool>,
+        optval: *mut c_void,
+        optlen: *mut data::SockLen,
+    ) -> rsix::io::Result<()> {
+        Ok(write(value? as c_uint, optval.cast::<c_uint>(), optlen))
+    }
+
+    unsafe fn write_u32(
+        value: rsix::io::Result<u32>,
+        optval: *mut c_void,
+        optlen: *mut data::SockLen,
+    ) -> rsix::io::Result<()> {
+        Ok(write(value?, optval.cast::<u32>(), optlen))
+    }
+
+    unsafe fn write_linger(
+        linger: rsix::io::Result<Option<Duration>>,
+        optval: *mut c_void,
+        optlen: *mut data::SockLen,
+    ) -> rsix::io::Result<()> {
+        let linger = linger?;
+        let linger = data::Linger {
+            l_onoff: linger.is_some() as c_int,
+            l_linger: linger.unwrap_or_default().as_secs() as c_int,
+        };
+        Ok(write(linger, optval.cast::<data::Linger>(), optlen))
+    }
+
+    unsafe fn write_timeval(
+        value: rsix::io::Result<Option<Duration>>,
+        optval: *mut c_void,
+        optlen: *mut data::SockLen,
+    ) -> rsix::io::Result<()> {
+        let timeval = match value? {
+            None => data::Timeval {
+                tv_sec: 0,
+                tv_usec: 0,
+            },
+            Some(duration) => data::Timeval {
+                tv_sec: duration
+                    .as_secs()
+                    .try_into()
+                    .map_err(|_| rsix::io::Error::OVERFLOW)?,
+                tv_usec: duration.subsec_micros() as _,
+            },
+        };
+        Ok(write(timeval, optval.cast::<data::Timeval>(), optlen))
+    }
+
+    unsafe fn write<T>(value: T, optval: *mut T, optlen: *mut data::SockLen) {
+        *optlen = size_of::<T>().try_into().unwrap();
+        optval.write(value)
+    }
+
+    libc!(getsockopt(fd, level, optname, optval, optlen));
+
+    let fd = &BorrowedFd::borrow_raw_fd(fd);
+    let result = match level {
+        data::SOL_SOCKET => match optname {
+            data::SO_BROADCAST => write_bool(sockopt::get_socket_broadcast(fd), optval, optlen),
+            data::SO_LINGER => write_linger(sockopt::get_socket_linger(fd), optval, optlen),
+            data::SO_PASSCRED => write_bool(sockopt::get_socket_passcred(fd), optval, optlen),
+            data::SO_SNDTIMEO => write_timeval(
+                sockopt::get_socket_timeout(fd, Timeout::Send),
+                optval,
+                optlen,
+            ),
+            data::SO_RCVTIMEO => write_timeval(
+                sockopt::get_socket_timeout(fd, Timeout::Recv),
+                optval,
+                optlen,
+            ),
+            _ => unimplemented!("unimplemented getsockopt SOL_SOCKET optname {:?}", optname),
+        },
+        data::IPPROTO_IP => match optname {
+            data::IP_TTL => write_u32(sockopt::get_ip_ttl(fd), optval, optlen),
+            data::IP_MULTICAST_LOOP => {
+                write_bool(sockopt::get_ip_multicast_loop(fd), optval, optlen)
+            }
+            data::IP_MULTICAST_TTL => write_u32(sockopt::get_ip_multicast_ttl(fd), optval, optlen),
+            _ => unimplemented!("unimplemented getsockopt IPPROTO_IP optname {:?}", optname),
+        },
+        data::IPPROTO_IPV6 => match optname {
+            data::IPV6_MULTICAST_LOOP => {
+                write_bool(sockopt::get_ipv6_multicast_loop(fd), optval, optlen)
+            }
+            data::IPV6_V6ONLY => write_bool(sockopt::get_ipv6_v6only(fd), optval, optlen),
+            _ => unimplemented!(
+                "unimplemented getsockopt IPPROTO_IPV6 optname {:?}",
+                optname
+            ),
+        },
+        data::IPPROTO_TCP => match optname {
+            data::TCP_NODELAY => write_bool(sockopt::get_tcp_nodelay(fd), optval, optlen),
+            _ => unimplemented!("unimplemented getsockopt IPPROTO_TCP optname {:?}", optname),
+        },
+        _ => unimplemented!(
+            "unimplemented getsockopt level {:?} optname {:?}",
+            level,
+            optname
+        ),
+    };
+    match set_errno(result) {
+        Some(()) => 0,
+        None => -1,
+    }
 }
 
 #[inline(never)]
 #[link_section = ".mustang"]
 #[no_mangle]
 unsafe extern "C" fn setsockopt(
-    _fd: c_int,
-    _level: c_int,
-    _optname: c_int,
-    _optval: *const c_void,
-    _optlen: *mut data::SockLen,
+    fd: c_int,
+    level: c_int,
+    optname: c_int,
+    optval: *const c_void,
+    optlen: data::SockLen,
 ) -> c_int {
-    libc!(setsockopt(_fd, _level, _optname, _optval, _optlen));
+    use rsix::net::sockopt::{self, Timeout};
+    use std::time::Duration;
 
-    unimplemented!("setsockopt")
+    unsafe fn read_bool(optval: *const c_void, optlen: data::SockLen) -> bool {
+        read(optval.cast::<c_int>(), optlen) != 0
+    }
+
+    unsafe fn read_u32(optval: *const c_void, optlen: data::SockLen) -> u32 {
+        read(optval.cast::<u32>(), optlen)
+    }
+
+    unsafe fn read_linger(optval: *const c_void, optlen: data::SockLen) -> Option<Duration> {
+        let linger = read(optval.cast::<data::Linger>(), optlen);
+        (linger.l_onoff != 0).then(|| Duration::from_secs(linger.l_linger as u64))
+    }
+
+    unsafe fn read_timeval(optval: *const c_void, optlen: data::SockLen) -> Option<Duration> {
+        let timeval = read(optval.cast::<data::Timeval>(), optlen);
+        if timeval.tv_sec == 0 && timeval.tv_usec == 0 {
+            None
+        } else {
+            Some(
+                Duration::from_secs(timeval.tv_sec.try_into().unwrap())
+                    + Duration::from_micros(timeval.tv_usec as _),
+            )
+        }
+    }
+
+    unsafe fn read_ip_multiaddr(optval: *const c_void, optlen: data::SockLen) -> Ipv4Addr {
+        Ipv4Addr::from(
+            read(optval.cast::<data::Ipv4Mreq>(), optlen)
+                .imr_multiaddr
+                .s_addr,
+        )
+    }
+
+    unsafe fn read_ip_interface(optval: *const c_void, optlen: data::SockLen) -> Ipv4Addr {
+        Ipv4Addr::from(
+            read(optval.cast::<data::Ipv4Mreq>(), optlen)
+                .imr_interface
+                .s_addr,
+        )
+    }
+
+    unsafe fn read_ipv6_multiaddr(optval: *const c_void, optlen: data::SockLen) -> Ipv6Addr {
+        Ipv6Addr::from(
+            read(optval.cast::<data::Ipv6Mreq>(), optlen)
+                .ipv6mr_multiaddr
+                .u6_addr8,
+        )
+    }
+
+    unsafe fn read_ipv6_interface(optval: *const c_void, optlen: data::SockLen) -> u32 {
+        let t: i32 = read(optval.cast::<data::Ipv6Mreq>(), optlen).ipv6mr_interface;
+        t as u32
+    }
+
+    unsafe fn read<T>(optval: *const T, optlen: data::SockLen) -> T {
+        assert_eq!(optlen, size_of::<T>().try_into().unwrap());
+        optval.read()
+    }
+
+    libc!(setsockopt(fd, level, optname, optval, optlen));
+
+    let fd = &BorrowedFd::borrow_raw_fd(fd);
+    let result = match level {
+        data::SOL_SOCKET => match optname {
+            data::SO_REUSEADDR => sockopt::set_socket_reuseaddr(fd, read_bool(optval, optlen)),
+            data::SO_BROADCAST => sockopt::set_socket_broadcast(fd, read_bool(optval, optlen)),
+            data::SO_LINGER => sockopt::set_socket_linger(fd, read_linger(optval, optlen)),
+            data::SO_PASSCRED => sockopt::set_socket_passcred(fd, read_bool(optval, optlen)),
+            data::SO_SNDTIMEO => {
+                sockopt::set_socket_timeout(fd, Timeout::Send, read_timeval(optval, optlen))
+            }
+            data::SO_RCVTIMEO => {
+                sockopt::set_socket_timeout(fd, Timeout::Recv, read_timeval(optval, optlen))
+            }
+            _ => unimplemented!("unimplemented setsockopt SOL_SOCKET optname {:?}", optname),
+        },
+        data::IPPROTO_IP => match optname {
+            data::IP_TTL => sockopt::set_ip_ttl(fd, read_u32(optval, optlen)),
+            data::IP_MULTICAST_LOOP => {
+                sockopt::set_ip_multicast_loop(fd, read_bool(optval, optlen))
+            }
+            data::IP_MULTICAST_TTL => sockopt::set_ip_multicast_ttl(fd, read_u32(optval, optlen)),
+            data::IP_ADD_MEMBERSHIP => sockopt::set_ip_add_membership(
+                fd,
+                &read_ip_multiaddr(optval, optlen),
+                &read_ip_interface(optval, optlen),
+            ),
+            data::IP_DROP_MEMBERSHIP => sockopt::set_ip_add_membership(
+                fd,
+                &read_ip_multiaddr(optval, optlen),
+                &read_ip_interface(optval, optlen),
+            ),
+            _ => unimplemented!("unimplemented setsockopt IPPROTO_IP optname {:?}", optname),
+        },
+        data::IPPROTO_IPV6 => match optname {
+            data::IPV6_MULTICAST_LOOP => {
+                sockopt::set_ipv6_multicast_loop(fd, read_bool(optval, optlen))
+            }
+            data::IPV6_ADD_MEMBERSHIP => sockopt::set_ipv6_join_group(
+                fd,
+                &read_ipv6_multiaddr(optval, optlen),
+                read_ipv6_interface(optval, optlen),
+            ),
+            data::IPV6_DROP_MEMBERSHIP => sockopt::set_ipv6_leave_group(
+                fd,
+                &read_ipv6_multiaddr(optval, optlen),
+                read_ipv6_interface(optval, optlen),
+            ),
+            data::IPV6_V6ONLY => sockopt::set_ipv6_v6only(fd, read_bool(optval, optlen)),
+            _ => unimplemented!(
+                "unimplemented setsockopt IPPROTO_IPV6 optname {:?}",
+                optname
+            ),
+        },
+        data::IPPROTO_TCP => match optname {
+            data::TCP_NODELAY => sockopt::set_tcp_nodelay(fd, read_bool(optval, optlen)),
+            _ => unimplemented!("unimplemented setsockopt IPPROTO_TCP optname {:?}", optname),
+        },
+        _ => unimplemented!(
+            "unimplemented setsockopt level {:?} optname {:?}",
+            level,
+            optname
+        ),
+    };
+    match set_errno(result) {
+        Some(()) => 0,
+        None => -1,
+    }
 }
 
 #[inline(never)]
 #[link_section = ".mustang"]
 #[no_mangle]
 unsafe extern "C" fn getaddrinfo(
-    _node: *const c_char,
-    _service: *const c_char,
-    _hints: *const data::Addrinfo,
-    _res: *mut *mut data::Addrinfo,
+    node: *const c_char,
+    service: *const c_char,
+    hints: *const data::Addrinfo,
+    res: *mut *mut data::Addrinfo,
 ) -> c_int {
-    libc!(getaddrinfo(_node, _service, _hints, _res));
+    libc!(getaddrinfo(node, service, hints, res));
 
-    unimplemented!("getaddrinfo")
+    assert!(service.is_null(), "service lookups not supported yet");
+    assert!(!node.is_null(), "only name lookups are supported corrently");
+
+    if !hints.is_null() {
+        let hints = &*hints;
+        assert_eq!(hints.ai_flags, 0, "GAI flags hint not supported yet");
+        assert_eq!(hints.ai_family, 0, "GAI family hint not supported yet");
+        assert_eq!(
+            hints.ai_socktype,
+            SocketType::STREAM.as_raw() as _,
+            "only SOCK_STREAM supported currently"
+        );
+        assert_eq!(hints.ai_protocol, 0, "GAI protocl hint not supported yet");
+        assert_eq!(hints.ai_addrlen, 0, "GAI addrlen hint not supported yet");
+        assert!(hints.ai_addr.is_null(), "GAI addr hint not supported yet");
+        assert!(
+            hints.ai_canonname.is_null(),
+            "GAI canonname hint not supported yet"
+        );
+        assert!(hints.ai_next.is_null(), "GAI next hint not supported yet");
+    }
+
+    let host = match CStr::from_ptr(node).to_str() {
+        Ok(host) => host,
+        Err(_) => {
+            *__errno_location() = rsix::io::Error::ILSEQ.raw_os_error();
+            return data::EAI_SYSTEM;
+        }
+    };
+
+    let layout = std::alloc::Layout::new::<data::Addrinfo>();
+    let addr_layout = std::alloc::Layout::new::<SocketAddrStorage>();
+    let mut first: *mut data::Addrinfo = null_mut();
+    let mut prev: *mut data::Addrinfo = null_mut();
+    match resolve_host(host) {
+        Ok(addrs) => {
+            for addr in addrs {
+                let ptr = std::alloc::alloc(layout).cast::<data::Addrinfo>();
+                ptr.write(zeroed());
+                let info = &mut *ptr;
+                match addr {
+                    IpAddr::V4(v4) => {
+                        // TODO: Create and write to `SocketAddrV4Storage`?
+                        let storage = std::alloc::alloc(addr_layout).cast::<SocketAddrStorage>();
+                        let len = SocketAddr::V4(SocketAddrV4::new(v4, 0)).write(storage);
+                        info.ai_addr = storage;
+                        info.ai_addrlen = len.try_into().unwrap();
+                    }
+                    IpAddr::V6(v6) => {
+                        // TODO: Create and write to `SocketAddrV6Storage`?
+                        let storage = std::alloc::alloc(addr_layout).cast::<SocketAddrStorage>();
+                        let len = SocketAddr::V6(SocketAddrV6::new(v6, 0, 0, 0)).write(storage);
+                        info.ai_addr = storage;
+                        info.ai_addrlen = len.try_into().unwrap();
+                    }
+                }
+                if !prev.is_null() {
+                    (*prev).ai_next = ptr;
+                }
+                prev = ptr;
+                if first.is_null() {
+                    first = ptr;
+                }
+            }
+            *res = first;
+            0
+        }
+        Err(err) => {
+            if let Some(err) = rsix::io::Error::from_io_error(&err) {
+                *__errno_location() = err.raw_os_error();
+                data::EAI_SYSTEM
+            } else {
+                // TODO: sync-resolve should return a custom error type
+                if err.to_string()
+                    == "failed to resolve host: server responded with error: server failure"
+                {
+                    data::EAI_NONAME
+                } else {
+                    panic!("unknown error: {}", err);
+                }
+            }
+        }
+    }
 }
 
 #[inline(never)]
 #[link_section = ".mustang"]
 #[no_mangle]
-unsafe extern "C" fn freeaddrinfo(_res: *mut data::Addrinfo) {
-    libc!(freeaddrinfo(_res));
+unsafe extern "C" fn freeaddrinfo(mut res: *mut data::Addrinfo) {
+    libc!(freeaddrinfo(res));
 
-    unimplemented!("freeaddrinfo")
+    let layout = std::alloc::Layout::new::<data::Addrinfo>();
+    let addr_layout = std::alloc::Layout::new::<SocketAddrStorage>();
+
+    while !res.is_null() {
+        let addr = (*res).ai_addr;
+        if !addr.is_null() {
+            std::alloc::dealloc(addr.cast::<_>(), addr_layout);
+        }
+        let old = res;
+        res = (*res).ai_next;
+        std::alloc::dealloc(old.cast::<_>(), layout);
+    }
 }
-*/
 
 #[inline(never)]
 #[link_section = ".mustang"]
 #[no_mangle]
-unsafe extern "C" fn gai_strerror(_errcode: c_int) -> *const c_char {
+unsafe extern "C" fn gai_strerror(errcode: c_int) -> *const c_char {
     libc!(gai_strerror(_errcode));
 
-    unimplemented!("gai_strerror")
+    match errcode {
+        data::EAI_NONAME => &b"Name does not resolve\0"[..],
+        data::EAI_SYSTEM => &b"System error\0"[..],
+        _ => panic!("unrecognized gai_strerror {:?}", errcode),
+    }
+    .as_ptr()
+    .cast::<_>()
+}
+
+#[inline(never)]
+#[link_section = ".mustang"]
+#[no_mangle]
+unsafe extern "C" fn gethostname(name: *mut c_char, len: usize) -> c_int {
+    let uname = rsix::process::uname();
+    let nodename = uname.nodename();
+    if nodename.len() + 1 > len {
+        *__errno_location() = rsix::io::Error::NAMETOOLONG.raw_os_error();
+        return -1;
+    }
+    memcpy(
+        name.cast::<_>(),
+        nodename.as_bytes().as_ptr().cast::<_>(),
+        nodename.len(),
+    );
+    *name.add(nodename.len()) = 0;
+    0
 }
 
 #[inline(never)]

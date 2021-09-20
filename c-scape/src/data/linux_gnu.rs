@@ -1,6 +1,8 @@
 // Constants and types used in `*-*-linux-gnu` targets. These are
 // checked against `libc` by the parent mod.rs.
 
+#![allow(dead_code)]
+
 use std::ffi::c_void;
 use std::os::raw::{c_int, c_long};
 
@@ -28,7 +30,7 @@ pub(crate) const ALIGNOF_MAXALIGN_T: usize = 16;
 
 pub(crate) const MAP_ANONYMOUS: i32 = 32;
 
-pub(crate) const MAP_FAILED: *mut c_void = -1_isize as usize as *mut c_void;
+pub(crate) const MAP_FAILED: *mut c_void = !0_usize as *mut c_void;
 
 pub(crate) const _SC_PAGESIZE: c_int = 30;
 pub(crate) const _SC_GETPW_R_SIZE_MAX: c_int = 70;
@@ -55,6 +57,174 @@ pub(crate) const SHUT_RD: c_int = 0;
 pub(crate) const SHUT_WR: c_int = 1;
 pub(crate) const SHUT_RDWR: c_int = 2;
 
+// `getsockopt`/`setsockopt` options.
+
+pub(crate) const SOL_SOCKET: c_int = 1;
+
+pub(crate) const IPPROTO_IP: c_int = 0;
+pub(crate) const IPPROTO_TCP: c_int = 6;
+pub(crate) const IPPROTO_IPV6: c_int = 41;
+
+pub(crate) const SO_DEBUG: c_int = 1;
+pub(crate) const SO_REUSEADDR: c_int = 2;
+pub(crate) const SO_TYPE: c_int = 3;
+pub(crate) const SO_ERROR: c_int = 4;
+pub(crate) const SO_DONTROUTE: c_int = 5;
+pub(crate) const SO_BROADCAST: c_int = 6;
+pub(crate) const SO_SNDBUF: c_int = 7;
+pub(crate) const SO_RCVBUF: c_int = 8;
+pub(crate) const SO_KEEPALIVE: c_int = 9;
+pub(crate) const SO_OOBINLINE: c_int = 10;
+pub(crate) const SO_NO_CHECK: c_int = 11;
+pub(crate) const SO_PRIORITY: c_int = 12;
+pub(crate) const SO_LINGER: c_int = 13;
+pub(crate) const SO_BSDCOMPAT: c_int = 14;
+pub(crate) const SO_REUSEPORT: c_int = 15;
+pub(crate) const SO_PASSCRED: c_int = 16;
+pub(crate) const SO_PEERCRED: c_int = 17;
+pub(crate) const SO_RCVLOWAT: c_int = 18;
+pub(crate) const SO_SNDLOWAT: c_int = 19;
+pub(crate) const SO_ACCEPTCONN: c_int = 30;
+pub(crate) const SO_PEERSEC: c_int = 31;
+pub(crate) const SO_SNDBUFFORCE: c_int = 32;
+pub(crate) const SO_RCVBUFFORCE: c_int = 33;
+pub(crate) const SO_PROTOCOL: c_int = 38;
+pub(crate) const SO_DOMAIN: c_int = 39;
+pub(crate) const SO_RCVTIMEO: c_int = 20;
+pub(crate) const SO_SNDTIMEO: c_int = 21;
+pub(crate) const SO_RCVTIMEO_NEW: c_int = 66;
+pub(crate) const SO_SNDTIMEO_NEW: c_int = 67;
+
+pub(crate) const IP_TOS: c_int = 1;
+pub(crate) const IP_TTL: c_int = 2;
+pub(crate) const IP_HDRINCL: c_int = 3;
+pub(crate) const IP_OPTIONS: c_int = 4;
+pub(crate) const IP_ROUTER_ALERT: c_int = 5;
+pub(crate) const IP_RECVOPTS: c_int = 6;
+pub(crate) const IP_RETOPTS: c_int = 7;
+pub(crate) const IP_PKTINFO: c_int = 8;
+pub(crate) const IP_PKTOPTIONS: c_int = 9;
+pub(crate) const IP_MTU_DISCOVER: c_int = 10;
+pub(crate) const IP_RECVERR: c_int = 11;
+pub(crate) const IP_RECVTTL: c_int = 12;
+pub(crate) const IP_RECVTOS: c_int = 13;
+pub(crate) const IP_MTU: c_int = 14;
+pub(crate) const IP_FREEBIND: c_int = 15;
+pub(crate) const IP_IPSEC_POLICY: c_int = 16;
+pub(crate) const IP_XFRM_POLICY: c_int = 17;
+pub(crate) const IP_PASSSEC: c_int = 18;
+pub(crate) const IP_TRANSPARENT: c_int = 19;
+pub(crate) const IP_ORIGDSTADDR: c_int = 20;
+pub(crate) const IP_MINTTL: c_int = 21;
+pub(crate) const IP_NODEFRAG: c_int = 22;
+pub(crate) const IP_CHECKSUM: c_int = 23;
+pub(crate) const IP_BIND_ADDRESS_NO_PORT: c_int = 24;
+pub(crate) const IP_RECVFRAGSIZE: c_int = 25;
+pub(crate) const IP_MULTICAST_IF: c_int = 32;
+pub(crate) const IP_MULTICAST_TTL: c_int = 33;
+pub(crate) const IP_MULTICAST_LOOP: c_int = 34;
+pub(crate) const IP_ADD_MEMBERSHIP: c_int = 35;
+pub(crate) const IP_DROP_MEMBERSHIP: c_int = 36;
+pub(crate) const IP_UNBLOCK_SOURCE: c_int = 37;
+pub(crate) const IP_BLOCK_SOURCE: c_int = 38;
+pub(crate) const IP_ADD_SOURCE_MEMBERSHIP: c_int = 39;
+pub(crate) const IP_DROP_SOURCE_MEMBERSHIP: c_int = 40;
+pub(crate) const IP_MSFILTER: c_int = 41;
+pub(crate) const IP_MULTICAST_ALL: c_int = 49;
+pub(crate) const IP_UNICAST_IF: c_int = 50;
+
+pub(crate) const IPV6_ADDRFORM: c_int = 1;
+pub(crate) const IPV6_2292PKTINFO: c_int = 2;
+pub(crate) const IPV6_2292HOPOPTS: c_int = 3;
+pub(crate) const IPV6_2292DSTOPTS: c_int = 4;
+pub(crate) const IPV6_2292RTHDR: c_int = 5;
+pub(crate) const IPV6_2292PKTOPTIONS: c_int = 6;
+pub(crate) const IPV6_CHECKSUM: c_int = 7;
+pub(crate) const IPV6_2292HOPLIMIT: c_int = 8;
+pub(crate) const IPV6_NEXTHOP: c_int = 9;
+pub(crate) const IPV6_AUTHHDR: c_int = 10;
+pub(crate) const IPV6_UNICAST_HOPS: c_int = 16;
+pub(crate) const IPV6_MULTICAST_IF: c_int = 17;
+pub(crate) const IPV6_MULTICAST_HOPS: c_int = 18;
+pub(crate) const IPV6_MULTICAST_LOOP: c_int = 19;
+pub(crate) const IPV6_ADD_MEMBERSHIP: c_int = 20;
+pub(crate) const IPV6_DROP_MEMBERSHIP: c_int = 21;
+pub(crate) const IPV6_ROUTER_ALERT: c_int = 22;
+pub(crate) const IPV6_MTU_DISCOVER: c_int = 23;
+pub(crate) const IPV6_MTU: c_int = 24;
+pub(crate) const IPV6_RECVERR: c_int = 25;
+pub(crate) const IPV6_V6ONLY: c_int = 26;
+pub(crate) const IPV6_JOIN_ANYCAST: c_int = 27;
+pub(crate) const IPV6_LEAVE_ANYCAST: c_int = 28;
+pub(crate) const IPV6_MULTICAST_ALL: c_int = 29;
+pub(crate) const IPV6_ROUTER_ALERT_ISOLATE: c_int = 30;
+pub(crate) const IPV6_IPSEC_POLICY: c_int = 34;
+pub(crate) const IPV6_XFRM_POLICY: c_int = 35;
+pub(crate) const IPV6_HDRINCL: c_int = 36;
+pub(crate) const IPV6_RECVPKTINFO: c_int = 49;
+pub(crate) const IPV6_PKTINFO: c_int = 50;
+pub(crate) const IPV6_RECVHOPLIMIT: c_int = 51;
+pub(crate) const IPV6_HOPLIMIT: c_int = 52;
+pub(crate) const IPV6_RECVHOPOPTS: c_int = 53;
+pub(crate) const IPV6_HOPOPTS: c_int = 54;
+pub(crate) const IPV6_RTHDRDSTOPTS: c_int = 55;
+pub(crate) const IPV6_RECVRTHDR: c_int = 56;
+pub(crate) const IPV6_RTHDR: c_int = 57;
+pub(crate) const IPV6_RECVDSTOPTS: c_int = 58;
+pub(crate) const IPV6_DSTOPTS: c_int = 59;
+pub(crate) const IPV6_RECVPATHMTU: c_int = 60;
+pub(crate) const IPV6_PATHMTU: c_int = 61;
+pub(crate) const IPV6_DONTFRAG: c_int = 62;
+pub(crate) const IPV6_RECVTCLASS: c_int = 66;
+pub(crate) const IPV6_TCLASS: c_int = 67;
+pub(crate) const IPV6_AUTOFLOWLABEL: c_int = 70;
+pub(crate) const IPV6_ADDR_PREFERENCES: c_int = 72;
+pub(crate) const IPV6_MINHOPCOUNT: c_int = 73;
+pub(crate) const IPV6_ORIGDSTADDR: c_int = 74;
+pub(crate) const IPV6_TRANSPARENT: c_int = 75;
+pub(crate) const IPV6_UNICAST_IF: c_int = 76;
+pub(crate) const IPV6_RECVFRAGSIZE: c_int = 77;
+pub(crate) const IPV6_FREEBIND: c_int = 78;
+
+pub(crate) const TCP_NODELAY: c_int = 1;
+pub(crate) const TCP_MAXSEG: c_int = 2;
+pub(crate) const TCP_CORK: c_int = 3;
+pub(crate) const TCP_KEEPIDLE: c_int = 4;
+pub(crate) const TCP_KEEPINTVL: c_int = 5;
+pub(crate) const TCP_KEEPCNT: c_int = 6;
+pub(crate) const TCP_SYNCNT: c_int = 7;
+pub(crate) const TCP_LINGER2: c_int = 8;
+pub(crate) const TCP_DEFER_ACCEPT: c_int = 9;
+pub(crate) const TCP_WINDOW_CLAMP: c_int = 10;
+pub(crate) const TCP_INFO: c_int = 11;
+pub(crate) const TCP_QUICKACK: c_int = 12;
+pub(crate) const TCP_CONGESTION: c_int = 13;
+pub(crate) const TCP_MD5SIG: c_int = 14;
+pub(crate) const TCP_THIN_LINEAR_TIMEOUTS: c_int = 16;
+pub(crate) const TCP_THIN_DUPACK: c_int = 17;
+pub(crate) const TCP_USER_TIMEOUT: c_int = 18;
+pub(crate) const TCP_REPAIR: c_int = 19;
+pub(crate) const TCP_REPAIR_QUEUE: c_int = 20;
+pub(crate) const TCP_QUEUE_SEQ: c_int = 21;
+pub(crate) const TCP_REPAIR_OPTIONS: c_int = 22;
+pub(crate) const TCP_FASTOPEN: c_int = 23;
+pub(crate) const TCP_TIMESTAMP: c_int = 24;
+pub(crate) const TCP_NOTSENT_LOWAT: c_int = 25;
+pub(crate) const TCP_CC_INFO: c_int = 26;
+pub(crate) const TCP_SAVE_SYN: c_int = 27;
+pub(crate) const TCP_SAVED_SYN: c_int = 28;
+pub(crate) const TCP_REPAIR_WINDOW: c_int = 29;
+pub(crate) const TCP_FASTOPEN_CONNECT: c_int = 30;
+pub(crate) const TCP_ULP: c_int = 31;
+pub(crate) const TCP_MD5SIG_EXT: c_int = 32;
+pub(crate) const TCP_FASTOPEN_KEY: c_int = 33;
+pub(crate) const TCP_FASTOPEN_NO_COOKIE: c_int = 34;
+pub(crate) const TCP_ZEROCOPY_RECEIVE: c_int = 35;
+pub(crate) const TCP_INQ: c_int = 36;
+
+pub(crate) const EAI_NONAME: c_int = -2;
+pub(crate) const EAI_SYSTEM: c_int = -11;
+
 #[repr(C)]
 pub(crate) struct Dirent64 {
     pub(crate) d_ino: u64,
@@ -66,16 +236,52 @@ pub(crate) struct Dirent64 {
 
 pub(crate) type SockLen = u32;
 
-/* FIXME: implement getsockopt, setsockopt, getaddrinfo, and freeaddrinfo
 #[repr(C)]
 pub(crate) struct Addrinfo {
-    ai_flags: c_int,
-    ai_family: c_int,
-    ai_socktype: c_int,
-    ai_protocol: c_int,
-    ai_addrlen: SockLen,
-    ai_addr: *mut rsix::net::SocketAddrStorage,
-    ai_canonname: *mut i8,
-    ai_next: *mut Addrinfo,
+    pub(crate) ai_flags: c_int,
+    pub(crate) ai_family: c_int,
+    pub(crate) ai_socktype: c_int,
+    pub(crate) ai_protocol: c_int,
+    pub(crate) ai_addrlen: SockLen,
+    pub(crate) ai_addr: *mut rsix::net::SocketAddrStorage,
+    pub(crate) ai_canonname: *mut i8,
+    pub(crate) ai_next: *mut Addrinfo,
 }
-*/
+
+#[repr(C)]
+pub(crate) struct Linger {
+    pub(crate) l_onoff: c_int,
+    pub(crate) l_linger: c_int,
+}
+
+#[repr(C)]
+pub(crate) struct Ipv4Addr {
+    pub(crate) s_addr: u32,
+}
+
+#[repr(C)]
+#[repr(align(4))]
+pub(crate) struct Ipv6Addr {
+    pub(crate) u6_addr8: [u8; 16usize],
+}
+
+#[repr(C)]
+pub(crate) struct Ipv4Mreq {
+    pub(crate) imr_multiaddr: Ipv4Addr,
+    pub(crate) imr_interface: Ipv4Addr,
+}
+
+#[repr(C)]
+pub(crate) struct Ipv6Mreq {
+    pub(crate) ipv6mr_multiaddr: Ipv6Addr,
+    pub(crate) ipv6mr_interface: c_int,
+}
+
+#[repr(C)]
+pub(crate) struct Timeval {
+    pub(crate) tv_sec: Time,
+    pub(crate) tv_usec: Suseconds,
+}
+
+pub(crate) type Time = c_long;
+pub(crate) type Suseconds = c_long;

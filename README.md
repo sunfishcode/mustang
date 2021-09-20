@@ -106,8 +106,6 @@ set the environment variable `CC_i686-mustang-linux-gnu` to
 
 Known limitations in `mustang` include:
 
- - Networking functionality that depends on `getsockopt`, `setsockopt`, and
-   `getaddrinfo` is not implemented yet.
  - Spawning new processes, threads, and unwinding panics are
    not implemented yet.
  - No support for dynamic linking yet.
