@@ -78,7 +78,7 @@ unsafe extern "C" fn open64(pathname: *const c_char, flags: c_int, mode: c_int) 
     let mode = Mode::from_bits(mode as _).unwrap();
     match set_errno(openat(&cwd(), CStr::from_ptr(pathname), flags, mode)) {
         Some(fd) => fd.into_raw_fd(),
-        None => return -1,
+        None => -1,
     }
 }
 
@@ -442,7 +442,7 @@ unsafe extern "C" fn opendir(pathname: *const c_char) -> *mut c_void {
         Mode::empty(),
     )) {
         Some(fd) => fdopendir(fd.into_raw_fd()),
-        None => return null_mut(),
+        None => null_mut(),
     }
 }
 
@@ -452,11 +452,10 @@ unsafe extern "C" fn opendir(pathname: *const c_char) -> *mut c_void {
 unsafe extern "C" fn fdopendir(fd: c_int) -> *mut c_void {
     libc!(fdopendir(fd).cast::<_>());
 
-    let dir = match set_errno(rsix::fs::Dir::from(OwnedFd::from_raw_fd(fd))) {
-        Some(dir) => dir,
-        None => return null_mut(),
-    };
-    Box::into_raw(Box::new(dir)).cast::<_>()
+    match set_errno(rsix::fs::Dir::from(OwnedFd::from_raw_fd(fd))) {
+        Some(dir) => Box::into_raw(Box::new(dir)).cast::<_>(),
+        None => null_mut(),
+    }
 }
 
 #[inline(never)]
@@ -1589,7 +1588,7 @@ unsafe extern "C" fn sysconf(name: c_int) -> c_long {
         data::_SC_PAGESIZE => rsix::process::page_size() as _,
         data::_SC_GETPW_R_SIZE_MAX => -1,
         // Oddly, only ever one processor seems to be online.
-        data::_SC_NPROCESSORS_ONLN => 1 as _,
+        data::_SC_NPROCESSORS_ONLN => 1,
         data::_SC_SYMLOOP_MAX => data::SYMLOOP_MAX,
         _ => panic!("unrecognized sysconf({})", name),
     }
