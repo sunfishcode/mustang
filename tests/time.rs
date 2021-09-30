@@ -7,11 +7,12 @@
 
 #![feature(cfg_target_has_atomic)]
 #![feature(duration_constants)]
+#![allow(soft_unstable)]
 
 mustang::can_compile_this!();
 
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
-#[cfg(feature = "threads")]
+#[cfg(feature = "bench")]
 #[cfg(not(target_arch = "wasm32"))]
 use test::{black_box, Bencher};
 
@@ -30,7 +31,7 @@ macro_rules! assert_almost_eq {
     }};
 }
 
-//#[test]
+#[test]
 fn instant_monotonic() {
     let a = Instant::now();
     loop {
@@ -43,7 +44,7 @@ fn instant_monotonic() {
 }
 
 #[cfg(feature = "threads")]
-//#[test]
+#[test]
 #[cfg(not(target_arch = "wasm32"))]
 fn instant_monotonic_concurrent() -> std::thread::Result<()> {
     let threads: Vec<_> = (0..8)
@@ -64,13 +65,13 @@ fn instant_monotonic_concurrent() -> std::thread::Result<()> {
     Ok(())
 }
 
-//#[test]
+#[test]
 fn instant_elapsed() {
     let a = Instant::now();
     a.elapsed();
 }
 
-//#[test]
+#[test]
 fn instant_math() {
     let a = Instant::now();
     let b = Instant::now();
@@ -102,7 +103,7 @@ fn instant_math() {
     assert_eq!(a + year, a.checked_add(year).unwrap());
 }
 
-//#[test]
+#[test]
 fn instant_math_is_associative() {
     let now = Instant::now();
     let offset = Duration::from_millis(5);
@@ -112,14 +113,14 @@ fn instant_math_is_associative() {
 }
 
 #[cfg(feature = "should_panic")]
-//#[test]
+#[test]
 #[should_panic]
 fn instant_duration_since_panic() {
     let a = Instant::now();
     (a - Duration::SECOND).duration_since(a);
 }
 
-//#[test]
+#[test]
 fn instant_checked_duration_since_nopanic() {
     let now = Instant::now();
     let earlier = now - Duration::SECOND;
@@ -129,14 +130,14 @@ fn instant_checked_duration_since_nopanic() {
     assert_eq!(now.checked_duration_since(now), Some(Duration::ZERO));
 }
 
-//#[test]
+#[test]
 fn instant_saturating_duration_since_nopanic() {
     let a = Instant::now();
     let ret = (a - Duration::SECOND).saturating_duration_since(a);
     assert_eq!(ret, Duration::ZERO);
 }
 
-//#[test]
+#[test]
 fn system_time_math() {
     let a = SystemTime::now();
     let b = SystemTime::now();
@@ -186,13 +187,13 @@ fn system_time_math() {
     assert_eq!(a + year, a.checked_add(year).unwrap());
 }
 
-//#[test]
+#[test]
 fn system_time_elapsed() {
     let a = SystemTime::now();
     drop(a.elapsed());
 }
 
-//#[test]
+#[test]
 fn since_epoch() {
     let ts = SystemTime::now();
     let a = ts.duration_since(UNIX_EPOCH + Duration::SECOND).unwrap();
@@ -220,7 +221,7 @@ fn since_epoch() {
 
 #[cfg(feature = "monotonize_impl")]
 #[cfg(all(target_has_atomic = "64", not(target_has_atomic = "128")))]
-//#[test]
+#[test]
 fn monotonizer_wrapping_backslide() {
     use core::sync::atomic::AtomicU64;
     use std::time::monotonic::inner::{monotonize_impl, ZERO};
@@ -246,7 +247,7 @@ fn monotonizer_wrapping_backslide() {
     );
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "bench")]
 macro_rules! bench_instant_threaded {
     ($bench_name:ident, $thread_count:expr) => {
         #[bench]
@@ -284,31 +285,13 @@ macro_rules! bench_instant_threaded {
     };
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "bench")]
 bench_instant_threaded!(instant_contention_01_threads, 0);
-#[cfg(feature = "threads")]
+#[cfg(feature = "bench")]
 bench_instant_threaded!(instant_contention_02_threads, 1);
-#[cfg(feature = "threads")]
+#[cfg(feature = "bench")]
 bench_instant_threaded!(instant_contention_04_threads, 3);
-#[cfg(feature = "threads")]
+#[cfg(feature = "bench")]
 bench_instant_threaded!(instant_contention_08_threads, 7);
-#[cfg(feature = "threads")]
+#[cfg(feature = "bench")]
 bench_instant_threaded!(instant_contention_16_threads, 15);
-
-fn main() {
-    instant_monotonic();
-    #[cfg(feature = "threads")]
-    instant_monotonic_concurrent();
-    instant_elapsed();
-    instant_math();
-    instant_math_is_associative();
-    #[cfg(feature = "should_panic")]
-    instant_duration_since_panic();
-    instant_checked_duration_since_nopanic();
-    instant_saturating_duration_since_nopanic();
-    system_time_math();
-    system_time_elapsed();
-    since_epoch();
-    #[cfg(feature = "monotonize_impl")]
-    monotonizer_wrapping_backslide();
-}

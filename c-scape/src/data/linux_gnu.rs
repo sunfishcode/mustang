@@ -48,6 +48,15 @@ pub(crate) const SYS_getrandom: c_long = 278;
 #[cfg(target_arch = "riscv64")]
 pub(crate) const SYS_getrandom: c_long = 278;
 
+#[cfg(target_arch = "x86_64")]
+pub(crate) const SYS_futex: c_long = 202;
+#[cfg(target_arch = "x86")]
+pub(crate) const SYS_futex: c_long = 240;
+#[cfg(target_arch = "aarch64")]
+pub(crate) const SYS_futex: c_long = 98;
+#[cfg(target_arch = "riscv64")]
+pub(crate) const SYS_futex: c_long = 98;
+
 pub(crate) const CLOCK_REALTIME: c_int = 0;
 pub(crate) const CLOCK_MONOTONIC: c_int = 1;
 
@@ -225,6 +234,24 @@ pub(crate) const TCP_INQ: c_int = 36;
 pub(crate) const EAI_NONAME: c_int = -2;
 pub(crate) const EAI_SYSTEM: c_int = -11;
 
+pub(crate) const FUTEX_WAIT: c_int = 0;
+pub(crate) const FUTEX_WAKE: c_int = 1;
+pub(crate) const FUTEX_FD: c_int = 2;
+pub(crate) const FUTEX_REQUEUE: c_int = 3;
+pub(crate) const FUTEX_CMP_REQUEUE: c_int = 4;
+pub(crate) const FUTEX_WAKE_OP: c_int = 5;
+pub(crate) const FUTEX_LOCK_PI: c_int = 6;
+pub(crate) const FUTEX_UNLOCK_PI: c_int = 7;
+pub(crate) const FUTEX_TRYLOCK_PI: c_int = 8;
+pub(crate) const FUTEX_WAIT_BITSET: c_int = 9;
+
+pub(crate) const PTHREAD_MUTEX_NORMAL: c_int = 0;
+pub(crate) const PTHREAD_MUTEX_DEFAULT: c_int = 0;
+pub(crate) const PTHREAD_MUTEX_RECURSIVE: c_int = 1;
+pub(crate) const PTHREAD_MUTEX_ERRORCHECK: c_int = 2;
+
+pub(crate) const PR_SET_NAME: c_int = 15;
+
 #[repr(C)]
 pub(crate) struct Dirent64 {
     pub(crate) d_ino: u64,
@@ -262,7 +289,7 @@ pub(crate) struct Ipv4Addr {
 #[repr(C)]
 #[repr(align(4))]
 pub(crate) struct Ipv6Addr {
-    pub(crate) u6_addr8: [u8; 16usize],
+    pub(crate) u6_addr8: [u8; 16_usize],
 }
 
 #[repr(C)]
@@ -278,10 +305,16 @@ pub(crate) struct Ipv6Mreq {
 }
 
 #[repr(C)]
-pub(crate) struct Timeval {
-    pub(crate) tv_sec: Time,
+pub(crate) struct OldTimespec {
+    pub(crate) tv_sec: OldTime,
+    pub(crate) tv_nsec: Suseconds,
+}
+
+#[repr(C)]
+pub(crate) struct OldTimeval {
+    pub(crate) tv_sec: OldTime,
     pub(crate) tv_usec: Suseconds,
 }
 
-pub(crate) type Time = c_long;
+pub(crate) type OldTime = c_long;
 pub(crate) type Suseconds = c_long;

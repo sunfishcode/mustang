@@ -15,7 +15,7 @@ use crate::net::test::{sa4, sa6, tsa};
 use std::net::*;
 use std::str::FromStr;
 
-//#[test]
+#[test]
 fn test_from_str_ipv4() {
     assert_eq!(Ok(Ipv4Addr::new(127, 0, 0, 1)), "127.0.0.1".parse());
     assert_eq!(
@@ -38,7 +38,7 @@ fn test_from_str_ipv4() {
     assert_eq!(None, none);
 }
 
-//#[test]
+#[test]
 fn test_from_str_ipv6() {
     assert_eq!(
         Ok(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0)),
@@ -77,7 +77,7 @@ fn test_from_str_ipv6() {
     assert_eq!(None, none);
 }
 
-//#[test]
+#[test]
 fn test_from_str_ipv4_in_ipv6() {
     assert_eq!(
         Ok(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 49152, 545)),
@@ -109,7 +109,7 @@ fn test_from_str_ipv4_in_ipv6() {
     assert_eq!(None, none);
 }
 
-//#[test]
+#[test]
 fn test_from_str_socket_addr() {
     assert_eq!(
         Ok(sa4(Ipv4Addr::new(77, 88, 21, 11), 80)),
@@ -160,7 +160,7 @@ fn test_from_str_socket_addr() {
     assert_eq!(None, none);
 }
 
-//#[test]
+#[test]
 fn ipv4_addr_to_string() {
     assert_eq!(Ipv4Addr::new(127, 0, 0, 1).to_string(), "127.0.0.1");
     // Short address
@@ -182,7 +182,7 @@ fn ipv4_addr_to_string() {
     );
 }
 
-//#[test]
+#[test]
 fn ipv6_addr_to_string() {
     // ipv4-mapped address
     let a1 = Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0xc000, 0x280);
@@ -253,7 +253,7 @@ fn ipv6_addr_to_string() {
     );
 }
 
-//#[test]
+#[test]
 fn ipv4_to_ipv6() {
     assert_eq!(
         Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x1234, 0x5678),
@@ -265,7 +265,7 @@ fn ipv4_to_ipv6() {
     );
 }
 
-//#[test]
+#[test]
 fn ipv6_to_ipv4_mapped() {
     assert_eq!(
         Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x1234, 0x5678).to_ipv4_mapped(),
@@ -277,7 +277,7 @@ fn ipv6_to_ipv4_mapped() {
     );
 }
 
-//#[test]
+#[test]
 fn ipv6_to_ipv4() {
     assert_eq!(
         Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x1234, 0x5678).to_ipv4(),
@@ -293,7 +293,7 @@ fn ipv6_to_ipv4() {
     );
 }
 
-//#[test]
+#[test]
 fn ip_properties() {
     macro_rules! ip {
         ($s:expr) => {
@@ -404,7 +404,7 @@ fn ip_properties() {
     check!("102:304:506:708:90a:b0c:d0e:f10", global);
 }
 
-//#[test]
+#[test]
 fn ipv4_properties() {
     macro_rules! ip {
         ($s:expr) => {
@@ -540,7 +540,7 @@ fn ipv4_properties() {
     check!("100.100.100.0", shared);
 }
 
-//#[test]
+#[test]
 fn ipv6_properties() {
     macro_rules! ip {
         ($s:expr) => {
@@ -810,25 +810,25 @@ fn ipv6_properties() {
     );
 }
 
-//#[test]
+#[test]
 fn to_socket_addr_socketaddr() {
     let a = sa4(Ipv4Addr::new(77, 88, 21, 11), 12345);
     assert_eq!(Ok(vec![a]), tsa(a));
 }
 
-//#[test]
+#[test]
 fn test_ipv4_to_int() {
     let a = Ipv4Addr::new(0x11, 0x22, 0x33, 0x44);
     assert_eq!(u32::from(a), 0x11223344);
 }
 
-//#[test]
+#[test]
 fn test_int_to_ipv4() {
     let a = Ipv4Addr::new(0x11, 0x22, 0x33, 0x44);
     assert_eq!(Ipv4Addr::from(0x11223344), a);
 }
 
-//#[test]
+#[test]
 fn test_ipv6_to_int() {
     let a = Ipv6Addr::new(
         0x1122, 0x3344, 0x5566, 0x7788, 0x99aa, 0xbbcc, 0xddee, 0xff11,
@@ -836,7 +836,7 @@ fn test_ipv6_to_int() {
     assert_eq!(u128::from(a), 0x112233445566778899aabbccddeeff11u128);
 }
 
-//#[test]
+#[test]
 fn test_int_to_ipv6() {
     let a = Ipv6Addr::new(
         0x1122, 0x3344, 0x5566, 0x7788, 0x99aa, 0xbbcc, 0xddee, 0xff11,
@@ -844,7 +844,7 @@ fn test_int_to_ipv6() {
     assert_eq!(Ipv6Addr::from(0x112233445566778899aabbccddeeff11u128), a);
 }
 
-//#[test]
+#[test]
 fn ipv4_from_constructors() {
     assert_eq!(Ipv4Addr::LOCALHOST, Ipv4Addr::new(127, 0, 0, 1));
     assert!(Ipv4Addr::LOCALHOST.is_loopback());
@@ -854,7 +854,7 @@ fn ipv4_from_constructors() {
     assert!(Ipv4Addr::BROADCAST.is_broadcast());
 }
 
-//#[test]
+#[test]
 fn ipv6_from_contructors() {
     assert_eq!(Ipv6Addr::LOCALHOST, Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1));
     assert!(Ipv6Addr::LOCALHOST.is_loopback());
@@ -862,12 +862,12 @@ fn ipv6_from_contructors() {
     assert!(Ipv6Addr::UNSPECIFIED.is_unspecified());
 }
 
-//#[test]
+#[test]
 fn ipv4_from_octets() {
     assert_eq!(Ipv4Addr::from([127, 0, 0, 1]), Ipv4Addr::new(127, 0, 0, 1))
 }
 
-//#[test]
+#[test]
 fn ipv6_from_segments() {
     let from_u16s = Ipv6Addr::from([
         0x0011, 0x2233, 0x4455, 0x6677, 0x8899, 0xaabb, 0xccdd, 0xeeff,
@@ -878,7 +878,7 @@ fn ipv6_from_segments() {
     assert_eq!(new, from_u16s);
 }
 
-//#[test]
+#[test]
 fn ipv6_from_octets() {
     let from_u16s = Ipv6Addr::from([
         0x0011, 0x2233, 0x4455, 0x6677, 0x8899, 0xaabb, 0xccdd, 0xeeff,
@@ -890,7 +890,7 @@ fn ipv6_from_octets() {
     assert_eq!(from_u16s, from_u8s);
 }
 
-//#[test]
+#[test]
 fn cmp() {
     let v41 = Ipv4Addr::new(100, 64, 3, 3);
     let v42 = Ipv4Addr::new(192, 0, 2, 2);
@@ -913,21 +913,21 @@ fn cmp() {
     assert!(IpAddr::V4(v41) < v61);
 }
 
-//#[test]
+#[test]
 fn is_v4() {
     let ip = IpAddr::V4(Ipv4Addr::new(100, 64, 3, 3));
     assert!(ip.is_ipv4());
     assert!(!ip.is_ipv6());
 }
 
-//#[test]
+#[test]
 fn is_v6() {
     let ip = IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x1234, 0x5678));
     assert!(!ip.is_ipv4());
     assert!(ip.is_ipv6());
 }
 
-//#[test]
+#[test]
 fn ipv4_const() {
     // test that the methods of `Ipv4Addr` are usable in a const context
 
@@ -983,7 +983,7 @@ fn ipv4_const() {
     );
 }
 
-//#[test]
+#[test]
 fn ipv6_const() {
     // test that the methods of `Ipv6Addr` are usable in a const context
 
@@ -1027,7 +1027,7 @@ fn ipv6_const() {
     assert_eq!(IP_V4.unwrap(), Ipv4Addr::new(0, 0, 0, 1));
 }
 
-//#[test]
+#[test]
 fn ip_const() {
     // test that the methods of `IpAddr` are usable in a const context
 
@@ -1050,35 +1050,4 @@ fn ip_const() {
 
     const IS_IP_V6: bool = IP_ADDRESS.is_ipv6();
     assert!(!IS_IP_V6);
-}
-
-fn main() {
-    test_from_str_ipv4();
-    test_from_str_ipv6();
-    test_from_str_ipv4_in_ipv6();
-    test_from_str_socket_addr();
-    ipv4_addr_to_string();
-    ipv6_addr_to_string();
-    ipv4_to_ipv6();
-    ipv6_to_ipv4_mapped();
-    ipv6_to_ipv4();
-    ip_properties();
-    ipv4_properties();
-    ipv6_properties();
-    to_socket_addr_socketaddr();
-    test_ipv4_to_int();
-    test_int_to_ipv4();
-    test_ipv6_to_int();
-    test_int_to_ipv6();
-    ipv4_from_constructors();
-    ipv6_from_contructors();
-    ipv4_from_octets();
-    ipv6_from_segments();
-    ipv6_from_octets();
-    cmp();
-    is_v4();
-    is_v6();
-    ipv4_const();
-    ipv6_const();
-    ip_const();
 }

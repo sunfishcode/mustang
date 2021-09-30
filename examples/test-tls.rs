@@ -1,11 +1,4 @@
-// `c-scape` doesn't yet support threads and tls, but origin does, so test
-// that for now.
-#[cfg(target_vendor = "mustang")]
-extern crate origin;
-#[inline(never)]
-#[no_mangle]
-#[cold]
-extern "C" fn __mustang_c_scape() {}
+mustang::can_compile_this!();
 
 use std::cell::Cell;
 use std::thread;

@@ -36,7 +36,7 @@ macro_rules! t {
     };
 }
 
-//#[test]
+#[test]
 fn bind_error() {
     match UdpSocket::bind("1.1.1.1:9999") {
         Ok(..) => panic!(),
@@ -45,7 +45,7 @@ fn bind_error() {
 }
 
 #[cfg(feature = "threads")]
-//#[test]
+#[test]
 fn socket_smoke_test_ip4() {
     each_ip(&mut |server_ip, client_ip| {
         let (tx1, rx1) = channel();
@@ -69,7 +69,7 @@ fn socket_smoke_test_ip4() {
     })
 }
 
-//#[test]
+#[test]
 fn socket_name() {
     each_ip(&mut |addr, _| {
         let server = t!(UdpSocket::bind(&addr));
@@ -77,7 +77,7 @@ fn socket_name() {
     })
 }
 
-//#[test]
+#[test]
 fn socket_peer() {
     each_ip(&mut |addr1, addr2| {
         let server = t!(UdpSocket::bind(&addr1));
@@ -91,7 +91,7 @@ fn socket_peer() {
 }
 
 #[cfg(feature = "threads")]
-//#[test]
+#[test]
 fn udp_clone_smoke() {
     each_ip(&mut |addr1, addr2| {
         let sock1 = t!(UdpSocket::bind(&addr1));
@@ -121,7 +121,7 @@ fn udp_clone_smoke() {
 }
 
 #[cfg(feature = "threads")]
-//#[test]
+#[test]
 fn udp_clone_two_read() {
     each_ip(&mut |addr1, addr2| {
         let sock1 = t!(UdpSocket::bind(&addr1));
@@ -154,7 +154,7 @@ fn udp_clone_two_read() {
 }
 
 #[cfg(feature = "threads")]
-//#[test]
+#[test]
 fn udp_clone_two_write() {
     each_ip(&mut |addr1, addr2| {
         let sock1 = t!(UdpSocket::bind(&addr1));
@@ -190,7 +190,7 @@ fn udp_clone_two_write() {
     })
 }
 
-//#[test]
+#[test]
 fn debug() {
     let name = if cfg!(windows) { "socket" } else { "fd" };
     let socket_addr = next_test_ip4();
@@ -214,7 +214,7 @@ fn debug() {
     any(target_os = "netbsd", target_os = "openbsd", target_os = "vxworks"),
     ignore
 )]
-//#[test]
+#[test]
 fn timeouts() {
     let addr = next_test_ip4();
 
@@ -238,7 +238,7 @@ fn timeouts() {
     assert_eq!(None, t!(stream.write_timeout()));
 }
 
-//#[test]
+#[test]
 fn test_read_timeout() {
     let addr = next_test_ip4();
 
@@ -266,7 +266,7 @@ fn test_read_timeout() {
     assert!(start.elapsed() > Duration::from_millis(400));
 }
 
-//#[test]
+#[test]
 fn test_read_with_timeout() {
     let addr = next_test_ip4();
 
@@ -300,7 +300,7 @@ fn test_read_with_timeout() {
 
 // Ensure the `set_read_timeout` and `set_write_timeout` calls return errors
 // when passed zero Durations
-//#[test]
+#[test]
 fn test_timeout_zero_duration() {
     let addr = next_test_ip4();
 
@@ -315,7 +315,7 @@ fn test_timeout_zero_duration() {
     assert_eq!(err.kind(), ErrorKind::InvalidInput);
 }
 
-//#[test]
+#[test]
 fn connect_send_recv() {
     let addr = next_test_ip4();
 
@@ -329,7 +329,7 @@ fn connect_send_recv() {
     assert_eq!(b"hello world", &buf[..]);
 }
 
-//#[test]
+#[test]
 fn connect_send_peek_recv() {
     each_ip(&mut |addr, _| {
         let socket = t!(UdpSocket::bind(&addr));
@@ -351,7 +351,7 @@ fn connect_send_peek_recv() {
     })
 }
 
-//#[test]
+#[test]
 fn peek_from() {
     each_ip(&mut |addr, _| {
         let socket = t!(UdpSocket::bind(&addr));
@@ -371,7 +371,7 @@ fn peek_from() {
     })
 }
 
-//#[test]
+#[test]
 fn ttl() {
     let ttl = 100;
 
@@ -383,7 +383,7 @@ fn ttl() {
     assert_eq!(ttl, t!(stream.ttl()));
 }
 
-//#[test]
+#[test]
 fn set_nonblocking() {
     each_ip(&mut |addr, _| {
         let socket = t!(UdpSocket::bind(&addr));
@@ -403,28 +403,4 @@ fn set_nonblocking() {
             Err(e) => panic!("unexpected error {}", e),
         }
     })
-}
-
-fn main() {
-    bind_error();
-    #[cfg(feature = "threads")]
-    socket_smoke_test_ip4();
-    socket_name();
-    socket_peer();
-    #[cfg(feature = "threads")]
-    udp_clone_smoke();
-    #[cfg(feature = "threads")]
-    udp_clone_two_read();
-    #[cfg(feature = "threads")]
-    udp_clone_two_write();
-    debug();
-    timeouts();
-    test_read_timeout();
-    test_read_with_timeout();
-    test_timeout_zero_duration();
-    connect_send_recv();
-    connect_send_peek_recv();
-    peek_from();
-    ttl();
-    set_nonblocking();
 }

@@ -113,7 +113,7 @@ fn able_to_not_follow_symlinks_while_hard_linking() -> bool {
     return true;
 }
 
-//#[test]
+#[test]
 fn file_test_io_smoke_test() {
     let message = "it's alright. have a good time";
     let tmpdir = tmpdir();
@@ -134,7 +134,7 @@ fn file_test_io_smoke_test() {
     check!(fs::remove_file(filename));
 }
 
-//#[test]
+#[test]
 fn invalid_path_raises() {
     let tmpdir = tmpdir();
     let filename = &tmpdir.join("file_that_does_not_exist.txt");
@@ -148,7 +148,7 @@ fn invalid_path_raises() {
     error!(result, 2); // ERROR_FILE_NOT_FOUND
 }
 
-//#[test]
+#[test]
 fn file_test_iounlinking_invalid_path_should_raise_condition() {
     let tmpdir = tmpdir();
     let filename = &tmpdir.join("file_another_file_that_does_not_exist.txt");
@@ -163,7 +163,7 @@ fn file_test_iounlinking_invalid_path_should_raise_condition() {
     error!(result, 2); // ERROR_FILE_NOT_FOUND
 }
 
-//#[test]
+#[test]
 fn file_test_io_non_positional_read() {
     let message: &str = "ten-four";
     let mut read_mem = [0; 8];
@@ -189,7 +189,7 @@ fn file_test_io_non_positional_read() {
     assert_eq!(read_str, message);
 }
 
-//#[test]
+#[test]
 fn file_test_io_seek_and_tell_smoke_test() {
     let message = "ten-four";
     let mut read_mem = [0; 4];
@@ -216,7 +216,7 @@ fn file_test_io_seek_and_tell_smoke_test() {
     assert_eq!(tell_pos_post_read, message.len() as u64);
 }
 
-//#[test]
+#[test]
 fn file_test_io_seek_and_write() {
     let initial_msg = "food-is-yummy";
     let overwrite_msg = "-the-bar!!";
@@ -240,7 +240,7 @@ fn file_test_io_seek_and_write() {
     assert!(read_str == final_msg);
 }
 
-//#[test]
+#[test]
 fn file_test_io_seek_shakedown() {
     //                   01234567890123
     let initial_msg = "qwer-asdf-zxcv";
@@ -272,7 +272,7 @@ fn file_test_io_seek_shakedown() {
     check!(fs::remove_file(filename));
 }
 
-//#[test]
+#[test]
 fn file_test_io_eof() {
     let tmpdir = tmpdir();
     let filename = tmpdir.join("file_rt_io_file_test_eof.txt");
@@ -290,7 +290,7 @@ fn file_test_io_eof() {
     check!(fs::remove_file(&filename));
 }
 
-//#[test]
+#[test]
 #[cfg(unix)]
 fn file_test_io_read_write_at() {
     use std::os::unix::fs::FileExt;
@@ -356,7 +356,7 @@ fn file_test_io_read_write_at() {
     check!(fs::remove_file(&filename));
 }
 
-//#[test]
+#[test]
 #[cfg(unix)]
 fn set_get_unix_permissions() {
     use std::os::unix::fs::PermissionsExt;
@@ -381,7 +381,7 @@ fn set_get_unix_permissions() {
     assert_eq!(mask & metadata1.permissions().mode(), 0o0777);
 }
 
-//#[test]
+#[test]
 #[cfg(windows)]
 fn file_test_io_seek_read_write() {
     use std::os::windows::fs::FileExt;
@@ -442,7 +442,7 @@ fn file_test_io_seek_read_write() {
     check!(fs::remove_file(&filename));
 }
 
-//#[test]
+#[test]
 fn file_test_stat_is_correct_on_is_file() {
     let tmpdir = tmpdir();
     let filename = &tmpdir.join("file_stat_correct_on_is_file.txt");
@@ -462,7 +462,7 @@ fn file_test_stat_is_correct_on_is_file() {
     check!(fs::remove_file(filename));
 }
 
-//#[test]
+#[test]
 fn file_test_stat_is_correct_on_is_dir() {
     let tmpdir = tmpdir();
     let filename = &tmpdir.join("file_stat_correct_on_is_dir");
@@ -474,7 +474,7 @@ fn file_test_stat_is_correct_on_is_dir() {
     check!(fs::remove_dir(filename));
 }
 
-//#[test]
+#[test]
 fn file_test_fileinfo_false_when_checking_is_file_on_a_directory() {
     let tmpdir = tmpdir();
     let dir = &tmpdir.join("fileinfo_false_on_dir");
@@ -483,7 +483,7 @@ fn file_test_fileinfo_false_when_checking_is_file_on_a_directory() {
     check!(fs::remove_dir(dir));
 }
 
-//#[test]
+#[test]
 fn file_test_fileinfo_check_exists_before_and_after_file_creation() {
     let tmpdir = tmpdir();
     let file = &tmpdir.join("fileinfo_check_exists_b_and_a.txt");
@@ -493,7 +493,7 @@ fn file_test_fileinfo_check_exists_before_and_after_file_creation() {
     assert!(!file.exists());
 }
 
-//#[test]
+#[test]
 fn file_test_directoryinfo_check_exists_before_and_after_mkdir() {
     let tmpdir = tmpdir();
     let dir = &tmpdir.join("before_and_after_dir");
@@ -505,7 +505,7 @@ fn file_test_directoryinfo_check_exists_before_and_after_mkdir() {
     assert!(!dir.exists());
 }
 
-//#[test]
+#[test]
 fn file_test_directoryinfo_readdir() {
     let tmpdir = tmpdir();
     let dir = &tmpdir.join("di_readdir");
@@ -534,7 +534,7 @@ fn file_test_directoryinfo_readdir() {
     check!(fs::remove_dir(dir));
 }
 
-//#[test]
+#[test]
 fn file_create_new_already_exists_error() {
     let tmpdir = tmpdir();
     let file = &tmpdir.join("file_create_new_error_exists");
@@ -547,7 +547,7 @@ fn file_create_new_already_exists_error() {
     assert_eq!(e.kind(), ErrorKind::AlreadyExists);
 }
 
-//#[test]
+#[test]
 fn mkdir_path_already_exists_error() {
     let tmpdir = tmpdir();
     let dir = &tmpdir.join("mkdir_error_twice");
@@ -556,7 +556,7 @@ fn mkdir_path_already_exists_error() {
     assert_eq!(e.kind(), ErrorKind::AlreadyExists);
 }
 
-//#[test]
+#[test]
 fn recursive_mkdir() {
     let tmpdir = tmpdir();
     let dir = tmpdir.join("d1/d2");
@@ -564,7 +564,7 @@ fn recursive_mkdir() {
     assert!(dir.is_dir())
 }
 
-//#[test]
+#[test]
 fn recursive_mkdir_failure() {
     let tmpdir = tmpdir();
     let dir = tmpdir.join("d1");
@@ -579,7 +579,7 @@ fn recursive_mkdir_failure() {
 }
 
 #[cfg(feature = "threads")]
-//#[test]
+#[test]
 fn concurrent_recursive_mkdir() {
     for _ in 0..100 {
         let dir = tmpdir();
@@ -600,22 +600,22 @@ fn concurrent_recursive_mkdir() {
     }
 }
 
-//#[test]
+#[test]
 fn recursive_mkdir_slash() {
     check!(fs::create_dir_all(Path::new("/")));
 }
 
-//#[test]
+#[test]
 fn recursive_mkdir_dot() {
     check!(fs::create_dir_all(Path::new(".")));
 }
 
-//#[test]
+#[test]
 fn recursive_mkdir_empty() {
     check!(fs::create_dir_all(Path::new("")));
 }
 
-//#[test]
+#[test]
 fn recursive_rmdir() {
     let tmpdir = tmpdir();
     let d1 = tmpdir.join("d1");
@@ -634,7 +634,7 @@ fn recursive_rmdir() {
     assert!(canary.exists());
 }
 
-//#[test]
+#[test]
 fn recursive_rmdir_of_symlink() {
     // test we do not recursively delete a symlink but only dirs.
     let tmpdir = tmpdir();
@@ -650,7 +650,7 @@ fn recursive_rmdir_of_symlink() {
     assert!(canary.exists());
 }
 
-//#[test]
+#[test]
 // only Windows makes a distinction between file and directory symlinks.
 #[cfg(windows)]
 fn recursive_rmdir_of_file_symlink() {
@@ -669,7 +669,7 @@ fn recursive_rmdir_of_file_symlink() {
     }
 }
 
-//#[test]
+#[test]
 fn unicode_path_is_dir() {
     assert!(Path::new(".").is_dir());
     assert!(!Path::new("test/stdtest/fs.rs").is_dir());
@@ -688,7 +688,7 @@ fn unicode_path_is_dir() {
     assert!(filepath.exists());
 }
 
-//#[test]
+#[test]
 fn unicode_path_exists() {
     assert!(Path::new(".").exists());
     assert!(!Path::new("test/nonexistent-bogus-path").exists());
@@ -701,7 +701,7 @@ fn unicode_path_exists() {
     assert!(!Path::new("test/unicode-bogus-path-각丁ー再见").exists());
 }
 
-//#[test]
+#[test]
 fn copy_file_does_not_exist() {
     let from = Path::new("test/nonexistent-bogus-path");
     let to = Path::new("test/other-bogus-path");
@@ -715,7 +715,7 @@ fn copy_file_does_not_exist() {
     }
 }
 
-//#[test]
+#[test]
 fn copy_src_does_not_exist() {
     let tmpdir = tmpdir();
     let from = Path::new("test/nonexistent-bogus-path");
@@ -728,7 +728,7 @@ fn copy_src_does_not_exist() {
     assert_eq!(v, b"hello");
 }
 
-//#[test]
+#[test]
 fn copy_file_ok() {
     let tmpdir = tmpdir();
     let input = tmpdir.join("in.txt");
@@ -746,7 +746,7 @@ fn copy_file_ok() {
     );
 }
 
-//#[test]
+#[test]
 fn copy_file_dst_dir() {
     let tmpdir = tmpdir();
     let out = tmpdir.join("out");
@@ -758,7 +758,7 @@ fn copy_file_dst_dir() {
     }
 }
 
-//#[test]
+#[test]
 fn copy_file_dst_exists() {
     let tmpdir = tmpdir();
     let input = tmpdir.join("in");
@@ -773,7 +773,7 @@ fn copy_file_dst_exists() {
     assert_eq!(v, b"foo".to_vec());
 }
 
-//#[test]
+#[test]
 fn copy_file_src_dir() {
     let tmpdir = tmpdir();
     let out = tmpdir.join("out");
@@ -785,7 +785,7 @@ fn copy_file_src_dir() {
     assert!(!out.exists());
 }
 
-//#[test]
+#[test]
 fn copy_file_preserves_perm_bits() {
     let tmpdir = tmpdir();
     let input = tmpdir.join("in.txt");
@@ -801,7 +801,7 @@ fn copy_file_preserves_perm_bits() {
     check!(fs::set_permissions(&out, attr.permissions()));
 }
 
-//#[test]
+#[test]
 #[cfg(windows)]
 fn copy_file_preserves_streams() {
     let tmp = tmpdir();
@@ -813,7 +813,7 @@ fn copy_file_preserves_streams() {
     assert_eq!(v, b"carrot".to_vec());
 }
 
-//#[test]
+#[test]
 fn copy_file_returns_metadata_len() {
     let tmp = tmpdir();
     let in_path = tmp.join("in.txt");
@@ -825,7 +825,7 @@ fn copy_file_returns_metadata_len() {
     assert_eq!(check!(out_path.metadata()).len(), copied_len);
 }
 
-//#[test]
+#[test]
 fn copy_file_follows_dst_symlink() {
     let tmp = tmpdir();
     if !got_symlink_permission(&tmp) {
@@ -849,7 +849,7 @@ fn copy_file_follows_dst_symlink() {
     assert_eq!(check!(fs::read(&out_path)), b"foo".to_vec());
 }
 
-//#[test]
+#[test]
 fn symlinks_work() {
     let tmpdir = tmpdir();
     if !got_symlink_permission(&tmpdir) {
@@ -871,7 +871,7 @@ fn symlinks_work() {
     assert_eq!(v, b"foobar".to_vec());
 }
 
-//#[test]
+#[test]
 fn symlink_noexist() {
     // Symlinks can point to things that don't exist
     let tmpdir = tmpdir();
@@ -888,7 +888,7 @@ fn symlink_noexist() {
     );
 }
 
-//#[test]
+#[test]
 fn read_link() {
     if cfg!(windows) {
         // directory symlink
@@ -922,7 +922,7 @@ fn read_link() {
     assert_eq!(check!(fs::read_link(&link)).to_str().unwrap(), "foo");
 }
 
-//#[test]
+#[test]
 fn readlink_not_symlink() {
     let tmpdir = tmpdir();
     match fs::read_link(tmpdir.path()) {
@@ -931,7 +931,7 @@ fn readlink_not_symlink() {
     }
 }
 
-//#[test]
+#[test]
 fn links_work() {
     let tmpdir = tmpdir();
     let input = tmpdir.join("in.txt");
@@ -963,7 +963,7 @@ fn links_work() {
     }
 }
 
-//#[test]
+#[test]
 fn chmod_works() {
     let tmpdir = tmpdir();
     let file = tmpdir.join("in.txt");
@@ -986,7 +986,7 @@ fn chmod_works() {
     check!(fs::set_permissions(&file, p));
 }
 
-//#[test]
+#[test]
 fn fchmod_works() {
     let tmpdir = tmpdir();
     let path = tmpdir.join("in.txt");
@@ -1004,7 +1004,7 @@ fn fchmod_works() {
     check!(file.set_permissions(p));
 }
 
-//#[test]
+#[test]
 fn sync_doesnt_kill_anything() {
     let tmpdir = tmpdir();
     let path = tmpdir.join("in.txt");
@@ -1017,7 +1017,7 @@ fn sync_doesnt_kill_anything() {
     check!(file.sync_data());
 }
 
-//#[test]
+#[test]
 fn truncate_works() {
     let tmpdir = tmpdir();
     let path = tmpdir.join("in.txt");
@@ -1051,7 +1051,7 @@ fn truncate_works() {
     assert_eq!(v, b"fo\0\0\0\0wut".to_vec());
 }
 
-//#[test]
+#[test]
 fn open_flavors() {
     use std::fs::OpenOptions as OO;
     fn c<T: Clone>(t: &T) -> T {
@@ -1196,13 +1196,13 @@ fn open_flavors() {
     assert_eq!(check!(fs::metadata(&tmpdir.join("h"))).len(), 9);
 }
 
-//#[test]
+#[test]
 fn _assert_send_sync() {
     fn _assert_send_sync<T: Send + Sync>() {}
     _assert_send_sync::<OpenOptions>();
 }
 
-//#[test]
+#[test]
 fn binary_file() {
     let mut bytes = [0; 1024];
     StdRng::from_entropy().fill_bytes(&mut bytes);
@@ -1215,7 +1215,7 @@ fn binary_file() {
     assert!(v == &bytes[..]);
 }
 
-//#[test]
+#[test]
 fn write_then_read() {
     let mut bytes = [0; 1024];
     StdRng::from_entropy().fill_bytes(&mut bytes);
@@ -1238,7 +1238,7 @@ fn write_then_read() {
     assert_eq!(string, s);
 }
 
-//#[test]
+#[test]
 fn file_try_clone() {
     let tmpdir = tmpdir();
 
@@ -1260,7 +1260,7 @@ fn file_try_clone() {
     check!(f1.write_all(b"!"));
 }
 
-//#[test]
+#[test]
 #[cfg(not(windows))]
 fn unlink_readonly() {
     let tmpdir = tmpdir();
@@ -1272,14 +1272,14 @@ fn unlink_readonly() {
     check!(fs::remove_file(&path));
 }
 
-//#[test]
+#[test]
 fn mkdir_trailing_slash() {
     let tmpdir = tmpdir();
     let path = tmpdir.join("file");
     check!(fs::create_dir_all(&path.join("a/")));
 }
 
-//#[test]
+#[test]
 fn canonicalize_works_simple() {
     let tmpdir = tmpdir();
     let tmpdir = fs::canonicalize(tmpdir.path()).unwrap();
@@ -1288,7 +1288,7 @@ fn canonicalize_works_simple() {
     assert_eq!(fs::canonicalize(&file).unwrap(), file);
 }
 
-//#[test]
+#[test]
 fn realpath_works() {
     let tmpdir = tmpdir();
     if !got_symlink_permission(&tmpdir) {
@@ -1315,7 +1315,7 @@ fn realpath_works() {
     assert_eq!(fs::canonicalize(&linkdir.join("link")).unwrap(), file);
 }
 
-//#[test]
+#[test]
 fn realpath_works_tricky() {
     let tmpdir = tmpdir();
     if !got_symlink_permission(&tmpdir) {
@@ -1346,7 +1346,7 @@ fn realpath_works_tricky() {
     assert_eq!(fs::canonicalize(&e).unwrap(), f);
 }
 
-//#[test]
+#[test]
 fn dir_entry_methods() {
     let tmpdir = tmpdir();
 
@@ -1369,7 +1369,7 @@ fn dir_entry_methods() {
     }
 }
 
-//#[test]
+#[test]
 fn dir_entry_debug() {
     let tmpdir = tmpdir();
     File::create(&tmpdir.join("b")).unwrap();
@@ -1380,13 +1380,13 @@ fn dir_entry_debug() {
     assert_eq!(actual, expected);
 }
 
-//#[test]
+#[test]
 fn read_dir_not_found() {
     let res = fs::read_dir("/path/that/does/not/exist");
     assert_eq!(res.err().unwrap().kind(), ErrorKind::NotFound);
 }
 
-//#[test]
+#[test]
 fn create_dir_all_with_junctions() {
     let tmpdir = tmpdir();
     let target = tmpdir.join("target");
@@ -1415,7 +1415,7 @@ fn create_dir_all_with_junctions() {
     assert!(d.exists());
 }
 
-//#[test]
+#[test]
 fn metadata_access_times() {
     let tmpdir = tmpdir();
 
@@ -1454,7 +1454,7 @@ fn metadata_access_times() {
 }
 
 /// Test creating hard links to symlinks.
-//#[test]
+#[test]
 fn symlink_hard_link() {
     let tmpdir = tmpdir();
     if !got_symlink_permission(&tmpdir) {
@@ -1521,70 +1521,4 @@ fn symlink_hard_link() {
     assert!(check!(fs::symlink_metadata(tmpdir.join("hard_link")))
         .file_type()
         .is_symlink());
-}
-
-fn main() {
-    file_test_io_smoke_test();
-    invalid_path_raises();
-    file_test_iounlinking_invalid_path_should_raise_condition();
-    file_test_io_non_positional_read();
-    file_test_io_seek_and_tell_smoke_test();
-    file_test_io_seek_and_write();
-    file_test_io_seek_shakedown();
-    file_test_io_eof();
-    file_test_io_read_write_at();
-    file_test_stat_is_correct_on_is_file();
-    file_test_stat_is_correct_on_is_dir();
-    file_test_fileinfo_false_when_checking_is_file_on_a_directory();
-    file_test_fileinfo_check_exists_before_and_after_file_creation();
-    file_test_directoryinfo_check_exists_before_and_after_mkdir();
-    file_test_directoryinfo_readdir();
-    file_create_new_already_exists_error();
-    mkdir_path_already_exists_error();
-    recursive_mkdir();
-    recursive_mkdir_failure();
-    #[cfg(feature = "threads")]
-    concurrent_recursive_mkdir();
-    recursive_mkdir_slash();
-    recursive_mkdir_dot();
-    recursive_mkdir_empty();
-    recursive_rmdir();
-    recursive_rmdir_of_symlink();
-    unicode_path_is_dir();
-    unicode_path_exists();
-    copy_file_does_not_exist();
-    copy_src_does_not_exist();
-    copy_file_ok();
-    copy_file_dst_dir();
-    copy_file_dst_exists();
-    copy_file_src_dir();
-    copy_file_preserves_perm_bits();
-    copy_file_returns_metadata_len();
-    copy_file_follows_dst_symlink();
-    symlinks_work();
-    symlink_noexist();
-    read_link();
-    readlink_not_symlink();
-    links_work();
-    chmod_works();
-    fchmod_works();
-    sync_doesnt_kill_anything();
-    truncate_works();
-    open_flavors();
-    _assert_send_sync();
-    binary_file();
-    write_then_read();
-    file_try_clone();
-    mkdir_trailing_slash();
-    canonicalize_works_simple();
-    realpath_works();
-    realpath_works_tricky();
-    dir_entry_methods();
-    dir_entry_debug();
-    read_dir_not_found();
-    create_dir_all_with_junctions();
-    metadata_access_times();
-    symlink_hard_link();
-    set_get_unix_permissions();
-    unlink_readonly();
 }

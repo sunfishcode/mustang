@@ -8,7 +8,7 @@ use std::env::*;
 
 use std::path::Path;
 
-//#[test]
+#[test]
 #[cfg_attr(any(target_os = "emscripten", target_env = "sgx"), ignore)]
 fn test_self_exe_path() {
     let path = current_exe();
@@ -19,7 +19,7 @@ fn test_self_exe_path() {
     assert!(path.is_absolute());
 }
 
-//#[test]
+#[test]
 fn test() {
     assert!((!Path::new("test-path").is_absolute()));
 
@@ -27,7 +27,7 @@ fn test() {
     current_dir().unwrap();
 }
 
-//#[test]
+#[test]
 #[cfg(windows)]
 fn split_paths_windows() {
     use std::path::PathBuf;
@@ -53,7 +53,7 @@ fn split_paths_windows() {
     ));
 }
 
-//#[test]
+#[test]
 #[cfg(unix)]
 fn split_paths_unix() {
     use std::path::PathBuf;
@@ -70,7 +70,7 @@ fn split_paths_unix() {
     assert!(check_parse("/:/usr/local", &mut ["/", "/usr/local"]));
 }
 
-//#[test]
+#[test]
 #[cfg(unix)]
 fn join_paths_unix() {
     use std::ffi::OsStr;
@@ -91,7 +91,7 @@ fn join_paths_unix() {
     assert!(join_paths(["/te:st"].iter().cloned()).is_err());
 }
 
-//#[test]
+#[test]
 #[cfg(windows)]
 fn join_paths_windows() {
     use std::ffi::OsStr;
@@ -110,7 +110,7 @@ fn join_paths_windows() {
     assert!(join_paths([r#"c:\te"st"#].iter().cloned()).is_err());
 }
 
-//#[test]
+#[test]
 fn args_debug() {
     assert_eq!(
         format!("Args {{ inner: {:?} }}", args().collect::<Vec<_>>()),
@@ -120,18 +120,4 @@ fn args_debug() {
         format!("ArgsOs {{ inner: {:?} }}", args_os().collect::<Vec<_>>()),
         format!("{:?}", args_os())
     );
-}
-
-fn main() {
-    test_self_exe_path();
-    test();
-    #[cfg(windows)]
-    split_paths_windows();
-    #[cfg(unix)]
-    split_paths_unix();
-    #[cfg(unix)]
-    join_paths_unix();
-    #[cfg(windows)]
-    join_paths_windows();
-    args_debug();
 }

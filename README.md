@@ -106,8 +106,7 @@ set the environment variable `CC_i686-mustang-linux-gnu` to
 
 Known limitations in `mustang` include:
 
- - Spawning new processes, threads, and unwinding panics are
-   not implemented yet.
+ - Spawning new processes and unwinding panics are not implemented yet.
  - No support for dynamic linking yet.
 
 ## Background
@@ -136,11 +135,11 @@ Let's find out! Come say hi in the [chat] or an [issue].
  - Add assembly code to the `_start` function in src/lib.rs to call
    `origin::rust`.
  - Create a target file in `specs/`, by first following
-   [these instructions] to generate a default target file, and then:
+   [these instructions] to generate a specification of a built-in target,
+   and then:
      - change `is-builtin` to false
      - change `dynamic-linking` to false
-     - add `-nostdlib`, `-Wl,--require-defined=__mustang_origin`, and
-      `-Wl,--require-defined=__mustang_c_scape` to pre-link-args
+     - add `-nostartfiles` to pre-link-args
      - add `"vendor": "mustang"`
    See other targets in the `specs/` directory for examples.
  - Compile some of the programs in the `examples/` directory, using
