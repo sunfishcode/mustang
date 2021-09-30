@@ -1,5 +1,5 @@
 [package]
-name = "example"
+name = "mustang-examples"
 version = "0.0.0"
 authors = [
     "Dan Gohman <dev@sunfishcode.online>",
@@ -13,10 +13,9 @@ exclude = ["/.github"]
 publish = false
 
 [dev-dependencies]
-c-scape = { path = "c-scape" }
-origin = { path = "origin" }
-mustang = { path = "mustang" }
-pretty_assertions = "0.7.2"
+origin = { path = "origin", default-features = false }
+mustang = { path = "mustang", default-features = false }
+similar-asserts = "1.1.0"
 rand = "0.8.4"
 
 # Test that the ctor crate works under mustang.
@@ -27,6 +26,9 @@ ctor = "0.1.21"
 #core_simd = { git = "https://github.com/rust-lang/portable-simd" }
 
 [features]
+default = ["threads"]
+threads = ["origin/threads", "mustang/threads"]
+
 # Off by default; enable this to initialize the C runtime, so that C libraries
 # can be called. See [here] for details.
 # [here]: https://github.com/sunfishcode/mustang/blob/main/README.md#the-c-runtime
@@ -35,8 +37,8 @@ initialize-c-runtime = ["mustang/initialize-c-runtime"]
 [workspace]
 members = [
   "mustang",
-  "c-scape",
   "origin",
+  "c-scape",
 ]
 
 # Things are fragile enough right now that it's handy to have this.

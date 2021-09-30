@@ -7,14 +7,11 @@
 /// libraries to be used. In all other builds, this does nothing.
 #[macro_export]
 macro_rules! can_compile_this {
-    () => {
-        #[cfg(target_vendor = "mustang")]
-        extern crate mustang;
-    };
+    () => {};
 }
 
 #[cfg(target_vendor = "mustang")]
-extern crate c_scape;
+extern crate c;
 #[cfg(target_vendor = "mustang")]
 #[cfg(feature = "initialize_c_runtime")]
 extern crate initialize_c_runtime;

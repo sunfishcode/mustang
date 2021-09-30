@@ -15,9 +15,8 @@
   "pre-link-args": {
     "gcc": [
       "-m64",
-      "-nostdlib",
-      "-Wl,--require-defined=__mustang_origin",
-      "-Wl,--require-defined=__mustang_c_scape"
+      "-nostartfiles",
+      "-Wl,--require-defined=__mustang_origin"
     ]
   },
   "relro-level": "full",

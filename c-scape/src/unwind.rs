@@ -89,8 +89,8 @@ unsafe extern "C" fn _Unwind_SetIP() {
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-unsafe extern "C" fn _Unwind_FindEnclosingFUnction() {
-    unimplemented!("_Unwind_FindEnclosingFUnction")
+unsafe extern "C" fn _Unwind_FindEnclosingFunction() {
+    unimplemented!("_Unwind_FindEnclosingFunction")
 }
 
 #[inline(never)]
@@ -98,13 +98,6 @@ unsafe extern "C" fn _Unwind_FindEnclosingFUnction() {
 #[no_mangle]
 unsafe extern "C" fn _Unwind_GetCFA() {
     unimplemented!("_Unwind_GetCFA")
-}
-
-#[inline(never)]
-#[link_section = ".text.__mustang"]
-#[no_mangle]
-unsafe extern "C" fn _Unwind_FindEnclosingFunction() {
-    unimplemented!("_Unwind_FindEnclosingFunction")
 }
 
 /// Ensure that this module is linked in.

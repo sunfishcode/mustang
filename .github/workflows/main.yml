@@ -117,16 +117,18 @@ jobs:
 
     - name: cargo test
       run: |
+        cargo +nightly test --verbose --target=specs/x86_64-mustang-linux-gnu.json -Z build-std
         # Run the tests using the host target rather than the mustang target,
         # as mustang doesn't yet support everything needed by the test harness.
         # The test uses a mustang target as needed for the actual test cases.
-        cargo +nightly test --workspace --verbose
+        cargo +nightly test --verbose
       env:
         RUST_BACKTRACE: 1
 
     - name: cargo test --release
       run: |
-        cargo +nightly test --workspace --verbose --release
+        cargo +nightly test --verbose --release --target=specs/x86_64-mustang-linux-gnu.json -Z build-std
+        cargo +nightly test --verbose --release
       env:
         RUST_BACKTRACE: 1
 

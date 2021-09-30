@@ -1,14 +1,18 @@
-#[allow(unused_imports)]
-use pretty_assertions::{assert_eq, assert_ne};
+//! Run the programs in the `examples` directory and compare their outputs with
+//! expected outputs.
+
+mustang::can_compile_this!();
+
+use similar_asserts::assert_eq;
 
 macro_rules! assert_eq_str {
     ($a:expr, $b:expr) => {{
-        assert_eq!(String::from_utf8_lossy($a), String::from_utf8_lossy($b));
+        assert_eq!(String::from_utf8_lossy($a).lines().collect::<Vec<_>>(), String::from_utf8_lossy($b).lines().collect::<Vec<_>>());
         assert_eq!($a, $b);
     }};
 
     ($a:expr, $b:expr, $($arg:tt)+) => {{
-        assert_eq!(String::from_utf8_lossy($a), String::from_utf8_lossy($b), $($arg)+);
+        assert_eq!(String::from_utf8_lossy($a).lines().collect::<Vec<_>>(), String::from_utf8_lossy($b).lines().collect::<Vec<_>>(), $($arg)+);
         assert_eq!($a, $b, $($arg)+);
     }};
 }
@@ -25,19 +29,21 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
     #[cfg(target_arch = "x86")]
     let arch = "i686";
 
-    let output = Command::new("cargo")
-        .arg("+nightly")
-        .arg("run")
-        .arg("--quiet")
-        .arg("--features")
-        .arg(features)
+    let mut command = Command::new("cargo");
+    command.arg("+nightly").arg("run").arg("--quiet");
+    if !features.is_empty() {
+        command
+            .arg("--no-default-features")
+            .arg("--features")
+            .arg(features);
+    }
+    command
         .arg("-Z")
         .arg("build-std")
         .arg(&format!("--target=specs/{}-mustang-linux-gnu.json", arch))
         .arg("--example")
-        .arg(name)
-        .output()
-        .unwrap();
+        .arg(name);
+    let output = command.output().unwrap();
 
     assert_eq_str!(
         stderr.as_bytes(),
@@ -60,9 +66,8 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
         output
     );
 
-    // test-backtrace and test-tls are not fully supported by mustang yet.
     // test-initialize-c-runtime deliberately link in C runtime symbols.
-    if name != "test-backtrace" && name != "test-tls" && name != "test-initialize-c-runtime" {
+    if name != "test-initialize-c-runtime" {
         let output = Command::new("nm")
             .arg("-u")
             .arg(&format!(
@@ -77,16 +82,35 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
             "example {} had unexpected undefined symbols",
             name
         );
+
+        let output = Command::new("ldd")
+            .arg(&format!(
+                "target/{}-mustang-linux-gnu/debug/examples/{}",
+                arch, name
+            ))
+            .output()
+            .unwrap();
+        assert_eq!(
+            "\tstatically linked\n",
+            String::from_utf8_lossy(&output.stdout),
+            "example {} had unexpected undefined symbols",
+            name
+        );
     }
 }
 
+// TODO: Mustang can't quite compile this yet: the `Command` API needs
+// child-process support.
+#[cfg_attr(target_vendor = "mustang", ignore)]
 #[test]
+#[ignore]
 fn test() {
     test_example(
         "hello",
         "",
         "Hello, world!\n",
-        ".｡oO(This process was started by origin! 🎯)\n\
+        ".｡oO(Threads spun up by origin! 🧵)\n\
+         .｡oO(This process was started by origin! 🎯)\n\
          .｡oO(Environment variables initialized by c-scape! 🌱)\n\
          .｡oO(I/O performed by c-scape using rsix! 🌊)\n\
          .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
@@ -95,21 +119,17 @@ fn test() {
         "test-args",
         "",
         "",
-        ".｡oO(This process was started by origin! 🎯)\n\
+        ".｡oO(Threads spun up by origin! 🧵)\n\
+         .｡oO(This process was started by origin! 🎯)\n\
          .｡oO(Environment variables initialized by c-scape! 🌱)\n\
          .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
-    );
-    test_example(
-        "test-backtrace",
-        "",
-        "",
-        ".｡oO(This process was started by origin! 🎯)\n",
     );
     test_example(
         "test-ctor",
         "",
         "",
-        ".｡oO(This process was started by origin! 🎯)\n\
+        ".｡oO(Threads spun up by origin! 🧵)\n\
+         .｡oO(This process was started by origin! 🎯)\n\
          .｡oO(Environment variables initialized by c-scape! 🌱)\n\
          .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
     );
@@ -117,7 +137,8 @@ fn test() {
         "test-environ",
         "",
         "",
-        ".｡oO(This process was started by origin! 🎯)\n\
+        ".｡oO(Threads spun up by origin! 🧵)\n\
+         .｡oO(This process was started by origin! 🎯)\n\
          .｡oO(Environment variables initialized by c-scape! 🌱)\n\
          .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
     );
@@ -125,7 +146,8 @@ fn test() {
         "test-workdir",
         "",
         "",
-        ".｡oO(This process was started by origin! 🎯)\n\
+        ".｡oO(Threads spun up by origin! 🧵)\n\
+         .｡oO(This process was started by origin! 🎯)\n\
          .｡oO(Environment variables initialized by c-scape! 🌱)\n\
          .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
     );
@@ -133,7 +155,8 @@ fn test() {
         "test-simd",
         "",
         "",
-        ".｡oO(This process was started by origin! 🎯)\n\
+        ".｡oO(Threads spun up by origin! 🧵)\n\
+         .｡oO(This process was started by origin! 🎯)\n\
          .｡oO(Environment variables initialized by c-scape! 🌱)\n\
          .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
     );
@@ -141,7 +164,10 @@ fn test() {
         "test-tls",
         "",
         "",
-        ".｡oO(This process was started by origin! 🎯)\n",
+        ".｡oO(Threads spun up by origin! 🧵)\n\
+         .｡oO(This process was started by origin! 🎯)\n\
+         .｡oO(Environment variables initialized by c-scape! 🌱)\n\
+         .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
     );
     test_example(
         "test-initialize-c-runtime",
@@ -151,64 +177,5 @@ fn test() {
          .｡oO(C runtime initialization called by origin! ℂ)\n\
          .｡oO(Environment variables initialized by c-scape! 🌱)\n\
          .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
-    );
-    test_example(
-        "fs",
-        "",
-        "",
-        ".｡oO(This process was started by origin! 🎯)\n\
-.｡oO(Environment variables initialized by c-scape! 🌱)\n\
-.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
-.｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
-    );
-    test_example(
-        "net-tcp",
-        "",
-        "",
-        ".｡oO(This process was started by origin! 🎯)\n\
-.｡oO(Environment variables initialized by c-scape! 🌱)\n\
-.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
-.｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
-    );
-    test_example(
-        "net-udp",
-        "",
-        "",
-        ".｡oO(This process was started by origin! 🎯)\n\
-.｡oO(Environment variables initialized by c-scape! 🌱)\n\
-.｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
-    );
-    test_example(
-        "net-ip",
-        "",
-        "",
-        ".｡oO(This process was started by origin! 🎯)\n\
-.｡oO(Environment variables initialized by c-scape! 🌱)\n\
-.｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
-    );
-    test_example(
-        "net-addr",
-        "",
-        "",
-        ".｡oO(This process was started by origin! 🎯)\n\
-.｡oO(Environment variables initialized by c-scape! 🌱)\n\
-.｡oO(I/O performed by c-scape using rsix! 🌊)\n\
-.｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
-    );
-    test_example(
-        "env",
-        "",
-        "",
-        ".｡oO(This process was started by origin! 🎯)\n\
-.｡oO(Environment variables initialized by c-scape! 🌱)\n\
-.｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
-    );
-    test_example(
-        "time",
-        "",
-        "",
-        ".｡oO(This process was started by origin! 🎯)\n\
-.｡oO(Environment variables initialized by c-scape! 🌱)\n\
-.｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
     );
 }

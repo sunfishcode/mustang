@@ -11,10 +11,13 @@ repository = "https://github.com/sunfishcode/mustang"
 edition = "2018"
 
 [target.'cfg(target_vendor = "mustang")'.dependencies]
+origin = { path = "../origin", default-features = false }
 c-scape = { path = "../c-scape" }
-origin = { path = "../origin" }
 
 [features]
+default = []
+threads = ["origin/threads", "c-scape/threads"]
+
 # Off by default; enable this to initialize the C runtime, so that C libraries
 # can be called. See [here] for details.
 # [here]: https://github.com/sunfishcode/mustang/blob/main/README.md#the-c-runtime

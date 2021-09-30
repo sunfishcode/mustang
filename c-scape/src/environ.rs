@@ -7,6 +7,7 @@ use std::slice;
 #[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn getenv(key: *const c_char) -> *mut c_char {
+    libc!(getenv(key));
     let key = CStr::from_ptr(key);
     let mut ptr = environ;
     loop {
@@ -25,6 +26,22 @@ unsafe extern "C" fn getenv(key: *const c_char) -> *mut c_char {
         ptr = ptr.add(1);
     }
     null_mut()
+}
+
+#[inline(never)]
+#[link_section = ".text.__mustang"]
+#[no_mangle]
+unsafe extern "C" fn setenv() {
+    //libc!(setenv());
+    unimplemented!("setenv")
+}
+
+#[inline(never)]
+#[link_section = ".text.__mustang"]
+#[no_mangle]
+unsafe extern "C" fn unsetenv() {
+    //libc!(unsetenv());
+    unimplemented!("unsetenv")
 }
 
 /// GLIBC passes argc, argv, and envp to functions in .init_array, as a
