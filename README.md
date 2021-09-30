@@ -91,10 +91,6 @@ $
 
 ## C Runtime interop
 
-C has a runtime, and if you wish to link with any C libraries, the C runtime
-needs to be initialized. `mustang` doesn't do this by default, but it does
-support this when the cargo feature "initialize-c-runtime" is enabled.
-
 To compile C code with a `*-mustang-*` target, you may need to
 [tell the `cc` crate which C compiler to use]; for example, for `i686-mustang-linux-gnu`,
 set the environment variable `CC_i686-mustang-linux-gnu` to

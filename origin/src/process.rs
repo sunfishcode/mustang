@@ -1,11 +1,9 @@
 use once_cell::sync::OnceCell;
 use std::ffi::c_void;
-#[cfg(not(feature = "initialize-c-runtime"))]
 use std::os::raw::c_char;
 use std::os::raw::c_int;
 use std::sync::Mutex;
 
-#[cfg(not(feature = "initialize-c-runtime"))]
 pub(super) unsafe fn call_ctors(argc: c_int, argv: *mut *mut c_char, envp: *mut *mut c_char) {
     extern "C" {
         static __init_array_start: c_void;

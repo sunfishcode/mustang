@@ -29,11 +29,6 @@ ctor = "0.1.21"
 default = ["threads"]
 threads = ["origin/threads", "mustang/threads"]
 
-# Off by default; enable this to initialize the C runtime, so that C libraries
-# can be called. See [here] for details.
-# [here]: https://github.com/sunfishcode/mustang/blob/main/README.md#the-c-runtime
-initialize-c-runtime = ["mustang/initialize-c-runtime"]
-
 [workspace]
 members = [
   "mustang",

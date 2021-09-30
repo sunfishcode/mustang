@@ -13,7 +13,4 @@ macro_rules! can_compile_this {
 #[cfg(target_vendor = "mustang")]
 extern crate c;
 #[cfg(target_vendor = "mustang")]
-#[cfg(feature = "initialize_c_runtime")]
-extern crate initialize_c_runtime;
-#[cfg(target_vendor = "mustang")]
 extern crate origin;

@@ -588,12 +588,6 @@ unsafe extern "C" fn pthread_attr_setstacksize(
 #[no_mangle]
 unsafe extern "C" fn pthread_cancel() -> c_int {
     //libc!(pthread_cancel());
-    // `pthread_cancel` may be tricky to implement, because it seems glibc's
-    // cancellation mechanism uses `setjmp` to a `jmp_buf` store in
-    // `__libc_start_main`'s stack, and the `initialize-c-runtime` crate
-    // itself `longjmp`s out of `__libc_start_main`.
-    //
-    // <https://github.com/sunfishcode/mustang/pull/4#issuecomment-915872029>
     unimplemented!("pthread_cancel")
 }
 

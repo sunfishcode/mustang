@@ -1,8 +1,5 @@
 //! Entrypoints where Rust code is entered from assembly code.
 
-#[cfg(feature = "initialize-c-runtime")]
-use crate::initialize_c_runtime;
-#[cfg(not(feature = "initialize-c-runtime"))]
 use crate::process::call_ctors;
 use crate::process::exit;
 #[cfg(feature = "threads")]
@@ -83,13 +80,7 @@ pub(super) unsafe extern "C" fn program(mem: *mut usize) -> ! {
     eprintln!(".｡oO(This process was started by origin! 🎯)");
 
     // Call the functions registered via `.init_array`.
-    #[cfg(not(feature = "initialize-c-runtime"))]
     call_ctors(argc, argv, envp);
-
-    // If enabled, initialize the C runtime. This also handles calling the
-    // .init_array functions.
-    #[cfg(feature = "initialize-c-runtime")]
-    initialize_c_runtime(argc, argv);
 
     // Call `main`.
     let ret = main(argc, argv, envp);

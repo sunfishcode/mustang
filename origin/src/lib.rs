@@ -26,8 +26,6 @@ mod arch;
 
 use entry::program;
 use std::ffi::c_void;
-#[cfg(feature = "initialize-c-runtime")]
-use std::os::raw::{c_char, c_int};
 
 pub use process::{at_exit, exit, exit_immediately};
 #[cfg(feature = "threads")]
@@ -96,19 +94,6 @@ unsafe impl Sync for SendSyncVoidStar {}
 #[no_mangle]
 #[used]
 static __dso_handle: SendSyncVoidStar = SendSyncVoidStar(&__dso_handle as *const _ as *mut c_void);
-
-#[cfg(feature = "initialize-c-runtime")]
-unsafe fn initialize_c_runtime(argc: c_int, argv: *mut *mut c_char) {
-    #[link(name = "initialize-c-runtime")]
-    extern "C" {
-        fn mustang_initialize_c_runtime(argc: c_int, argv: *mut *mut c_char);
-    }
-
-    #[cfg(debug_assertions)]
-    eprintln!(".｡oO(C runtime initialization called by origin! ℂ)");
-
-    mustang_initialize_c_runtime(argc, argv);
-}
 
 /// Ensure that this module is linked in.
 #[inline(never)]

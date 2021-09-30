@@ -66,8 +66,6 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
         output
     );
 
-    // test-initialize-c-runtime deliberately link in C runtime symbols.
-    if name != "test-initialize-c-runtime" {
         let output = Command::new("nm")
             .arg("-u")
             .arg(&format!(
@@ -96,7 +94,6 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
             "example {} had unexpected undefined symbols",
             name
         );
-    }
 }
 
 // TODO: Mustang can't quite compile this yet: the `Command` API needs
@@ -166,15 +163,6 @@ fn test() {
         "",
         ".｡oO(Threads spun up by origin! 🧵)\n\
          .｡oO(This process was started by origin! 🎯)\n\
-         .｡oO(Environment variables initialized by c-scape! 🌱)\n\
-         .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
-    );
-    test_example(
-        "test-initialize-c-runtime",
-        "initialize-c-runtime",
-        "Hello from C!\n",
-        ".｡oO(This process was started by origin! 🎯)\n\
-         .｡oO(C runtime initialization called by origin! ℂ)\n\
          .｡oO(Environment variables initialized by c-scape! 🌱)\n\
          .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
     );
