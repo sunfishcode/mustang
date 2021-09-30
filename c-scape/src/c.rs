@@ -1195,6 +1195,10 @@ unsafe extern "C" fn getaddrinfo(
                     == "failed to resolve host: server responded with error: server failure"
                 {
                     data::EAI_NONAME
+                } else if err.to_string()
+                    == "failed to resolve host: server responded with error: no such name"
+                {
+                    data::EAI_NONAME
                 } else {
                     panic!("unknown error: {}", err);
                 }
