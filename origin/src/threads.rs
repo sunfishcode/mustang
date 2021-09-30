@@ -142,9 +142,15 @@ pub(super) unsafe fn exit_thread() -> ! {
 
     let current = &mut *current_thread();
 
-    // Swap in `ABANDONED` here. If we aren't detached, this tells the joining
-    // thread that it needs to free our memory.
-    if current.detached.swap(ABANDONED, SeqCst) == DETACHED {
+    // If we're still in the `INITIAL` state, switch to `ABANDONED`, which
+    // tells `join_thread` to free the memory. Otherwise, we're in the
+    // `DETACHED` state, and we free the memory immediately.
+    if let Err(e) = current
+        .detached
+        .compare_exchange(INITIAL, ABANDONED, SeqCst, SeqCst)
+    {
+        debug_assert_eq!(e, DETACHED);
+
         // Free the thread's `mmap` region, if we allocated it.
         let map_size = current.map_size;
         if map_size != 0 {
