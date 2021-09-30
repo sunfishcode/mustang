@@ -18,7 +18,7 @@ memoffset = "0.6"
 realpath-ext = "0.1.0"
 compiler_builtins = { version = "0.1.50", features = ["mem", "mangled-names"] }
 memchr = "2.4.1"
-sync-resolve = { git = "https://github.com/sunfishcode/sync-resolve/" }
+sync-resolve = "0.3.0"
 origin = { path = "../origin", default-features = false }
 parking_lot = "0.11.2"
 

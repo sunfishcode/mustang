@@ -17,8 +17,3 @@ c-scape = { path = "../c-scape" }
 [features]
 default = []
 threads = ["origin/threads", "c-scape/threads"]
-
-# Off by default; enable this to initialize the C runtime, so that C libraries
-# can be called. See [here] for details.
-# [here]: https://github.com/sunfishcode/mustang/blob/main/README.md#the-c-runtime
-initialize-c-runtime = ["origin/initialize-c-runtime"]
