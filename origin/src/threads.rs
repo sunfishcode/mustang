@@ -117,24 +117,25 @@ pub fn at_thread_exit(func: unsafe extern "C" fn(*mut c_void), obj: *mut c_void)
 }
 
 /// Call the destructors registered with `at_thread_exit`.
-unsafe fn call_thread_dtors(current: &mut Thread) {
-    let dtors = &mut current.dtors;
-
-    // Run the `dtors`, in reverse order of registration.
-    while let Some((func, obj)) = dtors.pop() {
+unsafe fn call_thread_dtors(current: *mut Thread) {
+    // Run the `dtors`, in reverse order of registration. Note that destructors
+    // may register new destructors.
+    while let Some((func, obj)) = (*current).dtors.pop() {
         func(obj);
     }
 
     // Free the `dtors` memory.
-    *dtors = Vec::new();
+    (*current).dtors = Vec::new();
 }
 
 /// Call the destructors registered with `at_thread_exit` and exit the thread.
 pub(super) unsafe fn exit_thread() -> ! {
-    let current = &mut *current_thread();
+    let current = current_thread();
 
     // Call functions registered with `at_thread_exit`.
     call_thread_dtors(current);
+
+    let current = &mut *current_thread();
 
     if current.detached.load(SeqCst) {
         // Free the thread's `mmap` region, if we allocated it.
