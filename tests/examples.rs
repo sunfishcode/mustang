@@ -66,34 +66,34 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
         output
     );
 
-        let output = Command::new("nm")
-            .arg("-u")
-            .arg(&format!(
-                "target/{}-mustang-linux-gnu/debug/examples/{}",
-                arch, name
-            ))
-            .output()
-            .unwrap();
-        assert_eq!(
-            "",
-            String::from_utf8_lossy(&output.stdout),
-            "example {} had unexpected undefined symbols",
-            name
-        );
+    let output = Command::new("nm")
+        .arg("-u")
+        .arg(&format!(
+            "target/{}-mustang-linux-gnu/debug/examples/{}",
+            arch, name
+        ))
+        .output()
+        .unwrap();
+    assert_eq!(
+        "",
+        String::from_utf8_lossy(&output.stdout),
+        "example {} had unexpected undefined symbols",
+        name
+    );
 
-        let output = Command::new("ldd")
-            .arg(&format!(
-                "target/{}-mustang-linux-gnu/debug/examples/{}",
-                arch, name
-            ))
-            .output()
-            .unwrap();
-        assert_eq!(
-            "\tstatically linked\n",
-            String::from_utf8_lossy(&output.stdout),
-            "example {} had unexpected undefined symbols",
-            name
-        );
+    let output = Command::new("ldd")
+        .arg(&format!(
+            "target/{}-mustang-linux-gnu/debug/examples/{}",
+            arch, name
+        ))
+        .output()
+        .unwrap();
+    assert_eq!(
+        "\tstatically linked\n",
+        String::from_utf8_lossy(&output.stdout),
+        "example {} had unexpected undefined symbols",
+        name
+    );
 }
 
 // TODO: Mustang can't quite compile this yet: the `Command` API needs
