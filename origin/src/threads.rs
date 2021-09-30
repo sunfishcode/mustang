@@ -11,7 +11,7 @@ use std::mem::{align_of, size_of};
 use std::ptr::{self, null, null_mut};
 use std::slice;
 use std::sync::atomic::Ordering::SeqCst;
-use std::sync::atomic::{AtomicU8, AtomicU32};
+use std::sync::atomic::{AtomicU32, AtomicU8};
 
 /// The data structure pointed to by the platform thread pointer register.
 #[repr(C)]
