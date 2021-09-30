@@ -135,7 +135,8 @@ Let's find out! Come say hi in the [chat] or an [issue].
    and then:
      - change `is-builtin` to false
      - change `dynamic-linking` to false
-     - add `-nostartfiles` to pre-link-args
+     - add `-nostartfiles` and "-Wl,--require-defined=__mustang_origin"
+       to pre-link-args
      - add `"vendor": "mustang"`
    See other targets in the `specs/` directory for examples.
  - Compile some of the programs in the `examples/` directory, using
