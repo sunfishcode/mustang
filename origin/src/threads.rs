@@ -11,7 +11,7 @@ use std::mem::{align_of, size_of};
 use std::ptr::{self, null, null_mut};
 use std::slice;
 use std::sync::atomic::Ordering::SeqCst;
-use std::sync::atomic::{AtomicBool, AtomicU32};
+use std::sync::atomic::{AtomicU8, AtomicU32};
 
 /// The data structure pointed to by the platform thread pointer register.
 #[repr(C)]
@@ -42,13 +42,19 @@ struct Abi {
 /// Data associated with a thread.
 pub struct Thread {
     thread_id: AtomicU32,
-    detached: AtomicBool,
+    detached: AtomicU8,
     stack_addr: *mut c_void,
     stack_size: usize,
     guard_size: usize,
     map_size: usize,
     dtors: Vec<(unsafe extern "C" fn(*mut c_void), *mut c_void)>,
 }
+
+// Values for `Thread::detached`.
+const INITIAL: u8 = 0;
+const DETACHED: u8 = 1;
+const ABANDONED: u8 = 2;
+const FREED: u8 = 3;
 
 impl Thread {
     #[inline]
@@ -61,7 +67,7 @@ impl Thread {
     ) -> Self {
         Self {
             thread_id: AtomicU32::new(tid.as_raw()),
-            detached: AtomicBool::new(false),
+            detached: AtomicU8::new(INITIAL),
             stack_addr,
             stack_size,
             guard_size,
@@ -137,7 +143,7 @@ pub(super) unsafe fn exit_thread() -> ! {
 
     let current = &mut *current_thread();
 
-    if current.detached.load(SeqCst) {
+    if current.detached.swap(FREED, SeqCst) == DETACHED {
         // Free the thread's `mmap` region, if we allocated it.
         let map_size = current.map_size;
         if map_size != 0 {
@@ -405,7 +411,19 @@ fn round_up(addr: usize, boundary: usize) -> usize {
 /// not yet been detached and will not be joined.
 #[inline]
 pub unsafe fn detach_thread(thread_data: *mut Thread) {
-    (*thread_data).detached.store(true, SeqCst);
+    if (*thread_data).detached.swap(DETACHED, SeqCst) == ABANDONED {
+        // Free the thread's `mmap` region, if we allocated it.
+        use rsix::io::munmap;
+        let thread_data = &mut *thread_data;
+        let map_size = thread_data.map_size;
+        if map_size != 0 {
+            let map = thread_data
+                .stack_addr
+                .cast::<u8>()
+                .sub(thread_data.guard_size);
+            munmap(map.cast(), map_size).unwrap();
+        }
+    }
 }
 
 /// Waits for a thread to finish.
@@ -443,7 +461,7 @@ pub unsafe fn join_thread(thread_data: *mut Thread) -> io::Result<()> {
         }
     }
 
-    if !thread_data.detached.load(SeqCst) {
+    if thread_data.detached.load(SeqCst) == ABANDONED {
         // Free the thread's `mmap` region, if we allocated it.
         let map_size = thread_data.map_size;
         if map_size != 0 {
