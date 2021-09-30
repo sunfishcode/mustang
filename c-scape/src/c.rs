@@ -1444,6 +1444,7 @@ unsafe extern "C" fn __res_init() -> c_int {
 
 // io
 
+#[cfg(debug_assertions)]
 static IO_MESSAGE: once_cell::sync::Lazy<()> = once_cell::sync::Lazy::new(|| {
     eprintln!(".｡oO(I/O performed by c-scape using rsix! 🌊)");
 });
