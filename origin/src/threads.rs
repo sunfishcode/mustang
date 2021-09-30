@@ -54,7 +54,6 @@ pub struct Thread {
 const INITIAL: u8 = 0;
 const DETACHED: u8 = 1;
 const ABANDONED: u8 = 2;
-const FREED: u8 = 3;
 
 impl Thread {
     #[inline]
@@ -143,7 +142,9 @@ pub(super) unsafe fn exit_thread() -> ! {
 
     let current = &mut *current_thread();
 
-    if current.detached.swap(FREED, SeqCst) == DETACHED {
+    // Swap in `ABANDONED` here. If we aren't detached, this tells the joining
+    // thread that it needs to free our memory.
+    if current.detached.swap(ABANDONED, SeqCst) == DETACHED {
         // Free the thread's `mmap` region, if we allocated it.
         let map_size = current.map_size;
         if map_size != 0 {
