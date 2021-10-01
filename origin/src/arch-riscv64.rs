@@ -44,7 +44,6 @@ pub(super) unsafe fn clone(
 #[inline]
 pub(super) unsafe fn set_thread_pointer(thread_data: *mut c_void) {
     asm!("mov tp,{0}", in(reg) thread_data);
-    debug_assert_eq!(*thread_data.cast::<*const c_void>(), thread_data);
     debug_assert_eq!(thread_self(), thread_data);
 }
 
