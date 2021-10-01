@@ -10,9 +10,7 @@
 
 mustang::can_compile_this!();
 
-use std::any::Any;
 use std::mem;
-use std::result;
 use std::sync::mpsc::{channel, Sender};
 use std::thread::Builder;
 use std::thread::{self, ThreadId};
