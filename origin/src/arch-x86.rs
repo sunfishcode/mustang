@@ -68,14 +68,14 @@ pub(super) unsafe fn clone(
         "",                             // `arg`, already on the stack
         "xor    ebp,ebp",               // zero the frame pointer
         "push   ebp",                   // zero the return address
-        "jmp    {thread}",
+        "jmp    {entry}",
 
         // Parent thread.
         "0:",
         "pop ebp",
         "pop esi",
 
-        thread = sym super::entry::thread,
+        entry = sym super::threads::entry,
         inout("eax") &[newtls as usize, __NR_clone as usize, arg as usize, fn_ as usize] => r0,
         in("ebx") flags,
         in("ecx") child_stack,
@@ -87,7 +87,6 @@ pub(super) unsafe fn clone(
 
 #[inline]
 pub(super) unsafe fn set_thread_pointer(thread_data: *mut c_void) {
-    debug_assert_eq!(*thread_data.cast::<*const c_void>(), thread_data);
     let mut user_desc = rsix::thread::tls::UserDesc {
         entry_number: -1i32 as u32,
         base_addr: thread_data as u32,
@@ -103,7 +102,9 @@ pub(super) unsafe fn set_thread_pointer(thread_data: *mut c_void) {
     user_desc.set_seg_not_present(0);
     user_desc.set_useable(1);
     rsix::thread::tls::set_thread_area(&mut user_desc).expect("set_thread_area");
-    asm!("mov gs,{0:x}", in(reg) ((user_desc.entry_number << 3) | 3) as u16)
+    asm!("mov gs,{0:x}", in(reg) ((user_desc.entry_number << 3) | 3) as u16);
+    debug_assert_eq!(*thread_data.cast::<*const c_void>(), thread_data);
+    debug_assert_eq!(thread_self(), thread_data);
 }
 
 #[inline]

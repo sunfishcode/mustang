@@ -1,6 +1,6 @@
 //! Threads runtime.
 
-use crate::arch::{clone, deallocate_thread, set_thread_pointer};
+use crate::arch::{clone, deallocate_thread, set_thread_pointer, thread_self};
 use rsix::io;
 use rsix::process::{getrlimit, linux_execfn, page_size, Pid, Resource};
 use rsix::thread::gettid;
@@ -8,10 +8,70 @@ use rsix::thread::tls::StartupTlsInfo;
 use std::cmp::max;
 use std::ffi::c_void;
 use std::mem::{align_of, size_of};
-use std::ptr::{self, null, null_mut};
+use std::ptr::{self, drop_in_place, null, null_mut};
 use std::slice;
 use std::sync::atomic::Ordering::SeqCst;
 use std::sync::atomic::{AtomicU32, AtomicU8};
+
+/// The entrypoint where Rust code is first executed on a new thread.
+///
+/// This calls `func`, passing it `arg`, on the new thread. When `func`
+/// returns, the thread exits.
+///
+/// # Safety
+///
+/// After calling `func`, this terminates the thread.
+#[cfg(feature = "threads")]
+pub(super) unsafe extern "C" fn entry(
+    arg: *mut c_void,
+    func: unsafe extern "C" fn(*mut c_void) -> *mut c_void,
+) -> ! {
+    log::trace!(
+        "Thread[{:?}] launched; calling `{:?}({:?})`",
+        current_thread_id(),
+        func,
+        arg
+    );
+
+    // Do some basic precondition checks, to ensure that our assembly code did
+    // what we expect it to do. These are debug-only for now, to keep the
+    // release-mode startup code simple to disassemble and inspect, while we're
+    // getting started.
+    #[cfg(debug_assertions)]
+    {
+        extern "C" {
+            #[link_name = "llvm.frameaddress"]
+            fn builtin_frame_address(level: i32) -> *const u8;
+            #[link_name = "llvm.returnaddress"]
+            fn builtin_return_address(level: i32) -> *const u8;
+            #[cfg(target_arch = "aarch64")]
+            #[link_name = "llvm.sponentry"]
+            fn builtin_sponentry() -> *const u8;
+        }
+
+        // Check that the incoming stack pointer is where we expect it to be.
+        debug_assert_eq!(builtin_return_address(0), std::ptr::null());
+        debug_assert_ne!(builtin_frame_address(0), std::ptr::null());
+        #[cfg(not(target_arch = "x86"))]
+        debug_assert_eq!(builtin_frame_address(0) as usize & 0xf, 0);
+        #[cfg(target_arch = "x86")]
+        debug_assert_eq!(builtin_frame_address(0) as usize & 0xf, 8);
+        debug_assert_eq!(builtin_frame_address(1), std::ptr::null());
+        #[cfg(target_arch = "aarch64")]
+        debug_assert_ne!(builtin_sponentry(), std::ptr::null());
+        #[cfg(target_arch = "aarch64")]
+        debug_assert_eq!(builtin_sponentry() as usize & 0xf, 0);
+
+        // Check that `clone` stored our thread id as we expected.
+        debug_assert_eq!(current_thread_id(), gettid());
+    }
+
+    // Call the user thread function. In `std`, this is `thread_start`. Ignore
+    // the return value for now, as `std` doesn't need it.
+    let _result = func(arg);
+
+    exit_thread()
+}
 
 /// The data structure pointed to by the platform thread pointer register.
 #[repr(C)]
@@ -90,7 +150,7 @@ impl Thread {
 
 #[inline]
 fn thread_pointee() -> *mut ThreadPointee {
-    crate::arch::thread_self().cast::<ThreadPointee>()
+    thread_self().cast::<ThreadPointee>()
 }
 
 /// Return a raw pointer to the data associated with the current thread.
@@ -106,18 +166,15 @@ pub fn current_thread() -> *mut Thread {
 #[inline]
 pub fn current_thread_id() -> Pid {
     let tid = unsafe { Pid::from_raw((*current_thread()).thread_id.load(SeqCst)) };
-    debug_assert_ne!(
-        tid,
-        Pid::NONE,
-        "`current_thread_id` called before initialization"
-    );
+    debug_assert_eq!(tid, gettid(), "`current_thread_id` disagrees with `gettid`");
     tid
 }
 
 /// Registers a function to call when the current thread exits.
 pub fn at_thread_exit(func: unsafe extern "C" fn(*mut c_void), obj: *mut c_void) {
+    let current = current_thread();
     unsafe {
-        (*current_thread()).dtors.push((func, obj));
+        (*current).dtors.push((func, obj));
     }
 }
 
@@ -126,6 +183,12 @@ unsafe fn call_thread_dtors(current: *mut Thread) {
     // Run the `dtors`, in reverse order of registration. Note that destructors
     // may register new destructors.
     while let Some((func, obj)) = (*current).dtors.pop() {
+        log::trace!(
+            "Thread[{:?}] calling `at_thread_exit`-registered function `{:?}({:?})`",
+            (*current).thread_id,
+            func,
+            obj
+        );
         func(obj);
     }
 
@@ -134,31 +197,40 @@ unsafe fn call_thread_dtors(current: *mut Thread) {
 }
 
 /// Call the destructors registered with `at_thread_exit` and exit the thread.
-pub(super) unsafe fn exit_thread() -> ! {
+unsafe fn exit_thread() -> ! {
     let current = current_thread();
 
     // Call functions registered with `at_thread_exit`.
     call_thread_dtors(current);
 
     let current = &mut *current_thread();
+    let current_thread_id = current.thread_id.load(SeqCst);
+    let current_map_size = current.map_size;
+    let current_stack_addr = current.stack_addr;
+    let current_guard_size = current.guard_size;
+    let state = current
+        .detached
+        .compare_exchange(INITIAL, ABANDONED, SeqCst, SeqCst);
+    drop_in_place(current);
+    drop(current);
 
     // If we're still in the `INITIAL` state, switch to `ABANDONED`, which
     // tells `join_thread` to free the memory. Otherwise, we're in the
     // `DETACHED` state, and we free the memory immediately.
-    if let Err(e) = current
-        .detached
-        .compare_exchange(INITIAL, ABANDONED, SeqCst, SeqCst)
-    {
+    if let Err(e) = state {
+        log::trace!("Thread[{:?}] exiting as detached", current_thread_id);
         debug_assert_eq!(e, DETACHED);
 
         // Free the thread's `mmap` region, if we allocated it.
-        let map_size = current.map_size;
+        let map_size = current_map_size;
         if map_size != 0 {
-            let map = current.stack_addr.cast::<u8>().sub(current.guard_size);
+            let map = current_stack_addr.cast::<u8>().sub(current_guard_size);
             // `munmap` the memory, which also frees the stack we're currently
             // on, and do an `exit` carefully without touching the stack.
             deallocate_thread(map.cast(), map_size);
         }
+    } else {
+        log::trace!("Thread[{:?}] exiting as joinable", current_thread_id);
     }
 
     // Terminate the thread.
@@ -251,8 +323,6 @@ pub(super) unsafe fn initialize_main_thread(mem: *mut c_void) {
     // Set the platform thread point to point to the new thread pointee.
     set_thread_pointer(newtls.cast());
     assert_eq!(newtls, thread_pointee().cast());
-
-    eprintln!(".｡oO(Threads spun up by origin! 🧵)");
 }
 
 /// Creates a new thread.

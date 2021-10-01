@@ -100,70 +100,13 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
 // child-process support.
 #[cfg_attr(target_vendor = "mustang", ignore)]
 #[test]
-#[ignore]
 fn test() {
-    test_example(
-        "hello",
-        "",
-        "Hello, world!\n",
-        ".｡oO(Threads spun up by origin! 🧵)\n\
-         .｡oO(This process was started by origin! 🎯)\n\
-         .｡oO(Environment variables initialized by c-scape! 🌱)\n\
-         .｡oO(I/O performed by c-scape using rsix! 🌊)\n\
-         .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
-    );
-    test_example(
-        "test-args",
-        "",
-        "",
-        ".｡oO(Threads spun up by origin! 🧵)\n\
-         .｡oO(This process was started by origin! 🎯)\n\
-         .｡oO(Environment variables initialized by c-scape! 🌱)\n\
-         .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
-    );
-    test_example(
-        "test-ctor",
-        "",
-        "",
-        ".｡oO(Threads spun up by origin! 🧵)\n\
-         .｡oO(This process was started by origin! 🎯)\n\
-         .｡oO(Environment variables initialized by c-scape! 🌱)\n\
-         .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
-    );
-    test_example(
-        "test-environ",
-        "",
-        "",
-        ".｡oO(Threads spun up by origin! 🧵)\n\
-         .｡oO(This process was started by origin! 🎯)\n\
-         .｡oO(Environment variables initialized by c-scape! 🌱)\n\
-         .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
-    );
-    test_example(
-        "test-workdir",
-        "",
-        "",
-        ".｡oO(Threads spun up by origin! 🧵)\n\
-         .｡oO(This process was started by origin! 🎯)\n\
-         .｡oO(Environment variables initialized by c-scape! 🌱)\n\
-         .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
-    );
-    test_example(
-        "test-simd",
-        "",
-        "",
-        ".｡oO(Threads spun up by origin! 🧵)\n\
-         .｡oO(This process was started by origin! 🎯)\n\
-         .｡oO(Environment variables initialized by c-scape! 🌱)\n\
-         .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
-    );
-    test_example(
-        "test-tls",
-        "",
-        "",
-        ".｡oO(Threads spun up by origin! 🧵)\n\
-         .｡oO(This process was started by origin! 🎯)\n\
-         .｡oO(Environment variables initialized by c-scape! 🌱)\n\
-         .｡oO(This process will be exited by c-scape using rsix! 🚪)\n",
-    );
+    test_example("empty", "", "", "");
+    test_example("hello", "", "Hello, world!\n", "");
+    test_example("test-args", "", "", "");
+    test_example("test-ctor", "", "", "");
+    test_example("test-environ", "", "", "");
+    test_example("test-workdir", "", "", "");
+    test_example("test-simd", "", "", "");
+    test_example("test-tls", "", "", "");
 }

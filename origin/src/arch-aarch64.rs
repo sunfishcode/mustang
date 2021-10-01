@@ -22,12 +22,12 @@ pub(super) unsafe fn clone(
         "mov x1,{fn_}",       // `fn_`
         "mov x29, xzr",       // zero the frame address
         "mov x30, xzr",       // zero the return address
-        "b {thread}",
+        "b {entry}",
 
         // Parent thread.
         "0:",
 
-        thread = sym super::entry::thread,
+        entry = sym super::threads::entry,
         arg = in(reg) arg,
         fn_ = in(reg) fn_,
         in("x8") __NR_clone,
@@ -43,7 +43,9 @@ pub(super) unsafe fn clone(
 
 #[inline]
 pub(super) unsafe fn set_thread_pointer(thread_data: *mut c_void) {
-    asm!("msr tpidr_el0,{0}", in(reg) thread_data)
+    asm!("msr tpidr_el0,{0}", in(reg) thread_data);
+    debug_assert_eq!(*thread_data.cast::<*const c_void>(), thread_data);
+    debug_assert_eq!(thread_self(), thread_data);
 }
 
 #[inline]

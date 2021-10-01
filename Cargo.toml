@@ -28,6 +28,7 @@ ctor = "0.1.21"
 [features]
 default = ["threads"]
 threads = ["origin/threads", "mustang/threads"]
+env_logger = ["origin/env_logger"]
 
 [workspace]
 members = [

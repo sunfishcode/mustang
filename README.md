@@ -67,18 +67,25 @@ Then, compile with Rust nightly, using `-Z build-std` and
 
 ```
 $ cargo +nightly run --quiet -Z build-std --target=x86_64-mustang-linux-gnu --example hello
-.｡oO(This process was started by origin! 🎯)
-.｡oO(Environment variables initialized by c-scape! 🌱)
-.｡oO(I/O performed by c-scape using rsix! 🌊)
 Hello, world!
-.｡oO(This process will be exited by c-scape using rsix! 🚪)
 $
 ```
 
 That's a Rust program built entirely from Rust saying "Hello, world!"!
 
-Those `.｡oO` lines are just debugging output to confirm everything is set up
-properly. Once `mustang` is more stable, we'll stop printing them.
+For more detail, mustang has an `env_logger` feature, which you can enable, and set
+`RUST_LOG` to see various pieces of mustang in action:
+```
+$ RUST_LOG=trace cargo +nightly run --quiet -Z build-std --target=x86_64-mustang-linux-gnu --example hello --features env_logger
+[2021-06-28T06:28:31Z TRACE origin::program] Program started
+[2021-06-28T06:28:31Z TRACE origin::threads] Main Thread[Pid(3916066)] initialized
+[2021-06-28T06:28:31Z TRACE origin::program] Calling `.init_array`-registered function `0x5555558fb480(1, 0x7fffffffdb98, 0x7fffffffdba8)`
+[2021-06-28T06:28:31Z TRACE origin::program] Calling `main(1, 0x7fffffffdb98, 0x7fffffffdba8)`
+Hello, world!
+[2021-06-28T06:28:31Z TRACE origin::program] `main` returned `0`
+[2021-06-28T06:28:31Z TRACE origin::program] Program exiting
+$
+```
 
 A simple way to check for uses of libc functions is to use `nm -u`, since
 the above commands are configured to link libc dynamically. If `mustang` has

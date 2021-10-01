@@ -21,6 +21,7 @@ memchr = "2.4.1"
 sync-resolve = "0.3.0"
 origin = { path = "../origin", default-features = false }
 parking_lot = "0.11.2"
+log = "0.4.14"
 
 # A minimal `global_allocator` implementation.
 wee_alloc = "0.4.5"
