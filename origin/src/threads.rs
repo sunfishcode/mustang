@@ -362,10 +362,16 @@ pub fn create_thread(
 
         // Create the OS thread. In Linux, this is a process that shares much
         // of its state with the current process. We also pass additional flags:
-        // `SETTLS` to set the platform thread register.
-        // `CHILD_CLEARTID` to arrange for a futex wait for threads waiting in
-        // `join_thread`.
-        // `PARENT_SETTID` to store the child's tid at the `parent_tid` location.
+        //  - `SETTLS` to set the platform thread register.
+        //  - `CHILD_CLEARTID` to arrange for a futex wait for threads waiting
+        //    in `join_thread`.
+        //  - `PARENT_SETTID` to store the child's tid at the `parent_tid`
+        //    location.
+        //  - `CHILD_SETTID` to store the child's tid at the `child_tid`
+        //    location.
+        // We receive the tid in the same memory for the parent and the child,
+        // but we set both `PARENT_SETTID` and `CHILD_SETTID` to ensure that the
+        // store completes before either the parent or child reads the tid.
         let flags = CloneFlags::VM
             | CloneFlags::FS
             | CloneFlags::FILES
@@ -374,6 +380,7 @@ pub fn create_thread(
             | CloneFlags::SYSVSEM
             | CloneFlags::SETTLS
             | CloneFlags::CHILD_CLEARTID
+            | CloneFlags::CHILD_SETTID
             | CloneFlags::PARENT_SETTID;
         #[cfg(target_arch = "x86_64")]
         let clone_res = clone(
