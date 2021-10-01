@@ -45,10 +45,11 @@ unsafe extern "C" fn unsetenv() {
 }
 
 /// GLIBC passes argc, argv, and envp to functions in .init_array, as a
-/// non-standard extension. Use priority 99 so that we run before any
-/// normal user-defined constructor functions.
+/// non-standard extension. Use priority 98 so that we run before any
+/// normal user-defined constructor functions and our own functions which
+/// depend on `getenv` working.
 #[cfg(target_env = "gnu")]
-#[link_section = ".init_array.00099"]
+#[link_section = ".init_array.00098"]
 #[used]
 static INIT_ARRAY: unsafe extern "C" fn(c_int, *mut *mut c_char, *mut *mut c_char) = {
     unsafe extern "C" fn function(_argc: c_int, _argv: *mut *mut c_char, envp: *mut *mut c_char) {
@@ -59,12 +60,13 @@ static INIT_ARRAY: unsafe extern "C" fn(c_int, *mut *mut c_char, *mut *mut c_cha
 
 /// For musl etc., assume that `__environ` is available and points to the
 /// original environment from the kernel, so we can find the auxv array in
-/// memory after it. Use priority 99 so that we run before any normal
-/// user-defined constructor functions.
+/// memory after it. Use priority 98 so that we run before any normal
+/// user-defined constructor functions and our own functions which
+/// depend on `getenv` working.
 ///
 /// <https://refspecs.linuxbase.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/baselib---environ.html>
 #[cfg(not(target_env = "gnu"))]
-#[link_section = ".init_array.00099"]
+#[link_section = ".init_array.00098"]
 #[used]
 static INIT_ARRAY: unsafe extern "C" fn() = {
     unsafe extern "C" fn function() {
@@ -78,13 +80,9 @@ static INIT_ARRAY: unsafe extern "C" fn() = {
 };
 
 fn init_from_envp(envp: *mut *mut c_char) {
-    // For now, print a message, so that we know we're doing something. We'll
-    // probably remove this at some point, but for now, things are fragile
-    // enough that it's nice to have this confirmation.
-    #[cfg(debug_assertions)]
-    eprintln!(".｡oO(Environment variables initialized by c-scape! 🌱)");
-
-    unsafe { environ = envp };
+    unsafe {
+        environ = envp;
+    }
 }
 
 #[link_section = ".data.__mustang"]

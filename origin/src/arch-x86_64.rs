@@ -29,12 +29,12 @@ pub(super) unsafe fn clone(
         "mov    rdi,[rsp-8]", // `arg`
         "mov    rsi,r9",      // `fn_`
         "push   rbp",         // zero the return address
-        "jmp    {thread}",
+        "jmp    {entry}",
 
         // Parent thread.
         "0:",
 
-        thread = sym super::entry::thread,
+        entry = sym super::threads::entry,
         inlateout("rax") __NR_clone as isize => r0,
         in("rdi") flags,
         in("rsi") child_stack,
@@ -51,8 +51,9 @@ pub(super) unsafe fn clone(
 
 #[inline]
 pub(super) unsafe fn set_thread_pointer(thread_data: *mut c_void) {
+    rsix::thread::tls::set_fs(thread_data);
     debug_assert_eq!(*thread_data.cast::<*const c_void>(), thread_data);
-    rsix::thread::tls::set_fs(thread_data)
+    debug_assert_eq!(thread_self(), thread_data);
 }
 
 #[inline]

@@ -10,10 +10,9 @@
 //! whole layer.
 
 use crate::data;
+use crate::error_str::error_str;
 use memoffset::offset_of;
 use rsix::fs::{cwd, openat, AtFlags, FdFlags, Mode, OFlags};
-#[cfg(debug_assertions)]
-use rsix::io::stderr;
 use rsix::io::{MapFlags, MprotectFlags, PipeFlags, ProtFlags};
 use rsix::io_lifetimes::{AsFd, BorrowedFd, OwnedFd};
 use rsix::net::{
@@ -52,7 +51,7 @@ unsafe extern "C" fn __errno_location() -> *mut c_int {
 unsafe extern "C" fn __xpg_strerror_r(errnum: c_int, buf: *mut c_char, buflen: usize) -> c_int {
     libc!(strerror_r(errnum, buf, buflen));
 
-    let message = match crate::error_str::error_str(rsix::io::Error::from_raw_os_error(errnum)) {
+    let message = match error_str(rsix::io::Error::from_raw_os_error(errnum)) {
         Some(s) => s.to_owned(),
         None => format!("Unknown error {}", errnum),
     };
@@ -1448,24 +1447,11 @@ unsafe extern "C" fn __res_init() -> c_int {
 
 // io
 
-#[cfg(debug_assertions)]
-static IO_MESSAGE: once_cell::sync::Lazy<()> = once_cell::sync::Lazy::new(|| {
-    eprintln!(".｡oO(I/O performed by c-scape using rsix! 🌊)");
-});
-
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn write(fd: c_int, ptr: *const c_void, len: usize) -> isize {
     libc!(write(fd, ptr, len));
-
-    // For now, print a message, so that we know we're doing something. We'll
-    // probably remove this at some point, but for now, things are fragile
-    // enough that it's nice to have this confirmation.
-    #[cfg(debug_assertions)]
-    if fd != stderr().as_raw_fd() {
-        *IO_MESSAGE;
-    }
 
     match set_errno(rsix::io::write(
         &BorrowedFd::borrow_raw_fd(fd),
@@ -1501,14 +1487,6 @@ unsafe extern "C" fn writev(fd: c_int, iov: *const std::io::IoSlice, iovcnt: c_i
 #[no_mangle]
 unsafe extern "C" fn read(fd: c_int, ptr: *mut c_void, len: usize) -> isize {
     libc!(read(fd, ptr, len));
-
-    // For now, print a message, so that we know we're doing something. We'll
-    // probably remove this at some point, but for now, things are fragile
-    // enough that it's nice to have this confirmation.
-    #[cfg(debug_assertions)]
-    if fd != stderr().as_raw_fd() {
-        *IO_MESSAGE;
-    }
 
     match set_errno(rsix::io::read(
         &BorrowedFd::borrow_raw_fd(fd),
