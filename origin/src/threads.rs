@@ -565,17 +565,8 @@ fn round_up(addr: usize, boundary: usize) -> usize {
 #[inline]
 pub unsafe fn detach_thread(thread_data: *mut Thread) {
     if (*thread_data).detached.swap(DETACHED, SeqCst) == ABANDONED {
-        // Free the thread's `mmap` region, if we allocated it.
-        use rsix::io::munmap;
-        let thread_data = &mut *thread_data;
-        let map_size = thread_data.map_size;
-        if map_size != 0 {
-            let map = thread_data
-                .stack_addr
-                .cast::<u8>()
-                .sub(thread_data.guard_size);
-            munmap(map.cast(), map_size).unwrap();
-        }
+        wait_for_thread_exit(thread_data);
+        free_thread_memory(thread_data);
     }
 }
 
@@ -584,16 +575,22 @@ pub unsafe fn detach_thread(thread_data: *mut Thread) {
 /// # Safety
 ///
 /// `thread_data` must point to a valid and live thread record.
-pub unsafe fn join_thread(thread_data: *mut Thread) -> io::Result<()> {
-    use rsix::io::munmap;
-    use rsix::thread::{futex, FutexFlags, FutexOperation};
+pub unsafe fn join_thread(thread_data: *mut Thread) {
+    wait_for_thread_exit(thread_data);
 
-    let thread_data = &mut *thread_data;
-    let thread_id = &mut thread_data.thread_id;
+    if (*thread_data).detached.load(SeqCst) == ABANDONED {
+        free_thread_memory(thread_data);
+    }
+}
+
+unsafe fn wait_for_thread_exit(thread_data: *mut Thread) {
+    use rsix::thread::{futex, FutexFlags, FutexOperation};
 
     // Check whether the thread has exited already; we set the
     // `CloneFlags::CHILD_CLEARTID` flag on the clone syscall, so we can test
     // for `NONE` here.
+    let thread_data = &mut *thread_data;
+    let thread_id = &mut thread_data.thread_id;
     let id_value = thread_id.load(SeqCst);
     if Pid::from_raw(id_value) != Pid::NONE {
         // This doesn't use any shared memory, but we can't use
@@ -609,24 +606,26 @@ pub unsafe fn join_thread(thread_data: *mut Thread) -> io::Result<()> {
             null_mut(),
             0,
         ) {
-            Ok(_) | Err(io::Error::AGAIN) => {}
-            Err(e) => return Err(e),
+            Ok(_) => {}
+            Err(e) => debug_assert_eq!(e, io::Error::AGAIN),
         }
     }
+}
 
-    if thread_data.detached.load(SeqCst) == ABANDONED {
-        // Free the thread's `mmap` region, if we allocated it.
-        let map_size = thread_data.map_size;
-        if map_size != 0 {
-            let map = thread_data
-                .stack_addr
-                .cast::<u8>()
-                .sub(thread_data.guard_size);
-            munmap(map.cast(), map_size).unwrap();
-        }
+unsafe fn free_thread_memory(thread_data: *mut Thread) {
+    use rsix::io::munmap;
+
+    // Free the thread's `mmap` region, if we allocated it.
+    let thread_data = &mut *thread_data;
+    let map_size = thread_data.map_size;
+    if map_size != 0 {
+        let map = thread_data
+            .stack_addr
+            .cast::<u8>()
+            .sub(thread_data.guard_size);
+        drop(thread_data);
+        munmap(map.cast(), map_size).unwrap();
     }
-
-    Ok(())
 }
 
 /// Return the default stack size for new threads.

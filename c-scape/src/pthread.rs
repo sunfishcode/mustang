@@ -556,10 +556,8 @@ unsafe extern "C" fn pthread_join(pthread: pthread_t, retval: *mut *mut c_void) 
         "pthread_join return values not supported yet"
     );
 
-    match origin::join_thread(pthread as *mut Thread) {
-        Ok(()) => 0,
-        Err(err) => err.raw_os_error(),
-    }
+    origin::join_thread(pthread as *mut Thread);
+    0
 }
 
 #[inline(never)]
