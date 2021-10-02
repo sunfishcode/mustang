@@ -6,9 +6,9 @@ use std::ffi::c_void;
 pub(super) unsafe fn clone(
     flags: u32,
     child_stack: *mut c_void,
-    ptid: *mut RawPid,
+    parent_tid: *mut RawPid,
     newtls: *mut c_void,
-    ctid: *mut RawPid,
+    child_tid: *mut RawPid,
     arg: *mut c_void,
     fn_: unsafe extern "C" fn(*mut c_void) -> *mut c_void,
 ) -> isize {
@@ -33,9 +33,9 @@ pub(super) unsafe fn clone(
         in("a7") __NR_clone,
         inlateout("a0") flags as isize => r0,
         in("a1") child_stack,
-        in("a2") ptid,
+        in("a2") parent_tid,
         in("a3") newtls,
-        in("a4") ctid,
+        in("a4") child_tid,
         options(nostack)
     );
     r0
