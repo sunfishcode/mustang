@@ -18,11 +18,11 @@ pub(super) unsafe fn clone(
         "bnez a0,0f",
 
         // Child thread.
-        "mov a0,{arg}",       // `arg`
-        "mov a1,{fn_}",       // `fn_`
-        "mov fp, xzr",        // zero the frame address
-        "mov ra, xzr",        // zero the return address
-        "b {entry}",
+        "mv a0,{arg}",        // `arg`
+        "mv a1,{fn_}",        // `fn_`
+        "mv fp, zero",        // zero the frame address
+        "mv ra, zero",        // zero the return address
+        "tail {entry}",
 
         // Parent thread.
         "0:",
@@ -43,12 +43,12 @@ pub(super) unsafe fn clone(
 
 #[inline]
 pub(super) unsafe fn set_thread_pointer(thread_data: *mut c_void) {
-    asm!("mov tp,{0}", in(reg) thread_data);
-    debug_assert_eq!(thread_self(), thread_data);
+    asm!("mv tp,{0}", in(reg) thread_data);
+    debug_assert_eq!(get_thread_pointer(), thread_data);
 }
 
 #[inline]
-pub(super) fn thread_self() -> *mut c_void {
+pub(super) fn get_thread_pointer() -> *mut c_void {
     let result;
     unsafe {
         asm!("mv {0},tp", out(reg) result, options(nostack, preserves_flags, readonly));
@@ -56,20 +56,20 @@ pub(super) fn thread_self() -> *mut c_void {
     result
 }
 
-/// `munmap` the thread, then carefully exit the thread without touching the
-/// deallocated stack.
+/// `munmap` the current thread, then carefully exit the thread without
+/// touching the deallocated stack.
 #[inline]
-pub(super) unsafe fn deallocate_thread(addr: *mut c_void, len: usize) -> ! {
+pub(super) unsafe fn deallocate_current(addr: *mut c_void, len: usize) -> ! {
     asm!(
         "ecall",
-        "mov a0,xzr",
-        "mov a7,{__NR_exit}",
+        "mv a0,zero",
+        "li a7,{__NR_exit}",
         "ecall",
         "unimp",
         __NR_exit = const __NR_exit,
         in("a7") __NR_munmap,
         in("a0") addr,
         in("a1") len,
-        options(noreturn, nostack, preserves_flags)
+        options(noreturn, nostack)
     );
 }

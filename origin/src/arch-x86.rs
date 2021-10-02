@@ -104,11 +104,11 @@ pub(super) unsafe fn set_thread_pointer(thread_data: *mut c_void) {
     rsix::thread::tls::set_thread_area(&mut user_desc).expect("set_thread_area");
     asm!("mov gs,{0:x}", in(reg) ((user_desc.entry_number << 3) | 3) as u16);
     debug_assert_eq!(*thread_data.cast::<*const c_void>(), thread_data);
-    debug_assert_eq!(thread_self(), thread_data);
+    debug_assert_eq!(get_thread_pointer(), thread_data);
 }
 
 #[inline]
-pub(super) fn thread_self() -> *mut c_void {
+pub(super) fn get_thread_pointer() -> *mut c_void {
     let result;
     unsafe {
         asm!("mov {0},DWORD PTR gs:0", out(reg) result, options(nostack, preserves_flags, readonly));
@@ -116,10 +116,10 @@ pub(super) fn thread_self() -> *mut c_void {
     result
 }
 
-/// `munmap` the thread, then carefully exit the thread without touching the
-/// deallocated stack.
+/// `munmap` the current thread, then carefully exit the thread without
+/// touching the deallocated stack.
 #[inline]
-pub(super) unsafe fn deallocate_thread(addr: *mut c_void, len: usize) -> ! {
+pub(super) unsafe fn deallocate_current(addr: *mut c_void, len: usize) -> ! {
     asm!(
         // Use `int 0x80` instead of vsyscall, since vsyscall would attempt to
         // touch the stack after we `munmap` it.
@@ -132,6 +132,6 @@ pub(super) unsafe fn deallocate_thread(addr: *mut c_void, len: usize) -> ! {
         in("eax") __NR_munmap,
         in("ebx") addr,
         in("ecx") len,
-        options(noreturn, nostack, preserves_flags)
+        options(noreturn, nostack)
     );
 }
