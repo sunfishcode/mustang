@@ -1,6 +1,7 @@
 //! Threads runtime.
 
-use crate::arch::{clone, deallocate_thread, set_thread_pointer, thread_self};
+use crate::arch::{clone, deallocate_current, get_thread_pointer, set_thread_pointer};
+use memoffset::offset_of;
 use rsix::io;
 use rsix::process::{getrlimit, linux_execfn, page_size, Pid, Resource};
 use rsix::thread::gettid;
@@ -73,33 +74,45 @@ pub(super) unsafe extern "C" fn entry(
     exit_thread()
 }
 
-/// The data structure pointed to by the platform thread pointer register.
+/// Metadata describing a thread.
 #[repr(C)]
-struct ThreadPointee {
-    /// ABI-exposed fields.
+struct Metadata {
+    /// Crate-internal fields. On platforms where TLS data goes after the
+    /// ABI-exposed fields, we store our fields before them.
+    #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
+    thread: Thread,
+
+    /// ABI-exposed fields. This is what the platform thread-pointer register
+    /// points to.
     abi: Abi,
 
-    /// Crate-internal fields.
-    data: Thread,
+    /// Crate-internal fields. On platforms where TLS data goes before the
+    /// ABI-exposed fields, we store our fields after them.
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    thread: Thread,
 }
 
-/// This holds fields which are accessed by user code from a fixed offset from
-/// the platform thread pointer register.
+/// Fields which accessed by user code via known offsets from the platform
+/// thread-pointer register.
 #[repr(C)]
 struct Abi {
-    /// On x86 and x86-64, architectures which use "Variant II" of the
-    /// [ELF TLS ABI], and the first field is a copy of the thread pointer
-    /// register, since reading the register directly is expensive.
-    ///
-    /// [ELF TLS ABI]: https://www.akkadia.org/drepper/tls.pdf
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    this: *mut ThreadPointee,
+    /// Aarch64 has an ABI-exposed `dtv` field (though we don't yet implement
+    /// dynamic linking).
+    #[cfg(target_arch = "aarch64")]
+    dtv: *const c_void,
 
-    /// Reserve some extra storage for future use.
-    reserved: [usize; 23],
+    /// x86 and x86-64 put a copy of the thread-pointer register at the memory
+    /// location pointed to by the thread-pointer register, because reading the
+    /// thread-pointer register directly is slow.
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    this: *mut Abi,
+
+    /// Padding to put the TLS data which follows at its known offset.
+    #[cfg(target_arch = "aarch64")]
+    pad: [usize; 1],
 }
 
-/// Data associated with a thread.
+/// Data associated with a thread. This is not `repr(C)` and not ABI-exposed.
 pub struct Thread {
     thread_id: AtomicU32,
     detached: AtomicU8,
@@ -149,14 +162,22 @@ impl Thread {
 }
 
 #[inline]
-fn thread_pointee() -> *mut ThreadPointee {
-    thread_self().cast::<ThreadPointee>()
+fn current_abi() -> *mut Abi {
+    get_thread_pointer().cast::<Abi>()
+}
+
+#[inline]
+fn current_metadata() -> *mut Metadata {
+    current_abi()
+        .cast::<u8>()
+        .wrapping_sub(offset_of!(Metadata, abi))
+        .cast()
 }
 
 /// Return a raw pointer to the data associated with the current thread.
 #[inline]
 pub fn current_thread() -> *mut Thread {
-    unsafe { &mut (*thread_pointee()).data }
+    unsafe { &mut (*current_metadata()).thread }
 }
 
 /// Return the current thread id.
@@ -191,9 +212,6 @@ unsafe fn call_thread_dtors(current: *mut Thread) {
         );
         func(obj);
     }
-
-    // Free the `dtors` memory.
-    (*current).dtors = Vec::new();
 }
 
 /// Call the destructors registered with `at_thread_exit` and exit the thread.
@@ -203,6 +221,7 @@ unsafe fn exit_thread() -> ! {
     // Call functions registered with `at_thread_exit`.
     call_thread_dtors(current);
 
+    // Read all the fields from the `Thread` before we release its memory.
     let current = &mut *current_thread();
     let current_thread_id = current.thread_id.load(SeqCst);
     let current_map_size = current.map_size;
@@ -211,6 +230,8 @@ unsafe fn exit_thread() -> ! {
     let state = current
         .detached
         .compare_exchange(INITIAL, ABANDONED, SeqCst, SeqCst);
+
+    // Deallocate the `Thread`.
     drop_in_place(current);
     drop(current);
 
@@ -227,7 +248,7 @@ unsafe fn exit_thread() -> ! {
             let map = current_stack_addr.cast::<u8>().sub(current_guard_size);
             // `munmap` the memory, which also frees the stack we're currently
             // on, and do an `exit` carefully without touching the stack.
-            deallocate_thread(map.cast(), map_size);
+            deallocate_current(map.cast(), map_size);
         }
     } else {
         log::trace!("Thread[{:?}] exiting as joinable", current_thread_id);
@@ -257,26 +278,45 @@ pub(super) unsafe fn initialize_main_thread(mem: *mut c_void) {
     // the effective stack size. And Linux doesn't set up a guard page for the
     // main thread.
     let stack_map_size = getrlimit(Resource::Stack).current.unwrap() as usize;
-    let stack_last = stack_base.cast::<u8>().sub(stack_map_size);
-    let stack_size = stack_last.offset_from(mem.cast::<u8>()) as usize;
+    let stack_least = stack_base.cast::<u8>().sub(stack_map_size);
+    let stack_size = stack_least.offset_from(mem.cast::<u8>()) as usize;
     let guard_size = 0;
     let map_size = 0;
 
     // Compute relevant alignments.
     let tls_data_align = STARTUP_TLS_INFO.align;
-    let header_align = align_of::<ThreadPointee>();
+    let header_align = align_of::<Metadata>();
     let metadata_align = max(tls_data_align, header_align);
 
     // Compute the size to allocate for thread data.
     let mut alloc_size = 0;
 
+    // Variant II: TLS data goes below the TCB.
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     let tls_data_bottom = alloc_size;
 
-    alloc_size += round_up(STARTUP_TLS_INFO.mem_size, tls_data_align);
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    {
+        alloc_size += round_up(STARTUP_TLS_INFO.mem_size, metadata_align);
+    }
 
     let header = alloc_size;
 
-    alloc_size += size_of::<ThreadPointee>();
+    alloc_size += size_of::<Metadata>();
+
+    // Variant I: TLS data goes above the TCB.
+    #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
+    {
+        alloc_size = round_up(alloc_size, tls_data_align);
+    }
+
+    #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
+    let tls_data_bottom = alloc_size;
+
+    #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
+    {
+        alloc_size += round_up(STARTUP_TLS_INFO.mem_size, tls_data_align);
+    }
 
     let layout = std::alloc::Layout::from_size_align(alloc_size, metadata_align).unwrap();
 
@@ -284,20 +324,24 @@ pub(super) unsafe fn initialize_main_thread(mem: *mut c_void) {
     let new = std::alloc::alloc(layout);
 
     let tls_data = new.add(tls_data_bottom);
-    let newtls: *mut ThreadPointee = new.add(header).cast();
+    let metadata: *mut Metadata = new.add(header).cast();
+    let newtls = (&mut (*metadata).abi) as *mut Abi;
 
-    // Initialize the thread pointee struct.
+    // Initialize the thread metadata.
     ptr::write(
-        newtls,
-        ThreadPointee {
+        metadata,
+        Metadata {
             abi: Abi {
                 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
                 this: newtls,
-                reserved: [0_usize; 23],
+                #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
+                dtv: null(),
+                #[cfg(target_arch = "aarch64")]
+                pad: [0_usize; 1],
             },
-            data: Thread::new(
+            thread: Thread::new(
                 gettid(),
-                stack_last.cast(),
+                stack_least.cast(),
                 stack_size,
                 guard_size,
                 map_size,
@@ -320,9 +364,9 @@ pub(super) unsafe fn initialize_main_thread(mem: *mut c_void) {
     )
     .fill(0);
 
-    // Set the platform thread point to point to the new thread pointee.
+    // Point the platform thread-pointer register at the new thread metadata.
     set_thread_pointer(newtls.cast());
-    assert_eq!(newtls, thread_pointee().cast());
+    assert_eq!(newtls, current_abi().cast());
 }
 
 /// Creates a new thread.
@@ -349,7 +393,7 @@ pub fn create_thread(
     let tls_data_align = startup_tls_align;
     let page_align = page_size();
     let stack_align = 16;
-    let header_align = align_of::<ThreadPointee>();
+    let header_align = align_of::<Metadata>();
     let metadata_align = max(tls_data_align, header_align);
     let stack_metadata_align = max(stack_align, metadata_align);
     assert!(stack_metadata_align <= page_align);
@@ -364,13 +408,33 @@ pub fn create_thread(
     map_size += round_up(stack_size, stack_metadata_align);
 
     let stack_top = map_size;
+
+    // Variant II: TLS data goes below the TCB.
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     let tls_data_bottom = map_size;
 
-    map_size += round_up(startup_tls_mem_size, tls_data_align);
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    {
+        map_size += round_up(startup_tls_mem_size, tls_data_align);
+    }
 
     let header = map_size;
 
-    map_size += size_of::<ThreadPointee>();
+    map_size += size_of::<Metadata>();
+
+    // Variant I: TLS data goes above the TCB.
+    #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
+    {
+        map_size = round_up(map_size, tls_data_align);
+    }
+
+    #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
+    let tls_data_bottom = map_size;
+
+    #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
+    {
+        map_size += round_up(startup_tls_mem_size, tls_data_align);
+    }
 
     // Now we'll `mmap` the memory, initialize it, and create the OS thread.
     unsafe {
@@ -394,19 +458,24 @@ pub fn create_thread(
         // Compute specific pointers into the thread's memory.
         let stack = map.add(stack_top);
         let stack_least = map.add(stack_bottom);
+
         let tls_data = map.add(tls_data_bottom);
-        let newtls = map.add(header).cast();
+        let metadata: *mut Metadata = map.add(header).cast();
+        let newtls = (&mut (*metadata).abi) as *mut Abi;
 
         // Initialize the thread metadata.
         ptr::write(
-            newtls,
-            ThreadPointee {
+            metadata,
+            Metadata {
                 abi: Abi {
                     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
                     this: newtls,
-                    reserved: [0_usize; 23],
+                    #[cfg(target_arch = "aarch64")]
+                    dtv: null(),
+                    #[cfg(target_arch = "aarch64")]
+                    pad: [0_usize; 1],
                 },
-                data: Thread::new(
+                thread: Thread::new(
                     Pid::NONE, // the real tid will be written by `clone`.
                     stack_least.cast(),
                     stack_size,
@@ -415,7 +484,6 @@ pub fn create_thread(
                 ),
             },
         );
-        let data = &mut (*newtls.cast::<ThreadPointee>()).data;
 
         // Initialize the TLS data with explicit initializer data.
         slice::from_raw_parts_mut(tls_data, STARTUP_TLS_INFO.file_size).copy_from_slice(
@@ -452,28 +520,29 @@ pub fn create_thread(
             | CloneFlags::CHILD_CLEARTID
             | CloneFlags::CHILD_SETTID
             | CloneFlags::PARENT_SETTID;
+        let thread_id_ptr = (*metadata).thread.thread_id.as_mut_ptr();
         #[cfg(target_arch = "x86_64")]
         let clone_res = clone(
             flags.bits(),
             stack.cast(),
-            data.thread_id.as_mut_ptr(),
-            data.thread_id.as_mut_ptr(),
+            thread_id_ptr,
+            thread_id_ptr,
             newtls.cast(),
             arg,
             fn_,
         );
-        #[cfg(any(target_arch = "x86", target_arch = "aarch64"))]
+        #[cfg(any(target_arch = "x86", target_arch = "aarch64", target_arch = "riscv64"))]
         let clone_res = clone(
             flags.bits(),
             stack.cast(),
-            data.thread_id.as_mut_ptr(),
+            thread_id_ptr,
             newtls.cast(),
-            data.thread_id.as_mut_ptr(),
+            thread_id_ptr,
             arg,
             fn_,
         );
         if clone_res >= 0 {
-            Ok(data)
+            Ok(&mut (*metadata).thread)
         } else {
             Err(io::Error::from_raw_os_error(-clone_res as i32))
         }
