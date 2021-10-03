@@ -10,10 +10,17 @@ license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
 repository = "https://github.com/sunfishcode/mustang"
 edition = "2018"
 
+[dependencies]
+# A general-purpose `global_allocator` implementation.
+dlmalloc = { version = "0.2", features = ["global"], optional = true }
+# A small `global_allocator` implementation.
+wee_alloc = { version = "0.4", optional = true }
+
 [target.'cfg(target_vendor = "mustang")'.dependencies]
 origin = { path = "../origin", default-features = false }
 c-scape = { path = "../c-scape" }
 
 [features]
-default = []
+default = ["default-alloc", "threads"]
+default-alloc = ["dlmalloc"]
 threads = ["origin/threads", "c-scape/threads"]
