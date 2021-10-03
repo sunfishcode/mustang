@@ -70,8 +70,8 @@ impl Default for pthread_attr_t {
 #[repr(C)]
 union pthread_mutex_u {
     // Use a custom `RawMutex` for non-reentrant pthread mutex for now, because
-    // we use `wee_alloc` for global allocations, it uses a mutex, and
-    // `parking_lot`'s `RawMutex` performs global allocations.
+    // we use `dlmalloc` or `wee_alloc` for global allocations, which use
+    // mutexes, and `parking_lot`'s `RawMutex` performs global allocations.
     normal: RawMutex,
     reentrant: parking_lot::lock_api::RawReentrantMutex<parking_lot::RawMutex, GetThreadId>,
 }
