@@ -4,7 +4,7 @@
 #![allow(dead_code)]
 
 use std::ffi::c_void;
-use std::os::raw::{c_int, c_long};
+use std::os::raw::{c_int, c_long, c_ulonglong, c_char};
 
 pub(crate) const F_SETFD: c_int = 2;
 pub(crate) const F_GETFL: c_int = 3;
@@ -320,3 +320,46 @@ pub(crate) struct OldTimeval {
 
 pub(crate) type OldTime = c_long;
 pub(crate) type Suseconds = c_long;
+
+#[repr(C)]
+pub(crate) struct DlPhdrInfo {
+    pub(crate) dlpi_addr: usize,
+    pub(crate) dlpi_name: *const c_char,
+    pub(crate) dlpi_phdr: *const Elf_Phdr,
+    pub(crate) dlpi_phnum: u16,
+    // We don't yet implement these, so leave them out. Users should be
+    // checking the size passed to the `dl_iterate_phdr` callback before
+    // checking these fields.
+    /*
+    pub(crate) dlpi_adds: c_ulonglong,
+    pub(crate) dlpi_subs: c_ulonglong,
+    pub(crate) dlpi_tls_modid: usize,
+    pub(crate) dlpi_tls_data: *mut c_void,
+    */
+}
+
+#[cfg(target_pointer_width = "32")]
+#[repr(C)]
+pub(crate) struct Elf_Phdr {
+    pub(crate) p_type: u32,
+    pub(crate) p_offset: u32,
+    pub(crate) p_vaddr: u32,
+    pub(crate) p_paddr: u32,
+    pub(crate) p_filesz: u32,
+    pub(crate) p_memsz: u32,
+    pub(crate) p_flags: u32,
+    pub(crate) p_align: u32,
+}
+
+#[cfg(target_pointer_width = "64")]
+#[repr(C)]
+pub(crate) struct Elf_Phdr {
+    pub(crate) p_type: u32,
+    pub(crate) p_flags: u32,
+    pub(crate) p_offset: u64,
+    pub(crate) p_vaddr: u64,
+    pub(crate) p_paddr: u64,
+    pub(crate) p_filesz: u64,
+    pub(crate) p_memsz: u64,
+    pub(crate) p_align: u64,
+}

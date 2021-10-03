@@ -9,7 +9,7 @@ use rsix::io;
 use rsix::process::{getrlimit, linux_execfn, Resource};
 use rsix::process::{page_size, Pid};
 use rsix::thread::gettid;
-use rsix::thread::tls::{set_tid_address, StartupTlsInfo};
+use rsix::runtime::{set_tid_address, StartupTlsInfo};
 use std::cmp::max;
 use std::ffi::c_void;
 use std::mem::{align_of, size_of};
@@ -262,7 +262,7 @@ unsafe fn exit_thread() -> ! {
     }
 
     // Terminate the thread.
-    rsix::thread::tls::exit_thread(0)
+    rsix::runtime::exit_thread(0)
 }
 
 /// Initialize the main thread.
@@ -273,7 +273,7 @@ unsafe fn exit_thread() -> ! {
 #[cfg(target_vendor = "mustang")]
 pub(super) unsafe fn initialize_main_thread(mem: *mut c_void) {
     // Read the TLS information from the ELF header.
-    STARTUP_TLS_INFO = rsix::thread::tls::startup_tls_info();
+    STARTUP_TLS_INFO = rsix::runtime::startup_tls_info();
 
     // Determine the top of the stack. Linux puts the `AT_EXECFN` string at
     // the top, so find the end of that, and then round up to the page size.

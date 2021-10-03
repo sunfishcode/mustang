@@ -14,24 +14,13 @@ mod data;
 mod error_str;
 #[cfg(feature = "threads")]
 mod raw_mutex;
-mod unwind;
 
 /// Ensure that `mustang`'s modules are linked in.
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
 #[cold]
-unsafe extern "C" fn __mustang_c_scape() {
-    macro_rules! link {
-        ($name:ident) => {{
-            extern "C" {
-                fn $name();
-            }
-            $name();
-        }};
-    }
-    link!(__mustang_c_scape__unwind);
-}
+unsafe extern "C" fn __mustang_c_scape() {}
 
 // Selected libc-compatible interfaces.
 //
@@ -2144,9 +2133,29 @@ unsafe extern "C" fn chdir(path: *const c_char) -> c_int {
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-unsafe extern "C" fn dl_iterate_phdr() {
-    //libc!(dl_iterate_phdr());
-    unimplemented!("dl_iterate_phdr")
+unsafe extern "C" fn dl_iterate_phdr(
+    callback: unsafe extern "C" fn(
+                info: *mut data::DlPhdrInfo,
+                size: usize,
+                data: *mut c_void,
+            ) -> c_int,
+    data: *mut c_void,
+) -> c_int {
+    extern "C" {
+        static mut __executable_start: c_void;
+    }
+
+    libc!(dl_iterate_phdr(callback, data));
+
+    let execfn = rsix::process::linux_execfn();
+    let (phdr, phnum) = rsix::runtime::exe_phdrs();
+    let mut info = data::DlPhdrInfo {
+        dlpi_addr: &mut __executable_start as *mut _ as usize,
+        dlpi_name: execfn.as_ptr(),
+        dlpi_phdr: phdr.cast(),
+        dlpi_phnum: phnum.try_into().unwrap(),
+    };
+    callback(&mut info, size_of::<data::DlPhdrInfo>(), data)
 }
 
 #[inline(never)]
@@ -2254,7 +2263,7 @@ unsafe extern "C" fn prctl(
     libc!(prctl(option, arg2, _arg3, _arg4, _arg5));
     match option {
         data::PR_SET_NAME => {
-            match set_errno(rsix::thread::tls::set_thread_name(CStr::from_ptr(
+            match set_errno(rsix::runtime::set_thread_name(CStr::from_ptr(
                 arg2 as *const c_char,
             ))) {
                 Some(()) => 0,
@@ -3557,7 +3566,7 @@ unsafe impl parking_lot::lock_api::GetThreadId for GetThreadId {
 #[cfg(feature = "threads")]
 #[allow(non_camel_case_types)]
 type PthreadT = c_ulong;
-libc_type!(PthreadT, PthreadT);
+libc_type!(PthreadT, pthread_t);
 
 #[cfg(feature = "threads")]
 #[allow(non_camel_case_types)]
@@ -3577,7 +3586,7 @@ struct PthreadAttrT {
     pad5: usize,
 }
 #[cfg(feature = "threads")]
-libc_type!(PthreadAttrT, PthreadAttrT);
+libc_type!(PthreadAttrT, pthread_attr_t);
 
 #[cfg(feature = "threads")]
 impl Default for PthreadAttrT {
@@ -3620,7 +3629,7 @@ struct PthreadMutexT {
     pad1: usize,
 }
 #[cfg(feature = "threads")]
-libc_type!(PthreadMutexT, PthreadMutexT);
+libc_type!(PthreadMutexT, pthread_mutex_t);
 
 #[cfg(feature = "threads")]
 #[allow(non_camel_case_types)]
@@ -3637,7 +3646,7 @@ struct PthreadRwlockT {
     pad5: usize,
 }
 #[cfg(feature = "threads")]
-libc_type!(PthreadRwlockT, PthreadRwlockT);
+libc_type!(PthreadRwlockT, pthread_rwlock_t);
 
 #[cfg(feature = "threads")]
 #[allow(non_camel_case_types)]
@@ -3646,7 +3655,7 @@ struct PthreadMutexattrT {
     kind: AtomicU32,
 }
 #[cfg(feature = "threads")]
-libc_type!(PthreadMutexattrT, PthreadMutexattrT);
+libc_type!(PthreadMutexattrT, pthread_mutexattr_t);
 
 #[cfg(feature = "threads")]
 #[inline(never)]
