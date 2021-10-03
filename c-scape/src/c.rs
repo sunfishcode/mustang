@@ -13,7 +13,7 @@ use crate::data;
 use crate::error_str::error_str;
 use memoffset::offset_of;
 use rsix::fs::{cwd, openat, AtFlags, FdFlags, Mode, OFlags};
-use rsix::io::{MapFlags, MprotectFlags, PipeFlags, ProtFlags};
+use rsix::io::{MapFlags, MprotectFlags, MremapFlags, PipeFlags, ProtFlags};
 use rsix::io_lifetimes::{AsFd, BorrowedFd, OwnedFd};
 use rsix::net::{
     AcceptFlags, AddressFamily, IpAddr, Ipv4Addr, Ipv6Addr, Protocol, RecvFlags, SendFlags,
@@ -1931,6 +1931,43 @@ unsafe extern "C" fn munmap(ptr: *mut c_void, len: usize) -> c_int {
     match set_errno(rsix::io::munmap(ptr, len)) {
         Some(()) => 0,
         None => -1,
+    }
+}
+
+#[inline(never)]
+#[link_section = ".text.__mustang"]
+#[no_mangle]
+unsafe extern "C" fn mremap(
+    old_address: *mut c_void,
+    old_size: usize,
+    new_size: usize,
+    flags: c_int,
+    mut args: ...
+) -> *mut c_void {
+    if (flags & data::MREMAP_FIXED) == data::MREMAP_FIXED {
+        let new_address = args.arg::<*mut c_void>();
+        libc!(mremap(old_address, old_size, new_size, flags, new_address));
+
+        let flags = flags & !data::MREMAP_FIXED;
+        let flags = MremapFlags::from_bits(flags as _).unwrap();
+        match set_errno(rsix::io::mremap_fixed(
+            old_address,
+            old_size,
+            new_size,
+            flags,
+            new_address,
+        )) {
+            Some(new_address) => new_address,
+            None => data::MAP_FAILED,
+        }
+    } else {
+        libc!(mremap(old_address, old_size, new_size, flags));
+
+        let flags = MremapFlags::from_bits(flags as _).unwrap();
+        match set_errno(rsix::io::mremap(old_address, old_size, new_size, flags)) {
+            Some(new_address) => new_address,
+            None => data::MAP_FAILED,
+        }
     }
 }
 

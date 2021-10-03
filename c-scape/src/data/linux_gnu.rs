@@ -29,8 +29,10 @@ pub(crate) const FIONBIO: c_long = 0x5421;
 pub(crate) const ALIGNOF_MAXALIGN_T: usize = 16;
 
 pub(crate) const MAP_ANONYMOUS: i32 = 32;
-
 pub(crate) const MAP_FAILED: *mut c_void = !0_usize as *mut c_void;
+pub(crate) const MREMAP_MAYMOVE: i32 = 1;
+pub(crate) const MREMAP_FIXED: i32 = 2;
+pub(crate) const MREMAP_DONTUNMAP: i32 = 4;
 
 pub(crate) const _SC_PAGESIZE: c_int = 30;
 pub(crate) const _SC_GETPW_R_SIZE_MAX: c_int = 70;
