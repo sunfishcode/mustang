@@ -13,7 +13,7 @@ edition = "2018"
 [dependencies]
 once_cell = "1.8.0"
 libm = "0.2.1"
-rsix = "0.23.6"
+rsix = "0.23.7"
 memoffset = "0.6"
 realpath-ext = "0.1.0"
 compiler_builtins = { version = "0.1.50", features = ["mem", "mangled-names"] }

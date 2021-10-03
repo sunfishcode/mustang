@@ -5,7 +5,7 @@ use memoffset::offset_of;
 use rsix::io;
 use rsix::process::{getrlimit, linux_execfn, page_size, Pid, Resource};
 use rsix::thread::gettid;
-use rsix::thread::tls::StartupTlsInfo;
+use rsix::thread::tls::{set_tid_address, StartupTlsInfo};
 use std::cmp::max;
 use std::ffi::c_void;
 use std::mem::{align_of, size_of};
@@ -245,9 +245,12 @@ unsafe fn exit_thread() -> ! {
         // Free the thread's `mmap` region, if we allocated it.
         let map_size = current_map_size;
         if map_size != 0 {
-            let map = current_stack_addr.cast::<u8>().sub(current_guard_size);
+            // NULL out the tid address, so the kernel doesn't write to memory
+            // that we've freed trying to clear our TID when we exit.
+            let _ = set_tid_address(null_mut());
             // `munmap` the memory, which also frees the stack we're currently
             // on, and do an `exit` carefully without touching the stack.
+            let map = current_stack_addr.cast::<u8>().sub(current_guard_size);
             deallocate_current(map.cast(), map_size);
         }
     } else {
