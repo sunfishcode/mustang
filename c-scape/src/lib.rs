@@ -22,11 +22,6 @@ mod pthread;
 mod raw_mutex;
 mod unwind;
 
-/// Link in `wee_alloc` as the global allocator, so that we don't call
-/// `malloc`.
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc<'static> = wee_alloc::WeeAlloc::INIT;
-
 /// Ensure that `mustang`'s modules are linked in.
 #[inline(never)]
 #[link_section = ".text.__mustang"]

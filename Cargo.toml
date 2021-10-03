@@ -26,8 +26,11 @@ ctor = "0.1.21"
 #core_simd = { git = "https://github.com/rust-lang/portable-simd" }
 
 [features]
-default = ["threads"]
+default = ["threads", "default-alloc"]
 threads = ["origin/threads", "mustang/threads"]
+default-alloc = ["mustang/default-alloc"]
+dlmalloc = ["mustang/dlmalloc"]
+wee_alloc = ["mustang/wee_alloc"]
 env_logger = ["origin/env_logger"]
 
 [workspace]
