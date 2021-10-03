@@ -52,7 +52,7 @@ pub(super) unsafe fn clone(
 #[cfg(target_vendor = "mustang")]
 #[inline]
 pub(super) unsafe fn set_thread_pointer(ptr: *mut c_void) {
-    rsix::thread::tls::set_fs(ptr);
+    rsix::runtime::set_fs(ptr);
     debug_assert_eq!(*ptr.cast::<*const c_void>(), ptr);
     debug_assert_eq!(get_thread_pointer(), ptr);
 }

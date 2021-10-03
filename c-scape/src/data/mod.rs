@@ -296,3 +296,24 @@ struct_!(OldTimeval, timeval, tv_sec, tv_usec);
 struct_!(OldTimespec, timespec, tv_sec, tv_nsec);
 type_!(OldTime, time_t);
 type_!(Suseconds, suseconds_t);
+// This differs from libc, as we don't yet implement the optional fields
+// at the end.
+/*
+struct_!(
+    DlPhdrInfo,
+    dl_phdr_info,
+    dlpi_addr,
+    dlpi_name,
+    dlpi_phdr,
+    dlpi_phnum,
+);
+*/
+pub(crate) use cfg::DlPhdrInfo;
+#[cfg(target_pointer_width = "32")]
+struct_!(
+    Elf_Phdr, Elf32_Phdr, p_type, p_offset, p_vaddr, p_paddr, p_filesz, p_memsz, p_flags, p_align
+);
+#[cfg(target_pointer_width = "64")]
+struct_!(
+    Elf_Phdr, Elf64_Phdr, p_type, p_flags, p_offset, p_vaddr, p_paddr, p_filesz, p_memsz, p_align
+);

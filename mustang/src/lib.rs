@@ -14,6 +14,8 @@ macro_rules! can_run_this {
 extern crate c;
 #[cfg(target_vendor = "mustang")]
 extern crate origin;
+#[cfg(target_vendor = "mustang")]
+extern crate unwind;
 
 #[cfg(target_vendor = "mustang")]
 #[cfg(feature = "dlmalloc")]
