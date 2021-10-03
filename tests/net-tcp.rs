@@ -8,7 +8,7 @@
 #![feature(io_error_uncategorized)]
 #![feature(tcp_linger)]
 
-mustang::can_compile_this!();
+mustang::can_run_this!();
 
 mod net;
 

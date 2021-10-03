@@ -10,7 +10,7 @@ To use, add a `mustang` dependency to Cargo.toml, and add this line to your
 `main.rs`:
 
 ```rust
-mustang::can_compile_this!();
+mustang::can_run_this!();
 ```
 
 This macro expands to nothing in non-`*-mustang-*` builds.

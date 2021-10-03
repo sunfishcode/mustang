@@ -54,12 +54,12 @@ Then, in your own crate, add a dependency on `mustang`:
 mustang = { git = "https://github.com/sunfishcode/mustang" }
 ```
 
-And add a `mustang::can_compile_this!();` to your top-level module (eg. main.rs). This
-does nothing in non-`mustang`-target builds, but in `mustang`-target builds
-arranges for `mustang`'s libraries to be linked in.
+And add a `mustang::can_run_this!();` to your top-level module (eg. main.rs).
+This does nothing in non-`mustang`-target builds, but in `mustang`-target
+builds arranges for `mustang`'s libraries to be linked in.
 
 ```rust
-mustang::can_compile_this!();
+mustang::can_run_this!();
 ```
 
 Then, compile with Rust nightly, using `-Z build-std` and

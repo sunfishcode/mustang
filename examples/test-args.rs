@@ -1,4 +1,4 @@
-mustang::can_compile_this!();
+mustang::can_run_this!();
 
 fn main() {
     let mut args = std::env::args_os();

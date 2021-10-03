@@ -5,7 +5,7 @@
 #![feature(thread_local_const_init)]
 #![cfg(feature = "threads")]
 
-mustang::can_compile_this!();
+mustang::can_run_this!();
 
 use std::cell::{Cell, UnsafeCell};
 use std::sync::atomic::{AtomicU8, Ordering};

@@ -1,4 +1,4 @@
-mustang::can_compile_this!();
+mustang::can_run_this!();
 
 use std::ffi::{CStr, OsStr, OsString};
 use std::os::raw::{c_char, c_int};

@@ -5,7 +5,7 @@
 //! Currently everything is enabled except for the tests that use threads,
 //! which are marked with `#[cfg(feature = "threads")]`.
 
-mustang::can_compile_this!();
+mustang::can_run_this!();
 
 mod net;
 

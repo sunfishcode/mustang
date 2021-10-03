@@ -1,4 +1,4 @@
-mustang::can_compile_this!();
+mustang::can_run_this!();
 
 use std::cell::Cell;
 use std::thread;

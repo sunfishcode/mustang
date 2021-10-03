@@ -7,7 +7,7 @@
 #![feature(const_ipv4)]
 #![feature(const_ipv6)]
 
-mustang::can_compile_this!();
+mustang::can_run_this!();
 
 mod net;
 

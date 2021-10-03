@@ -7,7 +7,7 @@
 
 #![feature(io_error_uncategorized)]
 
-mustang::can_compile_this!();
+mustang::can_run_this!();
 
 mod sys_common;
 
