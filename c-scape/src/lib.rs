@@ -20,7 +20,6 @@ mod m;
 mod pthread;
 #[cfg(feature = "threads")]
 mod raw_mutex;
-mod unwind;
 
 /// Ensure that `mustang`'s modules are linked in.
 #[inline(never)]
@@ -41,6 +40,5 @@ unsafe extern "C" fn __mustang_c_scape() {
     #[cfg(feature = "threads")]
     link!(__mustang_c_scape__pthread);
     link!(__mustang_c_scape__exit);
-    link!(__mustang_c_scape__unwind);
     link!(__mustang_c_scape__environ);
 }

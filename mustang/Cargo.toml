@@ -16,6 +16,20 @@ dlmalloc = { version = "0.2", features = ["global"], optional = true }
 # A small `global_allocator` implementation.
 wee_alloc = { version = "0.4", optional = true }
 
+# Disable fde-phdr and use fde-gnu-eh-frame-hdr, as we don't support dynamic
+# linking yet. And enable "libc" and don't depend on "spin".
+[dependencies.unwind]
+git = "https://github.com/nbdd0121/unwind"
+default-features = false
+features = [
+    "unwinder",
+    "dwarf-expr",
+    "hide-trace",
+    "fde-gnu-eh-frame-hdr",
+    "fde-registry",
+    "libc",
+]
+
 [target.'cfg(target_vendor = "mustang")'.dependencies]
 origin = { path = "../origin", default-features = false }
 c-scape = { path = "../c-scape" }
