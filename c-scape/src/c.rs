@@ -2275,16 +2275,16 @@ unsafe extern "C" fn getgid() -> c_uint {
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-unsafe extern "C" fn kill() {
-    //libc!(kill());
+unsafe extern "C" fn kill(_pid: c_uint, _sig: c_int) -> c_int {
+    libc!(kill(_pid, _sig));
     unimplemented!("kill")
 }
 
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-unsafe extern "C" fn raise() {
-    //libc!(raise());
+unsafe extern "C" fn raise(_sig: c_int) -> c_int {
+    libc!(raise(_sig));
     unimplemented!("raise")
 }
 
