@@ -1,4 +1,4 @@
-mustang::can_compile_this!();
+mustang::can_run_this!();
 
 fn main() {
     // We expect to be passed some environment variables.

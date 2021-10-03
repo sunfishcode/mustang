@@ -2,7 +2,7 @@
 //#![feature(portable_simd)]
 //#![feature(asm)]
 
-mustang::can_compile_this!();
+mustang::can_run_this!();
 
 fn main() {
     // TODO: Re-enable test_simd when core_simd works on Rust nightly.

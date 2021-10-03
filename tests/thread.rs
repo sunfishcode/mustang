@@ -8,7 +8,7 @@
 #![feature(box_syntax)]
 #![cfg(feature = "threads")]
 
-mustang::can_compile_this!();
+mustang::can_run_this!();
 
 use std::mem;
 use std::sync::mpsc::{channel, Sender};

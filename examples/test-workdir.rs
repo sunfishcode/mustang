@@ -1,4 +1,4 @@
-mustang::can_compile_this!();
+mustang::can_run_this!();
 
 fn main() {
     let _cwd = std::env::current_dir().expect("current directory should exist and be accessible");

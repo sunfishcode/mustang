@@ -1,7 +1,7 @@
 //! Run the programs in the `examples` directory and compare their outputs with
 //! expected outputs.
 
-mustang::can_compile_this!();
+mustang::can_run_this!();
 
 use similar_asserts::assert_eq;
 

@@ -9,7 +9,7 @@
 #![feature(duration_constants)]
 #![allow(soft_unstable)]
 
-mustang::can_compile_this!();
+mustang::can_run_this!();
 
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 #[cfg(feature = "bench")]

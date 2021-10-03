@@ -2,7 +2,7 @@
 //! library/std/src/env/tests.rs at revision
 //! 497ee321af3b8496eaccd7af7b437f18bab81abf.
 
-mustang::can_compile_this!();
+mustang::can_run_this!();
 
 use std::env::*;
 
