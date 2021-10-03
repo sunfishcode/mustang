@@ -95,6 +95,9 @@ constant_same_as!(
     std::mem::align_of::<libc::max_align_t>()
 );
 constant!(MAP_ANONYMOUS);
+constant!(MREMAP_MAYMOVE);
+constant!(MREMAP_FIXED);
+constant!(MREMAP_DONTUNMAP);
 constant_same_as!(MAP_FAILED, libc::MAP_FAILED);
 constant!(_SC_PAGESIZE);
 constant!(_SC_GETPW_R_SIZE_MAX);
