@@ -159,6 +159,25 @@ One probably needs to do similar things as for a new architecture, and also
 write a new `origin::rust` implementation to handle the OS's convention for
 arguments, environment variables, and initialization functions.
 
+## Similar crates
+
+c-scape has some similarities to [relibc], but has a different focus. Relibc is
+aiming to be a complete libc replacement, while c-scape is just aiming to cover
+the things used by Rust's `std` and popular crates. Some parts of Relibc are
+implemented in C, while c-scape is implemented entirely in Rust.
+
+c-scape is also similar to [steed]. See the Mustang README.md for details.
+
+The most significant thing that makes c-scape unique though is its design as a
+set of wrappers around Rust crates with Rust interfaces. C ABI compatibility is
+useful for getting existing code working, but once things are working, we can
+simplify and optimize by changing code to call into the Rust interfaces
+directly. This can eliminate many uses of raw pointers and C-style
+NUL-terminated strings, so it can be much safer.
+
+[relibc]: https://gitlab.redox-os.org/redox-os/relibc/
+[steed]: https://github.com/japaric/steed
+
 [`steed`]: https://github.com/japaric/steed
 [build-std]: https://doc.rust-lang.org/cargo/reference/unstable.html#build-std
 [Rust itself already does this]: https://github.com/rust-lang/rust/blob/6bed1f0bc3cc50c10aab26d5f94b16a00776b8a5/library/std/src/sys/unix/mod.rs#L71
