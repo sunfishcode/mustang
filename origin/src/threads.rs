@@ -577,7 +577,8 @@ pub unsafe fn detach_thread(thread_data: *mut Thread) {
 ///
 /// # Safety
 ///
-/// `thread_data` must point to a valid and live thread record.
+/// `thread_data` must point to a valid and live thread record that has not
+/// already been detached or joined.
 pub unsafe fn join_thread(thread_data: *mut Thread) {
     wait_for_thread_exit(thread_data);
     debug_assert_eq!((*thread_data).detached.load(SeqCst), ABANDONED);
