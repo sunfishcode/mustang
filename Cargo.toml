@@ -39,7 +39,3 @@ members = [
   "origin",
   "c-scape",
 ]
-
-# Things are fragile enough right now that it's handy to have this.
-[profile.release]
-debug = true
