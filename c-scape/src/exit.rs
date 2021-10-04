@@ -29,6 +29,8 @@ unsafe extern "C" fn __cxa_finalize(_d: *mut c_void) {}
 #[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn atexit(func: unsafe extern "C" fn()) -> c_int {
+    libc!(atexit(status));
+
     /// Adapter to let `atexit`-style functions be called in the same manner as
     /// `__cxa_atexit` functions.
     unsafe extern "C" fn adapter(func: *mut c_void) {
@@ -41,11 +43,12 @@ unsafe extern "C" fn atexit(func: unsafe extern "C" fn()) -> c_int {
 
 /// C-compatible `exit`.
 ///
-/// Call all the registered at-exit functions, and exit the process.
+/// Call all the registered at-exit functions, and exit the program.
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
 extern "C" fn exit(status: c_int) -> ! {
+    libc!(exit(status));
     origin::exit(status)
 }
 
@@ -56,6 +59,7 @@ extern "C" fn exit(status: c_int) -> ! {
 #[link_section = ".text.__mustang"]
 #[no_mangle]
 extern "C" fn _exit(status: c_int) -> ! {
+    libc!(_exit(status));
     origin::exit_immediately(status)
 }
 
