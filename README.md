@@ -109,8 +109,12 @@ set the environment variable `CC_i686-mustang-linux-gnu` to
 
 Known limitations in `mustang` include:
 
- - Spawning new processes and unwinding panics are not implemented yet.
+ - Support for spawning processes (`std::process::*`) is not implemented yet [#34].
+ - Unwinding panics are not implemented yet ([#27]).
  - No support for dynamic linking yet.
+
+[#27]: https://github.com/sunfishcode/mustang/issues/27
+[#34]: https://github.com/sunfishcode/mustang/issues/34
 
 ## Background
 
