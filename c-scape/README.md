@@ -1,6 +1,22 @@
+<div align="center">
+  <h1><code>c-scape</code></h1>
+
+  <p>
+    <strong>Selected C-ABI-compatible libc, libm, and libpthread interfaces</strong>
+  </p>
+
+  <p>
+    <a href="https://github.com/sunfishcode/mustang/actions?query=workflow%3ACI"><img src="https://github.com/sunfishcode/mustang/workflows/CI/badge.svg" alt="Github Actions CI Status" /></a>
+    <a href="https://sunfishcode.zulipchat.com/#narrow/stream/217126-wasmtime"><img src="https://img.shields.io/badge/zulip-join_chat-brightgreen.svg" alt="zulip chat" /></a>
+    <a href="https://crates.io/crates/c-scape"><img src="https://img.shields.io/crates/v/c-scape.svg" alt="crates.io page" /></a>
+    <a href="https://docs.rs/c-scape"><img src="https://docs.rs/c-scape/badge.svg" alt="docs.rs docs" /></a>
+  </p>
+</div>
+
 C-ABI-compatible libc, libm, libpthread, and libunwind interfaces, implemented
-in terms of crates written in Rust. Currently this only supports `*-*-linux-gnu`
-ABIs, though other ABIs could be added.
+in terms of crates written in Rust, such as [rsix], [origin], [sync-resolve],
+[libm], [realpath-ext], [memchr], and [parking\_lot]. Currently this only
+supports `*-*-linux-gnu` ABIs, though other ABIs could be added.
 
 The goal is to have very little code in `c-scape` itself, by factoring out all
 of the significant functionality into independent crates with more
@@ -11,5 +27,18 @@ This is currently experimental, incomplete, and some things aren't optimized.
 
 c-scape implements `malloc` using the Rust global allocator, and the default
 Rust global allocator is implemented using `malloc`, so it's necessary to
-enable a different global allocator. The `mustang` crate handles this
+enable a different global allocator. The [`mustang`] crate handles this
 automatically.
+
+This is part of the [Mustang] project, building Rust programs written entirely
+in Rust.
+
+[Mustang]: https://github.com/sunfishcode/mustang/
+[rsix]: https://crates.io/crates/rsix
+[origin]: https://crates.io/crates/origin
+[sync-resolve]: https://crates.io/crates/sync-resolve
+[libm]: https://crates.io/crates/libm
+[realpath-ext]: https://crates.io/crates/realpath-ext
+[memchr]: https://crates.io/crates/memchr
+[parking\_lot]: https://crates.io/crates/parking_lot
+[mustang]: https://crates.io/crates/mustang
