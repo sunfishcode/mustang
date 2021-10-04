@@ -122,7 +122,7 @@ unsafe extern "C" fn pthread_self() -> pthread_t {
 #[no_mangle]
 unsafe extern "C" fn pthread_getattr_np(thread: pthread_t, attr: *mut pthread_attr_t) -> c_int {
     libc!(pthread_getattr_np(thread, same_ptr_mut(attr)));
-    let (stack_addr, stack_size, guard_size) = Thread::stack(thread as *mut Thread);
+    let (stack_addr, stack_size, guard_size) = origin::thread_stack(thread as *mut Thread);
     ptr::write(
         attr,
         pthread_attr_t {
@@ -528,12 +528,12 @@ unsafe extern "C" fn pthread_create(
     };
     assert!(stack_addr.is_null());
 
-    let thread_data = match origin::create_thread(fn_, arg, stack_size, guard_size) {
-        Ok(thread_data) => thread_data,
+    let thread = match origin::create_thread(fn_, arg, stack_size, guard_size) {
+        Ok(thread) => thread,
         Err(e) => return e.raw_os_error(),
     };
 
-    pthread.write(thread_data as pthread_t);
+    pthread.write(thread as pthread_t);
     0
 }
 

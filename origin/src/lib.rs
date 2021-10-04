@@ -29,7 +29,7 @@ pub use program::{at_exit, exit, exit_immediately};
 #[cfg(feature = "threads")]
 pub use threads::{
     at_thread_exit, create_thread, current_thread, current_thread_id, default_guard_size,
-    default_stack_size, detach_thread, join_thread, Thread,
+    default_stack_size, detach_thread, join_thread, thread_stack, Thread,
 };
 
 /// The program entry point.

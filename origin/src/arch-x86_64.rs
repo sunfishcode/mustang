@@ -50,25 +50,25 @@ pub(super) unsafe fn clone(
 }
 
 #[inline]
-pub(super) unsafe fn set_thread_pointer(thread_data: *mut c_void) {
-    rsix::thread::tls::set_fs(thread_data);
-    debug_assert_eq!(*thread_data.cast::<*const c_void>(), thread_data);
-    debug_assert_eq!(get_thread_pointer(), thread_data);
+pub(super) unsafe fn set_thread_pointer(ptr: *mut c_void) {
+    rsix::thread::tls::set_fs(ptr);
+    debug_assert_eq!(*ptr.cast::<*const c_void>(), ptr);
+    debug_assert_eq!(get_thread_pointer(), ptr);
 }
 
 #[inline]
 pub(super) fn get_thread_pointer() -> *mut c_void {
-    let result;
+    let ptr;
     unsafe {
-        asm!("mov {},QWORD PTR fs:0", out(reg) result, options(nostack, preserves_flags, readonly));
+        asm!("mov {},QWORD PTR fs:0", out(reg) ptr, options(nostack, preserves_flags, readonly));
     }
-    result
+    ptr
 }
 
 /// `munmap` the current thread, then carefully exit the thread without
 /// touching the deallocated stack.
 #[inline]
-pub(super) unsafe fn deallocate_current(addr: *mut c_void, len: usize) -> ! {
+pub(super) unsafe fn munmap_and_exit_thread(map_addr: *mut c_void, map_len: usize) -> ! {
     asm!(
         "syscall",
         "xor edi,edi",
@@ -77,8 +77,8 @@ pub(super) unsafe fn deallocate_current(addr: *mut c_void, len: usize) -> ! {
         "ud2",
         __NR_exit = const __NR_exit,
         in("rax") __NR_munmap,
-        in("rdi") addr,
-        in("rsi") len,
+        in("rdi") map_addr,
+        in("rsi") map_len,
         options(noreturn, nostack)
     );
 }
