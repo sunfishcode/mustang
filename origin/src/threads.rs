@@ -1,6 +1,6 @@
 //! Threads runtime.
 
-use crate::arch::{clone, deallocate_current, get_thread_pointer, set_thread_pointer};
+use crate::arch::{clone, get_thread_pointer, munmap_current, set_thread_pointer};
 use memoffset::offset_of;
 use rsix::io;
 use rsix::process::{getrlimit, linux_execfn, page_size, Pid, Resource};
@@ -147,18 +147,6 @@ impl Thread {
             dtors: Vec::new(),
         }
     }
-
-    /// Return the current thread's stack address (lowest address), size, and
-    /// guard size.
-    ///
-    /// # Safety
-    ///
-    /// `thread_data` must point to a valid and live thread record.
-    #[inline]
-    pub unsafe fn stack(thread: *mut Self) -> (*mut c_void, usize, usize) {
-        let data = &*thread;
-        (data.stack_addr, data.stack_size, data.guard_size)
-    }
 }
 
 #[inline]
@@ -182,13 +170,25 @@ pub fn current_thread() -> *mut Thread {
 
 /// Return the current thread id.
 ///
-/// This is the same as `rsix::thread::gettid()`, but loads the value from
-/// a field in the runtime rather than making a system call.
+/// This is the same as `rsix::thread::gettid()`, but loads the value from a
+/// field in the runtime rather than making a system call.
 #[inline]
 pub fn current_thread_id() -> Pid {
     let tid = unsafe { Pid::from_raw((*current_thread()).thread_id.load(SeqCst)) };
     debug_assert_eq!(tid, gettid(), "`current_thread_id` disagrees with `gettid`");
     tid
+}
+
+/// Return the current thread's stack address (lowest address), size, and guard
+/// size.
+///
+/// # Safety
+///
+/// `thread` must point to a valid and live thread record.
+#[inline]
+pub unsafe fn thread_stack(thread: *mut Thread) -> (*mut c_void, usize, usize) {
+    let data = &*thread;
+    (data.stack_addr, data.stack_size, data.guard_size)
 }
 
 /// Registers a function to call when the current thread exits.
@@ -251,7 +251,7 @@ unsafe fn exit_thread() -> ! {
             // `munmap` the memory, which also frees the stack we're currently
             // on, and do an `exit` carefully without touching the stack.
             let map = current_stack_addr.cast::<u8>().sub(current_guard_size);
-            deallocate_current(map.cast(), map_size);
+            munmap_and_exit_thread(map.cast(), map_size);
         }
     } else {
         log::trace!("Thread[{:?}] exiting as joinable", current_thread_id);
@@ -502,15 +502,16 @@ pub fn create_thread(
         // already zeroed.
 
         // Create the OS thread. In Linux, this is a process that shares much
-        // of its state with the current process. We also pass additional flags:
+        // of its state with the current process. We also pass additional
+        // flags:
         //  - `SETTLS` to set the platform thread register.
         //  - `CHILD_CLEARTID` to arrange for a futex wait for threads waiting in
         //    `join_thread`.
         //  - `PARENT_SETTID` to store the child's tid at the `parent_tid` location.
         //  - `CHILD_SETTID` to store the child's tid at the `child_tid` location.
         // We receive the tid in the same memory for the parent and the child,
-        // but we set both `PARENT_SETTID` and `CHILD_SETTID` to ensure that the
-        // store completes before either the parent or child reads the tid.
+        // but we set both `PARENT_SETTID` and `CHILD_SETTID` to ensure that
+        // the store completes before either the parent or child reads the tid.
         let flags = CloneFlags::VM
             | CloneFlags::FS
             | CloneFlags::FILES
@@ -561,13 +562,13 @@ fn round_up(addr: usize, boundary: usize) -> usize {
 ///
 /// # Safety
 ///
-/// `thread_data` must point to a valid and live thread record that has
-/// not yet been detached and will not be joined.
+/// `thread` must point to a valid and live thread record that has not yet been
+/// detached and will not be joined.
 #[inline]
-pub unsafe fn detach_thread(thread_data: *mut Thread) {
-    if (*thread_data).detached.swap(DETACHED, SeqCst) == ABANDONED {
-        wait_for_thread_exit(thread_data);
-        free_thread_memory(thread_data);
+pub unsafe fn detach_thread(thread: *mut Thread) {
+    if (*thread).detached.swap(DETACHED, SeqCst) == ABANDONED {
+        wait_for_thread_exit(thread);
+        free_thread_memory(thread);
     }
 }
 
@@ -575,22 +576,22 @@ pub unsafe fn detach_thread(thread_data: *mut Thread) {
 ///
 /// # Safety
 ///
-/// `thread_data` must point to a valid and live thread record that has not
-/// already been detached or joined.
-pub unsafe fn join_thread(thread_data: *mut Thread) {
-    wait_for_thread_exit(thread_data);
-    debug_assert_eq!((*thread_data).detached.load(SeqCst), ABANDONED);
-    free_thread_memory(thread_data);
+/// `thread` must point to a valid and live thread record that has not already
+/// been detached or joined.
+pub unsafe fn join_thread(thread: *mut Thread) {
+    wait_for_thread_exit(thread);
+    debug_assert_eq!((*thread).detached.load(SeqCst), ABANDONED);
+    free_thread_memory(thread);
 }
 
-unsafe fn wait_for_thread_exit(thread_data: *mut Thread) {
+unsafe fn wait_for_thread_exit(thread: *mut Thread) {
     use rsix::thread::{futex, FutexFlags, FutexOperation};
 
     // Check whether the thread has exited already; we set the
     // `CloneFlags::CHILD_CLEARTID` flag on the clone syscall, so we can test
     // for `NONE` here.
-    let thread_data = &mut *thread_data;
-    let thread_id = &mut thread_data.thread_id;
+    let thread = &mut *thread;
+    let thread_id = &mut thread.thread_id;
     let id_value = thread_id.load(SeqCst);
     if Pid::from_raw(id_value) != Pid::NONE {
         // This doesn't use any shared memory, but we can't use
@@ -612,18 +613,15 @@ unsafe fn wait_for_thread_exit(thread_data: *mut Thread) {
     }
 }
 
-unsafe fn free_thread_memory(thread_data: *mut Thread) {
+unsafe fn free_thread_memory(thread: *mut Thread) {
     use rsix::io::munmap;
 
     // Free the thread's `mmap` region, if we allocated it.
-    let thread_data = &mut *thread_data;
-    let map_size = thread_data.map_size;
+    let thread = &mut *thread;
+    let map_size = thread.map_size;
     if map_size != 0 {
-        let map = thread_data
-            .stack_addr
-            .cast::<u8>()
-            .sub(thread_data.guard_size);
-        drop(thread_data);
+        let map = thread.stack_addr.cast::<u8>().sub(thread.guard_size);
+        drop(thread);
         munmap(map.cast(), map_size).unwrap();
     }
 }

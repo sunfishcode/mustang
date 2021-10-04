@@ -86,10 +86,10 @@ pub(super) unsafe fn clone(
 }
 
 #[inline]
-pub(super) unsafe fn set_thread_pointer(thread_data: *mut c_void) {
+pub(super) unsafe fn set_thread_pointer(ptr: *mut c_void) {
     let mut user_desc = rsix::thread::tls::UserDesc {
         entry_number: -1i32 as u32,
-        base_addr: thread_data as u32,
+        base_addr: ptr as u32,
         limit: 0xfffff,
         _bitfield_align_1: [],
         _bitfield_1: Default::default(),
@@ -103,23 +103,23 @@ pub(super) unsafe fn set_thread_pointer(thread_data: *mut c_void) {
     user_desc.set_useable(1);
     rsix::thread::tls::set_thread_area(&mut user_desc).expect("set_thread_area");
     asm!("mov gs,{0:x}", in(reg) ((user_desc.entry_number << 3) | 3) as u16);
-    debug_assert_eq!(*thread_data.cast::<*const c_void>(), thread_data);
-    debug_assert_eq!(get_thread_pointer(), thread_data);
+    debug_assert_eq!(*ptr.cast::<*const c_void>(), ptr);
+    debug_assert_eq!(get_thread_pointer(), ptr);
 }
 
 #[inline]
 pub(super) fn get_thread_pointer() -> *mut c_void {
-    let result;
+    let ptr;
     unsafe {
-        asm!("mov {0},DWORD PTR gs:0", out(reg) result, options(nostack, preserves_flags, readonly));
+        asm!("mov {0},DWORD PTR gs:0", out(reg) ptr, options(nostack, preserves_flags, readonly));
     }
-    result
+    ptr
 }
 
 /// `munmap` the current thread, then carefully exit the thread without
 /// touching the deallocated stack.
 #[inline]
-pub(super) unsafe fn deallocate_current(addr: *mut c_void, len: usize) -> ! {
+pub(super) unsafe fn munmap_and_exit_thread(map_addr: *mut c_void, map_len: usize) -> ! {
     asm!(
         // Use `int 0x80` instead of vsyscall, since vsyscall would attempt to
         // touch the stack after we `munmap` it.
@@ -130,8 +130,8 @@ pub(super) unsafe fn deallocate_current(addr: *mut c_void, len: usize) -> ! {
         "ud2",
         __NR_exit = const __NR_exit,
         in("eax") __NR_munmap,
-        in("ebx") addr,
-        in("ecx") len,
+        in("ebx") map_addr,
+        in("ecx") map_len,
         options(noreturn, nostack)
     );
 }
