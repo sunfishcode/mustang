@@ -120,21 +120,18 @@ struct SendArg(*mut c_void);
 unsafe impl Send for SendFunc {}
 unsafe impl Send for SendArg {}
 
-/// Functions registerd with `at_exit`.
+/// Functions registered with `at_exit`.
 static DTORS: OnceCell<Mutex<Vec<(SendFunc, SendArg)>>> = OnceCell::new();
 
 /// Register a function to be called when `exit` is called.
-///
-/// This function conforms to the [LSB `__cxa_atexit`] ABI.
-///
-/// [LSB `__cxa_atexit`]: <https://refspecs.linuxbase.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/baselib---cxa-atexit.html>
 pub fn at_exit(func: unsafe extern "C" fn(*mut c_void), arg: *mut c_void) {
     let dtors = DTORS.get_or_init(|| Mutex::new(Vec::new()));
     let mut funcs = dtors.lock().unwrap();
     funcs.push((SendFunc(func), SendArg(arg)));
 }
 
-/// Call all the registered at-exit functions, and exit the program.
+/// Call all the functions registered with `at_exit` and `.fini_array`, and
+/// exit the program.
 pub fn exit(status: c_int) -> ! {
     extern "C" {
         static __fini_array_start: c_void;
@@ -174,11 +171,12 @@ pub fn exit(status: c_int) -> ! {
         }
     }
 
-    // Call `exit_immediately` to exit the process.
+    // Call `exit_immediately` to exit the program.
     exit_immediately(status)
 }
 
-/// Exit the process without calling functions registered with `at_exit`.
+/// Exit the program without calling functions registered with `at_exit` or
+/// `.fini_array`.
 #[inline]
 pub fn exit_immediately(status: c_int) -> ! {
     log::trace!("Program exiting");
