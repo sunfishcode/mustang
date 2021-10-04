@@ -1,6 +1,6 @@
 //! Threads runtime.
 
-use crate::arch::{clone, get_thread_pointer, munmap_current, set_thread_pointer};
+use crate::arch::{clone, get_thread_pointer, munmap_and_exit_thread, set_thread_pointer};
 use memoffset::offset_of;
 use rsix::io;
 use rsix::process::{getrlimit, linux_execfn, page_size, Pid, Resource};
