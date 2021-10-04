@@ -1,9 +1,13 @@
 //! Threads runtime.
 
-use crate::arch::{clone, get_thread_pointer, munmap_and_exit_thread, set_thread_pointer};
+#[cfg(target_vendor = "mustang")]
+use crate::arch::set_thread_pointer;
+use crate::arch::{clone, get_thread_pointer, munmap_and_exit_thread};
 use memoffset::offset_of;
 use rsix::io;
-use rsix::process::{getrlimit, linux_execfn, page_size, Pid, Resource};
+#[cfg(target_vendor = "mustang")]
+use rsix::process::{getrlimit, linux_execfn, Resource};
+use rsix::process::{page_size, Pid};
 use rsix::thread::gettid;
 use rsix::thread::tls::{set_tid_address, StartupTlsInfo};
 use std::cmp::max;
@@ -266,6 +270,7 @@ unsafe fn exit_thread() -> ! {
 /// This function is similar to `create_thread` except that the OS thread is
 /// already created, and already has a stack (which we need to locate), and is
 /// already running.
+#[cfg(target_vendor = "mustang")]
 pub(super) unsafe fn initialize_main_thread(mem: *mut c_void) {
     // Read the TLS information from the ELF header.
     STARTUP_TLS_INFO = rsix::thread::tls::startup_tls_info();

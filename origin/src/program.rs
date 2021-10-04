@@ -1,8 +1,15 @@
+#[cfg(target_vendor = "mustang")]
 #[cfg(feature = "threads")]
 use crate::threads::initialize_main_thread;
+#[cfg(target_vendor = "mustang")]
 use once_cell::sync::OnceCell;
 use std::ffi::c_void;
-use std::os::raw::{c_char, c_int};
+#[cfg(target_vendor = "mustang")]
+use std::os::raw::c_char;
+use std::os::raw::c_int;
+#[cfg(not(target_vendor = "mustang"))]
+use std::ptr::null_mut;
+#[cfg(target_vendor = "mustang")]
 use std::sync::Mutex;
 
 /// The entrypoint where Rust code is first executed when the program starts.
@@ -10,6 +17,7 @@ use std::sync::Mutex;
 /// # Safety
 ///
 /// `mem` should point to the stack as provided by the operating system.
+#[cfg(target_vendor = "mustang")]
 pub(super) unsafe extern "C" fn entry(mem: *mut usize) -> ! {
     extern "C" {
         fn main(argc: c_int, argv: *mut *mut c_char, envp: *mut *mut c_char) -> c_int;
@@ -84,6 +92,7 @@ pub(super) unsafe extern "C" fn entry(mem: *mut usize) -> ! {
     exit(status)
 }
 
+#[cfg(target_vendor = "mustang")]
 pub(super) unsafe fn call_ctors(argc: c_int, argv: *mut *mut c_char, envp: *mut *mut c_char) {
     extern "C" {
         static __init_array_start: c_void;
@@ -121,26 +130,39 @@ unsafe impl Send for SendFunc {}
 unsafe impl Send for SendArg {}
 
 /// Functions registered with `at_exit`.
+#[cfg(target_vendor = "mustang")]
 static DTORS: OnceCell<Mutex<Vec<(SendFunc, SendArg)>>> = OnceCell::new();
 
 /// Register a function to be called when `exit` is called.
 pub fn at_exit(func: unsafe extern "C" fn(*mut c_void), arg: *mut c_void) {
-    let dtors = DTORS.get_or_init(|| Mutex::new(Vec::new()));
-    let mut funcs = dtors.lock().unwrap();
-    funcs.push((SendFunc(func), SendArg(arg)));
+    #[cfg(target_vendor = "mustang")]
+    {
+        let dtors = DTORS.get_or_init(|| Mutex::new(Vec::new()));
+        let mut funcs = dtors.lock().unwrap();
+        funcs.push((SendFunc(func), SendArg(arg)));
+    }
+
+    #[cfg(not(target_vendor = "mustang"))]
+    unsafe {
+        extern "C" {
+            fn __cxa_atexit(
+                func: unsafe extern "C" fn(*mut c_void),
+                arg: *mut c_void,
+                _dso: *mut c_void,
+            ) -> c_int;
+        }
+        let r = __cxa_atexit(func, arg, null_mut());
+        assert_eq!(r, 0);
+    }
 }
 
 /// Call all the functions registered with `at_exit` and `.fini_array`, and
 /// exit the program.
 pub fn exit(status: c_int) -> ! {
-    extern "C" {
-        static __fini_array_start: c_void;
-        static __fini_array_end: c_void;
-    }
-
     // Call all the registered functions, in reverse order. Leave `DTORS`
     // unlocked while making the call so that functions can add more functions
     // to the end of the list.
+    #[cfg(target_vendor = "mustang")]
     if let Some(dtors) = DTORS.get() {
         while let Some(dtor) = dtors.lock().unwrap().pop() {
             log::trace!(
@@ -156,7 +178,13 @@ pub fn exit(status: c_int) -> ! {
     }
 
     // Call the `.fini_array` functions, in reverse order.
+    #[cfg(target_vendor = "mustang")]
     unsafe {
+        extern "C" {
+            static __fini_array_start: c_void;
+            static __fini_array_end: c_void;
+        }
+
         type InitFn = fn();
         let mut fini: *const InitFn = &__fini_array_end as *const _ as usize as *const InitFn;
         let fini_start: *const InitFn = &__fini_array_start as *const _ as usize as *const InitFn;
@@ -171,8 +199,17 @@ pub fn exit(status: c_int) -> ! {
         }
     }
 
-    // Call `exit_immediately` to exit the program.
-    exit_immediately(status)
+    #[cfg(target_vendor = "mustang")]
+    {
+        // Call `exit_immediately` to exit the program.
+        exit_immediately(status)
+    }
+
+    #[cfg(not(target_vendor = "mustang"))]
+    unsafe {
+        // Call `libc` to run *its* dtors, and exit the program.
+        libc::exit(status)
+    }
 }
 
 /// Exit the program without calling functions registered with `at_exit` or

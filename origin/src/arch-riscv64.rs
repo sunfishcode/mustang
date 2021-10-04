@@ -41,6 +41,7 @@ pub(super) unsafe fn clone(
     r0
 }
 
+#[cfg(target_vendor = "mustang")]
 #[inline]
 pub(super) unsafe fn set_thread_pointer(ptr: *mut c_void) {
     asm!("mv tp,{0}", in(reg) ptr);
