@@ -4,7 +4,6 @@
 #![feature(naked_functions)]
 #![feature(link_llvm_intrinsics)]
 #![feature(atomic_mut_ptr)]
-#![cfg(target_vendor = "mustang")]
 
 mod program;
 #[cfg(feature = "threads")]
@@ -39,6 +38,7 @@ pub use threads::{
 /// This function should never be called explicitly. It is the first thing
 /// executed in the program, and it assumes that memory is laid out
 /// according to the operating system convention for starting a new program.
+#[cfg(target_vendor = "mustang")]
 #[naked]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
@@ -90,12 +90,14 @@ unsafe impl Send for SendSyncVoidStar {}
 unsafe impl Sync for SendSyncVoidStar {}
 
 /// An ABI-conforming `__dso_handle`.
+#[cfg(target_vendor = "mustang")]
 #[link_section = ".data.__mustang"]
 #[no_mangle]
 #[used]
 static __dso_handle: SendSyncVoidStar = SendSyncVoidStar(&__dso_handle as *const _ as *mut c_void);
 
 /// Initialize logging, if enabled.
+#[cfg(target_vendor = "mustang")]
 #[cfg(feature = "env_logger")]
 #[link_section = ".init_array.00099"]
 #[used]
@@ -115,6 +117,7 @@ static INIT_ARRAY: unsafe extern "C" fn() = {
 };
 
 /// Ensure that this module is linked in.
+#[cfg(target_vendor = "mustang")]
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]

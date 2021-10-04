@@ -115,6 +115,11 @@ jobs:
       run: |
         rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
 
+    - name: cargo check non-mustang
+      run: |
+        # Check that the code compiles on non-mustang targets.
+        cargo +nightly check
+
     - name: cargo test
       run: |
         cargo +nightly test --verbose --target=specs/x86_64-mustang-linux-gnu.json -Z build-std
