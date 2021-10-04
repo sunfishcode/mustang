@@ -11,7 +11,7 @@ repository = "https://github.com/sunfishcode/mustang"
 edition = "2018"
 
 [dependencies]
-linux-raw-sys = "0.0.28"
+linux-raw-sys = { version = "0.0.29", features = ["v5_4", "v5_11"] }
 rsix = "0.23.8"
 bitflags = "1.3.0"
 once_cell = "1.8.0"

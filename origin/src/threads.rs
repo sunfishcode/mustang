@@ -651,33 +651,35 @@ static mut STARTUP_TLS_INFO: StartupTlsInfo = StartupTlsInfo {
     stack_size: 0,
 };
 
-// TODO: Move these into `rsix`?
+// We define `clone` and `CloneFlags` here in `origin` instead of `rsix`
+// because `clone` needs custom assembly code that knows about what we're
+// using it for.
 bitflags::bitflags! {
     struct CloneFlags: u32 {
-        const NEWTIME        = 0x0000_0080;
-        const VM             = 0x0000_0100;
-        const FS             = 0x0000_0200;
-        const FILES          = 0x0000_0400;
-        const SIGHAND        = 0x0000_0800;
-        const PIDFD          = 0x0000_1000;
-        const PTRACE         = 0x0000_2000;
-        const VFORK          = 0x0000_4000;
-        const PARENT         = 0x0000_8000;
-        const THREAD         = 0x0001_0000;
-        const NEWNS          = 0x0002_0000;
-        const SYSVSEM        = 0x0004_0000;
-        const SETTLS         = 0x0008_0000;
-        const PARENT_SETTID  = 0x0010_0000;
-        const CHILD_CLEARTID = 0x0020_0000;
-        const DETACHED       = 0x0040_0000;
-        const UNTRACED       = 0x0080_0000;
-        const CHILD_SETTID   = 0x0100_0000;
-        const NEWCGROUP      = 0x0200_0000;
-        const NEWUTS         = 0x0400_0000;
-        const NEWIPC         = 0x0800_0000;
-        const NEWUSER        = 0x1000_0000;
-        const NEWPID         = 0x2000_0000;
-        const NEWNET         = 0x4000_0000;
-        const IO             = 0x8000_0000;
+        const NEWTIME        = linux_raw_sys::v5_11::general::CLONE_NEWTIME; // since Linux 5.6
+        const VM             = linux_raw_sys::general::CLONE_VM;
+        const FS             = linux_raw_sys::general::CLONE_FS;
+        const FILES          = linux_raw_sys::general::CLONE_FILES;
+        const SIGHAND        = linux_raw_sys::general::CLONE_SIGHAND;
+        const PIDFD          = linux_raw_sys::v5_4::general::CLONE_PIDFD; // since Linux 5.2
+        const PTRACE         = linux_raw_sys::general::CLONE_PTRACE;
+        const VFORK          = linux_raw_sys::general::CLONE_VFORK;
+        const PARENT         = linux_raw_sys::general::CLONE_PARENT;
+        const THREAD         = linux_raw_sys::general::CLONE_THREAD;
+        const NEWNS          = linux_raw_sys::general::CLONE_NEWNS;
+        const SYSVSEM        = linux_raw_sys::general::CLONE_SYSVSEM;
+        const SETTLS         = linux_raw_sys::general::CLONE_SETTLS;
+        const PARENT_SETTID  = linux_raw_sys::general::CLONE_PARENT_SETTID;
+        const CHILD_CLEARTID = linux_raw_sys::general::CLONE_CHILD_CLEARTID;
+        const DETACHED       = linux_raw_sys::general::CLONE_DETACHED;
+        const UNTRACED       = linux_raw_sys::general::CLONE_UNTRACED;
+        const CHILD_SETTID   = linux_raw_sys::general::CLONE_CHILD_SETTID;
+        const NEWCGROUP      = linux_raw_sys::v5_4::general::CLONE_NEWCGROUP; // since Linux 4.6
+        const NEWUTS         = linux_raw_sys::general::CLONE_NEWUTS;
+        const NEWIPC         = linux_raw_sys::general::CLONE_NEWIPC;
+        const NEWUSER        = linux_raw_sys::general::CLONE_NEWUSER;
+        const NEWPID         = linux_raw_sys::general::CLONE_NEWPID;
+        const NEWNET         = linux_raw_sys::general::CLONE_NEWNET;
+        const IO             = linux_raw_sys::general::CLONE_IO;
     }
 }
