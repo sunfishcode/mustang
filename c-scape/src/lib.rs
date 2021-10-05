@@ -14,13 +14,20 @@ mod data;
 mod error_str;
 #[cfg(feature = "threads")]
 mod raw_mutex;
+// Unwind isn't supported on x86 yet.
+#[cfg(target_arch = "x86")]
+mod unwind;
 
 /// Ensure that `mustang`'s modules are linked in.
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
 #[cold]
-unsafe extern "C" fn __mustang_c_scape() {}
+unsafe extern "C" fn __mustang_c_scape() {
+    // Unwind isn't supported on x86 yet.
+    #[cfg(target_arch = "x86")]
+    __mustang_c_scape__unwind()
+}
 
 // Selected libc-compatible interfaces.
 //
