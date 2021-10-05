@@ -24,7 +24,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        build: [ubuntu, ubuntu-18.04, aarch64-linux]
+        build: [ubuntu, ubuntu-18.04, i686-linux, aarch64-linux]
         include:
           - build: ubuntu
             os: ubuntu-latest
@@ -36,6 +36,15 @@ jobs:
             rust: nightly
             host_target: x86_64-unknown-linux-gnu
             mustang_target: x86_64-mustang-linux-gnu
+          - build: i686-linux
+            os: ubuntu-latest
+            rust: nightly
+            target: i686-unknown-linux-gnu
+            gcc_package: gcc-i686-linux-gnu
+            gcc: i686-linux-gnu-gcc
+            libc_package: libc-dev-i386-cross
+            host_target: i686-unknown-linux-gnu
+            mustang_target: i686-mustang-linux-gnu
           - build: aarch64-linux
             os: ubuntu-latest
             rust: nightly
