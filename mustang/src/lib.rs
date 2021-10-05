@@ -14,7 +14,7 @@ macro_rules! can_run_this {
 extern crate c;
 #[cfg(target_vendor = "mustang")]
 extern crate origin;
-#[cfg(not(target_arch = "x86"))]
+#[cfg(not(target_arch = "arm"))]
 #[cfg(target_vendor = "mustang")]
 extern crate unwinding;
 
