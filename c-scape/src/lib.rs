@@ -2138,6 +2138,15 @@ fn getauxval(type_: c_ulong) -> c_ulong {
     unimplemented!("unrecognized getauxval {}", type_)
 }
 
+#[cfg(target_arch = "aarch64")]
+#[inline(never)]
+#[link_section = ".text.__mustang"]
+#[no_mangle]
+fn __getauxval(type_: c_ulong) -> c_ulong {
+    libc!(getauxval(type_));
+    unimplemented!("unrecognized __getauxval {}", type_)
+}
+
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
