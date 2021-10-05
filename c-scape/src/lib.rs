@@ -2133,6 +2133,14 @@ unsafe extern "C" fn chdir(path: *const c_char) -> c_int {
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
+fn getauxval(type_: c_ulong) -> c_ulong {
+    libc!(getauxval(type_));
+    unimplemented!("unrecognized getauxval {}", type_)
+}
+
+#[inline(never)]
+#[link_section = ".text.__mustang"]
+#[no_mangle]
 unsafe extern "C" fn dl_iterate_phdr(
     callback: unsafe extern "C" fn(
         info: *mut data::DlPhdrInfo,
