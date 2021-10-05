@@ -3932,9 +3932,9 @@ unsafe extern "C" fn pthread_rwlock_rdlock(rwlock: *mut PthreadRwlockT) -> c_int
 unsafe extern "C" fn pthread_rwlock_unlock(rwlock: *mut PthreadRwlockT) -> c_int {
     libc!(pthread_rwlock_unlock(same_ptr_mut(rwlock)));
     if (*rwlock).exclusive.load(SeqCst) {
-        (*rwlock).lock.lock_exclusive();
+        (*rwlock).lock.unlock_exclusive();
     } else {
-        (*rwlock).lock.lock_shared();
+        (*rwlock).lock.unlock_shared();
     }
     0
 }
