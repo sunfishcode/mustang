@@ -8,8 +8,8 @@ use rsix::io;
 #[cfg(target_vendor = "mustang")]
 use rsix::process::{getrlimit, linux_execfn, Resource};
 use rsix::process::{page_size, Pid};
-use rsix::thread::gettid;
 use rsix::runtime::{set_tid_address, StartupTlsInfo};
+use rsix::thread::gettid;
 use std::cmp::max;
 use std::ffi::c_void;
 use std::mem::{align_of, size_of};
