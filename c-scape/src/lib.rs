@@ -26,7 +26,16 @@ mod unwind;
 unsafe extern "C" fn __mustang_c_scape() {
     // Unwind isn't supported on x86 yet.
     #[cfg(target_arch = "x86")]
-    __mustang_c_scape__unwind()
+    macro_rules! link {
+        ($name:ident) => {{
+            extern "C" {
+                fn $name();
+            }
+            $name();
+        }};
+    }
+    #[cfg(target_arch = "x86")]
+    link!(__mustang_c_scape__unwind);
 }
 
 // Selected libc-compatible interfaces.
