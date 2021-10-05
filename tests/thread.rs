@@ -1,16 +1,15 @@
 //! The following is derived from Rust's
 //! library/std/src/thread/tests.rs at revision
 //! 497ee321af3b8496eaccd7af7b437f18bab81abf.
-//!
-//! Currently everything is enabled except for the test that uses panics,
-//! which is marked with `#[cfg(feature = "panic")]`.
 
 #![feature(box_syntax)]
 #![cfg(feature = "threads")]
 
 mustang::can_run_this!();
 
+use std::any::Any;
 use std::mem;
+use std::result;
 use std::sync::mpsc::{channel, Sender};
 use std::thread::Builder;
 use std::thread::{self, ThreadId};
@@ -59,7 +58,6 @@ fn test_run_basic() {
 }
 
 #[test]
-#[cfg(feature = "panic")]
 fn test_join_panic() {
     match thread::spawn(move || panic!()).join() {
         result::Result::Err(_) => (),
@@ -162,7 +160,6 @@ fn test_simple_newsched_spawn() {
 }
 
 #[test]
-#[cfg(feature = "panic")]
 fn test_try_panic_message_static_str() {
     match thread::spawn(move || {
         panic!("static string");
@@ -179,7 +176,6 @@ fn test_try_panic_message_static_str() {
 }
 
 #[test]
-#[cfg(feature = "panic")]
 fn test_try_panic_message_owned_str() {
     match thread::spawn(move || {
         panic!("owned string".to_string());
@@ -196,7 +192,6 @@ fn test_try_panic_message_owned_str() {
 }
 
 #[test]
-#[cfg(feature = "panic")]
 fn test_try_panic_message_any() {
     match thread::spawn(move || {
         panic!(box 413u16 as Box<dyn Any + Send>);
@@ -215,7 +210,6 @@ fn test_try_panic_message_any() {
 }
 
 #[test]
-#[cfg(feature = "panic")]
 fn test_try_panic_message_unit_struct() {
     struct Juju;
 

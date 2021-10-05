@@ -1,9 +1,6 @@
 //! The following is derived from Rust's
 //! library/std/src/net/tcp/tests.rs at revision
 //! 497ee321af3b8496eaccd7af7b437f18bab81abf.
-//!
-//! Currently everything is enabled except for the tests that use threads,
-//! which are marked with `#[cfg(feature = "threads")]`.
 
 #![feature(io_error_uncategorized)]
 #![feature(tcp_linger)]
