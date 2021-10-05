@@ -112,7 +112,6 @@ fn instant_math_is_associative() {
     assert_eq!((now + offset) - now, (now - now) + offset);
 }
 
-#[cfg(feature = "should_panic")]
 #[test]
 #[should_panic]
 fn instant_duration_since_panic() {
