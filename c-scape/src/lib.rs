@@ -2144,7 +2144,10 @@ fn getauxval(type_: c_ulong) -> c_ulong {
 #[no_mangle]
 fn __getauxval(type_: c_ulong) -> c_ulong {
     libc!(getauxval(type_));
-    unimplemented!("unrecognized __getauxval {}", type_)
+    match type_ {
+        data::AT_HWCAP => rsix::process::linux_hwcap().0 as c_ulong,
+        _ => unimplemented!("unrecognized __getauxval {}", type_),
+    }
 }
 
 #[inline(never)]
