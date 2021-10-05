@@ -29,7 +29,7 @@ This also isn't about building a complete libc. It currently includes some
 things with libc-compatible interfaces, just enough to allow it to slide in
 underneath `std`, however even this may not always be necessary. We'll see.
 
-Mustang currently runs on Rust Nightly on Linux on x86-64 and aarch64.
+Mustang currently runs on Rust Nightly on Linux on x86-64, aarch64, and x86.
 
 ## Usage
 
@@ -99,9 +99,9 @@ $
 ## C Runtime interop
 
 To compile C code with a `*-mustang-*` target, you may need to
-[tell the `cc` crate which C compiler to use]; for example, for `aarch64-mustang-linux-gnu`,
-set the environment variable `CC_aarch64-mustang-linux-gnu` to
-`aarch64-linux-gnu-gcc`.
+[tell the `cc` crate which C compiler to use]; for example, for `i686-mustang-linux-gnu`,
+set the environment variable `CC_i686-mustang-linux-gnu` to
+`i686-linux-gnu-gcc`.
 
 [tell the `cc` crate which C compiler to use]: https://github.com/alexcrichton/cc-rs#external-configuration-via-environment-variables
 
@@ -111,8 +111,8 @@ Known limitations in `mustang` include:
 
  - Support for spawning processes (`std::process::*`) is not implemented yet ([#34]).
  - No support for dynamic linking yet.
+ - On unwind support on 32-bit x86 yet.
 
-[#27]: https://github.com/sunfishcode/mustang/issues/27
 [#34]: https://github.com/sunfishcode/mustang/issues/34
 
 ## Background
