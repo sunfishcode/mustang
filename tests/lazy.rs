@@ -141,7 +141,10 @@ fn get_or_try_init() {
 
     assert_eq!(cell.get_or_try_init(|| Err(())), Err(()));
 
-    assert_eq!(cell.get_or_try_init(|| Ok::<_, ()>("hello".to_string())), Ok(&"hello".to_string()));
+    assert_eq!(
+        cell.get_or_try_init(|| Ok::<_, ()>("hello".to_string())),
+        Ok(&"hello".to_string())
+    );
     assert_eq!(cell.get(), Some(&"hello".to_string()));
 }
 
@@ -305,15 +308,13 @@ fn sync_once_cell_does_not_leak_partially_constructed_boxes() {
 
     for _ in 0..n_readers {
         let tx = tx.clone();
-        thread::spawn(move || {
-            loop {
-                if let Some(msg) = ONCE_CELL.get() {
-                    tx.send(msg).unwrap();
-                    break;
-                }
-                #[cfg(target_env = "sgx")]
-                std::thread::yield_now();
+        thread::spawn(move || loop {
+            if let Some(msg) = ONCE_CELL.get() {
+                tx.send(msg).unwrap();
+                break;
             }
+            #[cfg(target_env = "sgx")]
+            std::thread::yield_now();
         });
     }
     for _ in 0..n_writers {

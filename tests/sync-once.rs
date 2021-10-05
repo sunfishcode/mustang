@@ -4,9 +4,9 @@
 
 mustang::can_run_this!();
 
-use std::sync::Once;
 use std::panic;
 use std::sync::mpsc::channel;
+use std::sync::Once;
 use std::thread;
 
 #[test]
