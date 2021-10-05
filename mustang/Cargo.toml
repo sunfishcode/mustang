@@ -32,6 +32,11 @@ features = [
     "libc",
 ]
 
+# Patch gimli as upstream unwind does for now:
+# https://github.com/nbdd0121/unwind/blob/trunk/Cargo.toml#L15
+[patch.crates-io]
+gimli = { git = "https://github.com/gimli-rs/gimli.git" }
+
 [target.'cfg(target_vendor = "mustang")'.dependencies]
 origin = { path = "../origin", default-features = false }
 c-scape = { path = "../c-scape" }
