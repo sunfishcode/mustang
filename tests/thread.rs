@@ -42,7 +42,6 @@ fn test_named_thread() {
 }
 
 #[test]
-#[cfg(feature = "should_panic")]
 #[should_panic]
 fn test_invalid_named_thread() {
     let _ = Builder::new()
