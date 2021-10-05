@@ -4,7 +4,7 @@
 #![allow(dead_code)]
 
 use std::ffi::c_void;
-use std::os::raw::{c_char, c_int, c_long, c_ulonglong};
+use std::os::raw::{c_char, c_int, c_long, c_ulong, c_ulonglong};
 
 pub(crate) const F_SETFD: c_int = 2;
 pub(crate) const F_GETFL: c_int = 3;
@@ -320,6 +320,36 @@ pub(crate) struct OldTimeval {
 
 pub(crate) type OldTime = c_long;
 pub(crate) type Suseconds = c_long;
+
+pub(crate) const AT_NULL: c_ulong = 0;
+pub(crate) const AT_IGNORE: c_ulong = 1;
+pub(crate) const AT_EXECFD: c_ulong = 2;
+pub(crate) const AT_PHDR: c_ulong = 3;
+pub(crate) const AT_PHENT: c_ulong = 4;
+pub(crate) const AT_PHNUM: c_ulong = 5;
+pub(crate) const AT_PAGESZ: c_ulong = 6;
+pub(crate) const AT_BASE: c_ulong = 7;
+pub(crate) const AT_FLAGS: c_ulong = 8;
+pub(crate) const AT_ENTRY: c_ulong = 9;
+pub(crate) const AT_NOTELF: c_ulong = 10;
+pub(crate) const AT_UID: c_ulong = 11;
+pub(crate) const AT_EUID: c_ulong = 12;
+pub(crate) const AT_GID: c_ulong = 13;
+pub(crate) const AT_EGID: c_ulong = 14;
+pub(crate) const AT_CLKTCK: c_ulong = 17;
+pub(crate) const AT_PLATFORM: c_ulong = 15;
+pub(crate) const AT_HWCAP: c_ulong = 16;
+pub(crate) const AT_FPUCW: c_ulong = 18;
+pub(crate) const AT_DCACHEBSIZE: c_ulong = 19;
+pub(crate) const AT_ICACHEBSIZE: c_ulong = 20;
+pub(crate) const AT_UCACHEBSIZE: c_ulong = 21;
+pub(crate) const AT_IGNOREPPC: c_ulong = 22;
+pub(crate) const AT_BASE_PLATFORM: c_ulong = 24;
+pub(crate) const AT_RANDOM: c_ulong = 25;
+pub(crate) const AT_HWCAP2: c_ulong = 26;
+pub(crate) const AT_EXECFN: c_ulong = 31;
+pub(crate) const AT_SYSINFO: c_ulong = 32;
+pub(crate) const AT_SYSINFO_EHDR: c_ulong = 33;
 
 #[repr(C)]
 pub(crate) struct DlPhdrInfo {
