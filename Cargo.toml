@@ -25,8 +25,8 @@ ctor = "0.1.21"
 # TODO: Re-enable this when core_simd works on Rust nightly.
 #core_simd = { git = "https://github.com/rust-lang/portable-simd" }
 
-# Patch gimli as upstream unwind does for now:
-# https://github.com/nbdd0121/unwind/blob/trunk/Cargo.toml#L15
+# Patch gimli as upstream unwinding does for now:
+# https://github.com/nbdd0121/unwinding/blob/trunk/Cargo.toml#L15
 [patch.crates-io]
 gimli = { git = "https://github.com/gimli-rs/gimli.git" }
 

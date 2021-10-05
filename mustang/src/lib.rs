@@ -16,7 +16,7 @@ extern crate c;
 extern crate origin;
 #[cfg(not(target_arch = "x86"))]
 #[cfg(target_vendor = "mustang")]
-extern crate unwind;
+extern crate unwinding;
 
 #[cfg(target_vendor = "mustang")]
 #[cfg(feature = "dlmalloc")]
