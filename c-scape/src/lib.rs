@@ -14,8 +14,8 @@ mod data;
 mod error_str;
 #[cfg(feature = "threads")]
 mod raw_mutex;
-// Unwind isn't supported on x86 yet.
-#[cfg(target_arch = "x86")]
+// Unwind isn't supported on 32-bit arm yet.
+#[cfg(target_arch = "arm")]
 mod unwind;
 
 /// Ensure that `mustang`'s modules are linked in.
@@ -24,8 +24,8 @@ mod unwind;
 #[no_mangle]
 #[cold]
 unsafe extern "C" fn __mustang_c_scape() {
-    // Unwind isn't supported on x86 yet.
-    #[cfg(target_arch = "x86")]
+    // Unwind isn't supported on 32-bit ARM yet.
+    #[cfg(target_arch = "arm")]
     macro_rules! link {
         ($name:ident) => {{
             extern "C" {
@@ -34,7 +34,7 @@ unsafe extern "C" fn __mustang_c_scape() {
             $name();
         }};
     }
-    #[cfg(target_arch = "x86")]
+    #[cfg(target_arch = "arm")]
     link!(__mustang_c_scape__unwind);
 }
 

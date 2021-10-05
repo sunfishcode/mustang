@@ -111,7 +111,6 @@ Known limitations in `mustang` include:
 
  - Support for spawning processes (`std::process::*`) is not implemented yet ([#34]).
  - No support for dynamic linking yet.
- - On unwind support on 32-bit x86 yet.
 
 [#34]: https://github.com/sunfishcode/mustang/issues/34
 

@@ -20,7 +20,7 @@ wee_alloc = { version = "0.4", optional = true }
 # TODO: Eventually, we should propose a `fde-phdr-rsix` backend option to
 # upstream `unwinding` so that it doesn't need to go through `dl_iterate_phdr`,
 # but `fde-phdr-dl` works for now.
-[target.'cfg(not(target_arch = "x86"))'.dependencies.unwinding]
+[target.'cfg(not(target_arch = "arm"))'.dependencies.unwinding]
 git = "https://github.com/nbdd0121/unwinding"
 default-features = false
 features = [
