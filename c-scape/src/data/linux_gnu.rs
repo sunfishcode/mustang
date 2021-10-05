@@ -4,7 +4,7 @@
 #![allow(dead_code)]
 
 use std::ffi::c_void;
-use std::os::raw::{c_int, c_long, c_ulonglong, c_char};
+use std::os::raw::{c_char, c_int, c_long, c_ulonglong};
 
 pub(crate) const F_SETFD: c_int = 2;
 pub(crate) const F_GETFL: c_int = 3;

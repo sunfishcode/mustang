@@ -39,6 +39,12 @@ unsafe extern "C" fn __mustang_c_scape() {}
 
 use error_str::error_str;
 use memoffset::offset_of;
+#[cfg(feature = "threads")]
+use origin::Thread;
+#[cfg(feature = "threads")]
+use parking_lot::lock_api::RawRwLock;
+#[cfg(feature = "threads")]
+use raw_mutex::RawMutex;
 use rsix::fs::{cwd, openat, AtFlags, FdFlags, Mode, OFlags};
 use rsix::io::{MapFlags, MprotectFlags, MremapFlags, PipeFlags, ProtFlags};
 use rsix::io_lifetimes::{AsFd, BorrowedFd, OwnedFd};
@@ -48,24 +54,18 @@ use rsix::net::{
 };
 use std::convert::TryInto;
 use std::ffi::{c_void, CStr, OsStr, OsString};
+use std::mem::transmute;
 use std::mem::{size_of, zeroed};
 use std::os::raw::{c_char, c_int, c_long, c_uint, c_ulong};
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd};
 use std::ptr::{self, null, null_mut};
 use std::slice;
-use std::mem::transmute;
-use sync_resolve::resolve_host;
-#[cfg(feature = "threads")]
-use raw_mutex::RawMutex;
-#[cfg(feature = "threads")]
-use origin::Thread;
-#[cfg(feature = "threads")]
-use parking_lot::lock_api::RawRwLock;
 #[cfg(feature = "threads")]
 use std::sync::atomic::Ordering::SeqCst;
 #[cfg(feature = "threads")]
 use std::sync::atomic::{AtomicBool, AtomicU32};
+use sync_resolve::resolve_host;
 
 // errno
 
@@ -2135,10 +2135,10 @@ unsafe extern "C" fn chdir(path: *const c_char) -> c_int {
 #[no_mangle]
 unsafe extern "C" fn dl_iterate_phdr(
     callback: unsafe extern "C" fn(
-                info: *mut data::DlPhdrInfo,
-                size: usize,
-                data: *mut c_void,
-            ) -> c_int,
+        info: *mut data::DlPhdrInfo,
+        size: usize,
+        data: *mut c_void,
+    ) -> c_int,
     data: *mut c_void,
 ) -> c_int {
     extern "C" {
@@ -3786,10 +3786,7 @@ unsafe extern "C" fn pthread_mutexattr_init(attr: *mut PthreadMutexattrT) -> c_i
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-unsafe extern "C" fn pthread_mutexattr_settype(
-    attr: *mut PthreadMutexattrT,
-    kind: c_int,
-) -> c_int {
+unsafe extern "C" fn pthread_mutexattr_settype(attr: *mut PthreadMutexattrT, kind: c_int) -> c_int {
     libc!(pthread_mutexattr_settype(same_ptr_mut(attr), kind));
     (*attr).kind = AtomicU32::new(kind as u32);
     0
@@ -3934,10 +3931,7 @@ unsafe extern "C" fn pthread_attr_getguardsize(
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-unsafe extern "C" fn pthread_attr_setguardsize(
-    attr: *mut PthreadAttrT,
-    guardsize: usize,
-) -> c_int {
+unsafe extern "C" fn pthread_attr_setguardsize(attr: *mut PthreadAttrT, guardsize: usize) -> c_int {
     // TODO: libc!(pthread_attr_setguardsize(attr, guardsize));
     (*attr).guard_size = guardsize;
     0
@@ -4157,10 +4151,7 @@ unsafe extern "C" fn pthread_sigmask() -> c_int {
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-unsafe extern "C" fn pthread_attr_setstacksize(
-    attr: *mut PthreadAttrT,
-    stacksize: usize,
-) -> c_int {
+unsafe extern "C" fn pthread_attr_setstacksize(attr: *mut PthreadAttrT, stacksize: usize) -> c_int {
     libc!(pthread_attr_setstacksize(same_ptr_mut(attr), stacksize));
     (*attr).stack_size = stacksize;
     0
