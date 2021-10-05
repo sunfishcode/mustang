@@ -2177,7 +2177,7 @@ unsafe extern "C" fn dl_iterate_phdr(
     let (phdr, phnum) = rsix::runtime::exe_phdrs();
     let mut info = data::DlPhdrInfo {
         dlpi_addr: &mut __executable_start as *mut _ as usize,
-        dlpi_name: b"/proc/self/exe\0",
+        dlpi_name: b"/proc/self/exe\0".as_ptr().cast(),
         dlpi_phdr: phdr.cast(),
         dlpi_phnum: phnum.try_into().unwrap(),
     };
