@@ -2253,9 +2253,13 @@ unsafe extern "C" fn dlopen() {
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-unsafe extern "C" fn __tls_get_addr() {
-    //libc!(__tls_get_addr());
-    unimplemented!("__tls_get_addr")
+unsafe extern "C" fn __tls_get_addr(p: &[usize; 2]) -> *mut c_void {
+    //libc!(__tls_get_addr(p));
+    let [module, offset] = *p;
+    // Offset 0 is the generation field, and we don't support dynamic linking,
+    // so we should only sever see 1 here.
+    assert_eq!(module, 1);
+    origin::current_thread_tls_addr(offset)
 }
 
 #[cfg(target_arch = "x86")]

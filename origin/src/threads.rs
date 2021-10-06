@@ -2,7 +2,7 @@
 
 #[cfg(target_vendor = "mustang")]
 use crate::arch::set_thread_pointer;
-use crate::arch::{clone, get_thread_pointer, munmap_and_exit_thread};
+use crate::arch::{clone, get_thread_pointer, munmap_and_exit_thread, TLS_OFFSET};
 use memoffset::offset_of;
 use rsix::io;
 #[cfg(target_vendor = "mustang")]
@@ -86,8 +86,8 @@ struct Metadata {
     #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
     thread: Thread,
 
-    /// ABI-exposed fields. This is what the platform thread-pointer register
-    /// points to.
+    /// ABI-exposed fields. This is allocated at a platform-specific offset
+    /// from the platform thread-pointer register value.
     abi: Abi,
 
     /// Crate-internal fields. On platforms where TLS data goes before the
@@ -154,13 +154,8 @@ impl Thread {
 }
 
 #[inline]
-fn current_abi() -> *mut Abi {
-    get_thread_pointer().cast::<Abi>()
-}
-
-#[inline]
 fn current_metadata() -> *mut Metadata {
-    current_abi()
+    get_thread_pointer()
         .cast::<u8>()
         .wrapping_sub(offset_of!(Metadata, abi))
         .cast()
@@ -181,6 +176,32 @@ pub fn current_thread_id() -> Pid {
     let tid = unsafe { Pid::from_raw((*current_thread()).thread_id.load(SeqCst)) };
     debug_assert_eq!(tid, gettid(), "`current_thread_id` disagrees with `gettid`");
     tid
+}
+
+/// Return the TLS entry for the current thread.
+#[inline]
+pub fn current_thread_tls_addr(offset: usize) -> *mut c_void {
+    // Platforms where TLS data goes after the ABI-exposed fields.
+    #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
+    {
+        crate::arch::get_thread_pointer()
+            .cast::<u8>()
+            .wrapping_add(TLS_OFFSET)
+            .wrapping_add(size_of::<Abi>())
+            .wrapping_add(offset)
+            .cast()
+    }
+
+    // Platforms where TLS data goes before the ABI-exposed fields.
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    unsafe {
+        get_thread_pointer()
+            .cast::<u8>()
+            .wrapping_add(TLS_OFFSET)
+            .wrapping_sub(STARTUP_TLS_INFO.mem_size)
+            .wrapping_add(offset)
+            .cast()
+    }
 }
 
 /// Return the current thread's stack address (lowest address), size, and guard
@@ -342,7 +363,7 @@ pub(super) unsafe fn initialize_main_thread(mem: *mut c_void) {
             abi: Abi {
                 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
                 this: newtls,
-                #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
+                #[cfg(target_arch = "aarch64")]
                 dtv: null(),
                 #[cfg(target_arch = "aarch64")]
                 pad: [0_usize; 1],
@@ -373,8 +394,7 @@ pub(super) unsafe fn initialize_main_thread(mem: *mut c_void) {
     .fill(0);
 
     // Point the platform thread-pointer register at the new thread metadata.
-    set_thread_pointer(newtls.cast());
-    assert_eq!(newtls, current_abi().cast());
+    set_thread_pointer(newtls.cast::<u8>().cast());
 }
 
 /// Creates a new thread.
@@ -534,7 +554,7 @@ pub fn create_thread(
             stack.cast(),
             thread_id_ptr,
             thread_id_ptr,
-            newtls.cast(),
+            newtls.cast::<u8>().cast(),
             arg,
             fn_,
         );
@@ -543,7 +563,7 @@ pub fn create_thread(
             flags.bits(),
             stack.cast(),
             thread_id_ptr,
-            newtls.cast(),
+            newtls.cast::<u8>().cast(),
             thread_id_ptr,
             arg,
             fn_,
