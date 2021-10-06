@@ -27,8 +27,8 @@ use std::ffi::c_void;
 pub use program::{at_exit, exit, exit_immediately};
 #[cfg(feature = "threads")]
 pub use threads::{
-    at_thread_exit, create_thread, current_thread, current_thread_id, default_guard_size,
-    default_stack_size, detach_thread, join_thread, thread_stack, Thread,
+    at_thread_exit, create_thread, current_thread, current_thread_id, current_thread_tls_addr,
+    default_guard_size, default_stack_size, detach_thread, join_thread, thread_stack, Thread,
 };
 
 /// The program entry point.

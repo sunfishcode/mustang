@@ -57,6 +57,10 @@ pub(super) fn get_thread_pointer() -> *mut c_void {
     ptr
 }
 
+/// TLS data starts 0x800 bytes below the location pointed to by the thread
+/// pointer.
+pub(super) const TLS_OFFSET: usize = 0x800;
+
 /// `munmap` the current thread, then carefully exit the thread without
 /// touching the deallocated stack.
 #[inline]
