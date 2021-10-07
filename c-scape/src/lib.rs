@@ -4353,6 +4353,17 @@ extern "C" fn _exit(status: c_int) -> ! {
     origin::exit_immediately(status)
 }
 
+// compiler-builtins
+
+#[cfg(target_arch = "arm")]
+#[inline(never)]
+#[link_section = ".text.__mustang"]
+#[no_mangle]
+extern "C" fn __aeabi_d2f(_a: f64) -> f32 {
+    //libc!(__aeabi_d2f(_a));
+    unimplemented!("__aeabi_d2f")
+}
+
 // utilities
 
 fn set_errno<T>(result: Result<T, rsix::io::Error>) -> Option<T> {
