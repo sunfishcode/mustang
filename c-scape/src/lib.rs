@@ -14,8 +14,9 @@ mod data;
 mod error_str;
 #[cfg(feature = "threads")]
 mod raw_mutex;
-// Unwind isn't supported on 32-bit arm yet.
-#[cfg(target_arch = "arm")]
+// Unwinding isn't supported on 32-bit arm yet.
+// On aarch64 and riscg64 unwinding currently depends on a pre-release gimli.
+#[cfg(any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"))]
 mod unwind;
 
 /// Ensure that `mustang`'s modules are linked in.
@@ -25,7 +26,7 @@ mod unwind;
 #[cold]
 unsafe extern "C" fn __mustang_c_scape() {
     // Unwind isn't supported on 32-bit ARM yet.
-    #[cfg(target_arch = "arm")]
+    #[cfg(any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"))]
     macro_rules! link {
         ($name:ident) => {{
             extern "C" {
@@ -34,7 +35,7 @@ unsafe extern "C" fn __mustang_c_scape() {
             $name();
         }};
     }
-    #[cfg(target_arch = "arm")]
+    #[cfg(any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"))]
     link!(__mustang_c_scape__unwind);
 }
 
