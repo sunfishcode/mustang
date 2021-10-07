@@ -32,7 +32,7 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
     let arch = "armv5te";
     #[cfg(target_env = "gnueabi")]
     let env = "gnueabi";
-    #[cfg(not(target_env = "gnueabi"))]
+    #[cfg(target_env = "gnu")]
     let env = "gnu";
 
     let mut command = Command::new("cargo");
@@ -78,8 +78,8 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
     let output = Command::new("nm")
         .arg("-u")
         .arg(&format!(
-            "target/{}-mustang-linux-gnu/debug/examples/{}",
-            arch, name
+            "target/{}-mustang-linux-{}/debug/examples/{}",
+            arch, env, name
         ))
         .output()
         .unwrap();
@@ -93,8 +93,8 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
     let output = Command::new("readelf")
         .arg("-d")
         .arg(&format!(
-            "target/{}-mustang-linux-gnu/debug/examples/{}",
-            arch, name
+            "target/{}-mustang-linux-{}/debug/examples/{}",
+            arch, env, name
         ))
         .output()
         .unwrap();
