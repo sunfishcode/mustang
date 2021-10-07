@@ -32,7 +32,9 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
     let arch = "armv5te";
     #[cfg(target_env = "gnueabi")]
     let env = "gnueabi";
-    #[cfg(target_env = "gnu")]
+    #[cfg(all(target_env = "gnu", target_abi = "eabi"))]
+    let env = "gnueabi";
+    #[cfg(all(target_env = "gnu", not(target_abi = "eabi")))]
     let env = "gnu";
 
     let mut command = Command::new("cargo");
