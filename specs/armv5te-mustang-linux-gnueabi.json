@@ -23,9 +23,8 @@
   "target-pointer-width": "32",
   "pre-link-args": {
     "gcc": [
-      "-nostdlib",
-      "-Wl,--require-defined=__mustang_origin",
-      "-Wl,--require-defined=__mustang_c_scape"
+      "-nostartfiles",
+      "-Wl,--require-defined=__mustang_origin"
     ]
   },
   "vendor": "mustang"
