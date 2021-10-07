@@ -73,6 +73,7 @@ jobs:
             gcc: arm-linux-gnueabi-gcc
             qemu: qemu-arm -L /usr/arm-linux-gnueabi
             qemu_target: arm-linux-user
+            host_target: armv5te-unknown-linux-gnueabi
             mustang_target: armv5te-mustang-linux-gnueabi
     steps:
     - uses: actions/checkout@v2
