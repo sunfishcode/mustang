@@ -70,8 +70,7 @@ use rsix::net::{
 };
 use std::convert::TryInto;
 use std::ffi::{c_void, CStr, OsStr, OsString};
-use std::mem::transmute;
-use std::mem::{size_of, zeroed};
+use std::mem::{size_of, transmute, zeroed};
 use std::os::raw::{c_char, c_int, c_long, c_uint, c_ulong};
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd};
