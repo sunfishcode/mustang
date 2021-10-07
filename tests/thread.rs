@@ -41,7 +41,13 @@ fn test_named_thread() {
 }
 
 #[test]
-#[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
+#[cfg_attr(
+    all(
+        any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"),
+        not(feature = "unwinding")
+    ),
+    ignore
+)]
 #[should_panic]
 fn test_invalid_named_thread() {
     let _ = Builder::new()
@@ -59,7 +65,13 @@ fn test_run_basic() {
 }
 
 #[test]
-#[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
+#[cfg_attr(
+    all(
+        any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"),
+        not(feature = "unwinding")
+    ),
+    ignore
+)]
 fn test_join_panic() {
     match thread::spawn(move || panic!()).join() {
         result::Result::Err(_) => (),
@@ -162,7 +174,13 @@ fn test_simple_newsched_spawn() {
 }
 
 #[test]
-#[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
+#[cfg_attr(
+    all(
+        any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"),
+        not(feature = "unwinding")
+    ),
+    ignore
+)]
 fn test_try_panic_message_static_str() {
     match thread::spawn(move || {
         panic!("static string");
@@ -179,7 +197,13 @@ fn test_try_panic_message_static_str() {
 }
 
 #[test]
-#[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
+#[cfg_attr(
+    all(
+        any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"),
+        not(feature = "unwinding")
+    ),
+    ignore
+)]
 fn test_try_panic_message_owned_str() {
     match thread::spawn(move || {
         panic!("owned string".to_string());
@@ -196,7 +220,13 @@ fn test_try_panic_message_owned_str() {
 }
 
 #[test]
-#[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
+#[cfg_attr(
+    all(
+        any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"),
+        not(feature = "unwinding")
+    ),
+    ignore
+)]
 fn test_try_panic_message_any() {
     match thread::spawn(move || {
         panic!(box 413u16 as Box<dyn Any + Send>);
@@ -215,7 +245,13 @@ fn test_try_panic_message_any() {
 }
 
 #[test]
-#[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
+#[cfg_attr(
+    all(
+        any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"),
+        not(feature = "unwinding")
+    ),
+    ignore
+)]
 fn test_try_panic_message_unit_struct() {
     struct Juju;
 
