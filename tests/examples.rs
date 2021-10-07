@@ -1,6 +1,8 @@
 //! Run the programs in the `examples` directory and compare their outputs with
 //! expected outputs.
 
+#![feature(cfg_target_abi)]
+
 mustang::can_run_this!();
 
 use similar_asserts::assert_eq;
