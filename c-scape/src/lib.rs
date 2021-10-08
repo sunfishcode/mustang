@@ -190,7 +190,7 @@ unsafe extern "C" fn stat64(pathname: *const c_char, stat_: *mut rsix::fs::Stat)
 #[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn fstat(_fd: c_int, _stat: *mut rsix::fs::Stat) -> c_int {
-    libc!(fstat(_fd, _stat));
+    libc!(fstat(_fd, same_ptr_mut(_stat)));
     unimplemented!("fstat")
 }
 
@@ -2090,7 +2090,7 @@ unsafe extern "C" fn cfmakeraw() {
 #[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn chroot(_name: *const c_char) -> c_int {
-    libc!(chroot(name));
+    libc!(chroot(_name));
     unimplemented!("chroot")
 }
 
@@ -2169,11 +2169,9 @@ fn __getauxval(type_: c_ulong) -> c_ulong {
 #[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn dl_iterate_phdr(
-    callback: unsafe extern "C" fn(
-        info: *mut data::DlPhdrInfo,
-        size: usize,
-        data: *mut c_void,
-    ) -> c_int,
+    callback: Option<
+        unsafe extern "C" fn(info: *mut data::DlPhdrInfo, size: usize, data: *mut c_void) -> c_int,
+    >,
     data: *mut c_void,
 ) -> c_int {
     extern "C" {
@@ -2189,7 +2187,7 @@ unsafe extern "C" fn dl_iterate_phdr(
         dlpi_phdr: phdr.cast(),
         dlpi_phnum: phnum.try_into().unwrap(),
     };
-    callback(&mut info, size_of::<data::DlPhdrInfo>(), data)
+    callback.unwrap()(&mut info, size_of::<data::DlPhdrInfo>(), data)
 }
 
 #[inline(never)]
@@ -2339,17 +2337,17 @@ unsafe extern "C" fn setuid() {
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-unsafe extern "C" fn getpid() -> c_uint {
+unsafe extern "C" fn getpid() -> c_int {
     libc!(getpid());
-    rsix::process::getpid().as_raw()
+    rsix::process::getpid().as_raw() as _
 }
 
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-unsafe extern "C" fn getppid() -> c_uint {
+unsafe extern "C" fn getppid() -> c_int {
     libc!(getppid());
-    rsix::process::getppid().as_raw()
+    rsix::process::getppid().as_raw() as _
 }
 
 #[inline(never)]
@@ -2371,7 +2369,7 @@ unsafe extern "C" fn getgid() -> c_uint {
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-unsafe extern "C" fn kill(_pid: c_uint, _sig: c_int) -> c_int {
+unsafe extern "C" fn kill(_pid: c_int, _sig: c_int) -> c_int {
     libc!(kill(_pid, _sig));
     unimplemented!("kill")
 }
@@ -2649,7 +2647,7 @@ unsafe extern "C" fn execvp() {
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-unsafe extern "C" fn fork() {
+unsafe extern "C" fn fork() -> c_int {
     libc!(fork());
     unimplemented!("fork")
 }
@@ -4264,9 +4262,9 @@ unsafe extern "C" fn pthread_testcancel() -> c_int {
 #[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn pthread_atfork(
-    _prepare: unsafe extern "C" fn(),
-    _parent: unsafe extern "C" fn(),
-    _child: unsafe extern "C" fn(),
+    _prepare: Option<unsafe extern "C" fn()>,
+    _parent: Option<unsafe extern "C" fn()>,
+    _child: Option<unsafe extern "C" fn()>,
 ) -> c_int {
     libc!(pthread_atfork(_prepare, _parent, _child));
 
@@ -4318,7 +4316,7 @@ unsafe extern "C" fn __cxa_finalize(_d: *mut c_void) {}
 #[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn atexit(func: unsafe extern "C" fn()) -> c_int {
-    libc!(atexit(status));
+    libc!(atexit(func));
 
     /// Adapter to let `atexit`-style functions be called in the same manner as
     /// `__cxa_atexit` functions.
