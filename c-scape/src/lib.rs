@@ -5,7 +5,6 @@
 #![feature(rustc_private)] // for compiler-builtins
 #![feature(untagged_unions)] // for `PthreadMutexT`
 #![feature(atomic_mut_ptr)] // for `RawMutex`
-#![cfg(target_vendor = "mustang")]
 
 #[macro_use]
 mod use_libc;
