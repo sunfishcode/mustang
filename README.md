@@ -52,7 +52,7 @@ Then, in your own crate, add a dependency on `mustang`:
 
 ```toml
 [dependencies]
-mustang = { git = "https://github.com/sunfishcode/mustang" }
+mustang = "<current version>"
 ```
 
 And add a `mustang::can_run_this!();` to your top-level module (eg. main.rs).
