@@ -2148,7 +2148,7 @@ unsafe extern "C" fn chdir(path: *const c_char) -> c_int {
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-fn getauxval(type_: c_ulong) -> c_ulong {
+unsafe extern "C" fn getauxval(type_: c_ulong) -> c_ulong {
     libc!(getauxval(type_));
     unimplemented!("unrecognized getauxval {}", type_)
 }
@@ -2157,7 +2157,7 @@ fn getauxval(type_: c_ulong) -> c_ulong {
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-fn __getauxval(type_: c_ulong) -> c_ulong {
+unsafe extern "C" fn __getauxval(type_: c_ulong) -> c_ulong {
     libc!(getauxval(type_));
     match type_ {
         data::AT_HWCAP => rsix::process::linux_hwcap().0 as c_ulong,
@@ -2178,7 +2178,8 @@ unsafe extern "C" fn dl_iterate_phdr(
         static mut __executable_start: c_void;
     }
 
-    libc!(dl_iterate_phdr(callback, data));
+    // Disabled for now, as our `DlPhdrInfo` has fewer fields than libc's.
+    //libc!(dl_iterate_phdr(callback, data));
 
     let (phdr, phnum) = rsix::runtime::exe_phdrs();
     let mut info = data::DlPhdrInfo {
@@ -4315,7 +4316,7 @@ unsafe extern "C" fn __cxa_finalize(_d: *mut c_void) {}
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-unsafe extern "C" fn atexit(func: unsafe extern "C" fn()) -> c_int {
+unsafe extern "C" fn atexit(func: extern "C" fn()) -> c_int {
     libc!(atexit(func));
 
     /// Adapter to let `atexit`-style functions be called in the same manner as
@@ -4334,7 +4335,7 @@ unsafe extern "C" fn atexit(func: unsafe extern "C" fn()) -> c_int {
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-extern "C" fn exit(status: c_int) -> ! {
+unsafe extern "C" fn exit(status: c_int) -> ! {
     libc!(exit(status));
     origin::exit(status)
 }
@@ -4345,7 +4346,7 @@ extern "C" fn exit(status: c_int) -> ! {
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-extern "C" fn _exit(status: c_int) -> ! {
+unsafe extern "C" fn _exit(status: c_int) -> ! {
     libc!(_exit(status));
     origin::exit_immediately(status)
 }
@@ -4356,7 +4357,7 @@ extern "C" fn _exit(status: c_int) -> ! {
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-extern "C" fn __aeabi_d2f(_a: f64) -> f32 {
+unsafe extern "C" fn __aeabi_d2f(_a: f64) -> f32 {
     //libc!(__aeabi_d2f(_a));
     unimplemented!("__aeabi_d2f")
 }
