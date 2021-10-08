@@ -1825,7 +1825,7 @@ unsafe extern "C" fn free(ptr: *mut c_void) {
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-pub unsafe extern "C" fn memcmp(a: *const c_void, b: *const c_void, len: usize) -> c_int {
+unsafe extern "C" fn memcmp(a: *const c_void, b: *const c_void, len: usize) -> c_int {
     libc!(memcmp(a, b, len));
 
     compiler_builtins::mem::memcmp(a.cast::<_>(), b.cast::<_>(), len)
@@ -1834,7 +1834,7 @@ pub unsafe extern "C" fn memcmp(a: *const c_void, b: *const c_void, len: usize) 
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-pub unsafe extern "C" fn bcmp(a: *const c_void, b: *const c_void, len: usize) -> c_int {
+unsafe extern "C" fn bcmp(a: *const c_void, b: *const c_void, len: usize) -> c_int {
     // `bcmp` is just an alias for `memcmp`.
     libc!(memcmp(a, b, len));
 
@@ -1844,7 +1844,7 @@ pub unsafe extern "C" fn bcmp(a: *const c_void, b: *const c_void, len: usize) ->
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-pub unsafe extern "C" fn memcpy(dst: *mut c_void, src: *const c_void, len: usize) -> *mut c_void {
+unsafe extern "C" fn memcpy(dst: *mut c_void, src: *const c_void, len: usize) -> *mut c_void {
     libc!(memcpy(dst, src, len));
 
     compiler_builtins::mem::memcpy(dst.cast::<_>(), src.cast::<_>(), len).cast::<_>()
@@ -1853,7 +1853,7 @@ pub unsafe extern "C" fn memcpy(dst: *mut c_void, src: *const c_void, len: usize
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-pub unsafe extern "C" fn memmove(dst: *mut c_void, src: *const c_void, len: usize) -> *mut c_void {
+unsafe extern "C" fn memmove(dst: *mut c_void, src: *const c_void, len: usize) -> *mut c_void {
     libc!(memmove(dst, src, len));
 
     compiler_builtins::mem::memmove(dst.cast::<_>(), src.cast::<_>(), len).cast::<_>()
@@ -1862,7 +1862,7 @@ pub unsafe extern "C" fn memmove(dst: *mut c_void, src: *const c_void, len: usiz
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-pub unsafe extern "C" fn memset(dst: *mut c_void, fill: c_int, len: usize) -> *mut c_void {
+unsafe extern "C" fn memset(dst: *mut c_void, fill: c_int, len: usize) -> *mut c_void {
     libc!(memset(dst, fill, len));
 
     compiler_builtins::mem::memset(dst.cast::<_>(), fill, len).cast::<_>()

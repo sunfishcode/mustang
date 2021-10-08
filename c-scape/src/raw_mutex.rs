@@ -13,7 +13,7 @@ use std::sync::atomic::Ordering::SeqCst;
 // 0 => unlocked
 // 1 => locked
 // 2 => locked with waiters waiting
-pub struct RawMutex(AtomicU32);
+pub(crate) struct RawMutex(AtomicU32);
 
 /// This implements the same API as `lock_api::RawMutex`, except it doesn't
 /// have `INIT`, so that constructing a `RawMutex` can be `unsafe`.
@@ -26,7 +26,7 @@ impl RawMutex {
     /// only be constructed in a place where it's never moved once it can be
     /// locked.
     #[inline]
-    pub const unsafe fn new() -> Self {
+    pub(crate) const unsafe fn new() -> Self {
         Self(AtomicU32::new(0))
     }
 
@@ -37,7 +37,7 @@ impl RawMutex {
     ///
     /// [`lock_api::RawMutex::lock`]: https://docs.rs/lock_api/current/lock_api/trait.RawMutex.html#tymethod.lock
     #[inline]
-    pub fn lock(&self) {
+    pub(crate) fn lock(&self) {
         if let Err(c) = self.0.compare_exchange(0, 1, SeqCst, SeqCst) {
             self.block(c)
         }
@@ -50,7 +50,7 @@ impl RawMutex {
     ///
     /// [`lock_api::RawMutex::try_lock`]: https://docs.rs/lock_api/current/lock_api/trait.RawMutex.html#tymethod.try_lock
     #[inline]
-    pub fn try_lock(&self) -> bool {
+    pub(crate) fn try_lock(&self) -> bool {
         self.0.compare_exchange(0, 1, SeqCst, SeqCst).is_ok()
     }
 
@@ -66,7 +66,7 @@ impl RawMutex {
     /// context, i.e. it must be paired with a successful call to `lock` or
     /// `try_lock`.
     #[inline]
-    pub unsafe fn unlock(&self) {
+    pub(crate) unsafe fn unlock(&self) {
         if self.0.swap(0, SeqCst) != 1 {
             self.wake();
         }
