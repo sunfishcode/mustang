@@ -13,7 +13,7 @@
   </p>
 </div>
 
-origin implements program startup and shutdown, as well as thread startup and
+Origin implements program startup and shutdown, as well as thread startup and
 shutdown, for Linux, implemented in Rust.
 
 Program startup and shutdown for Linux is traditionally implemented in crt1.o,
