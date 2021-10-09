@@ -1734,7 +1734,12 @@ unsafe extern "C" fn epoll_create1(_flags: c_int) {
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-unsafe extern "C" fn epoll_ctl(_epfd: c_int, _op: c_int, _fd: c_int, _event: *mut data::EpollEvent) {
+unsafe extern "C" fn epoll_ctl(
+    _epfd: c_int,
+    _op: c_int,
+    _fd: c_int,
+    _event: *mut data::EpollEvent,
+) {
     libc!(epoll_ctl(_epfd, _op, _fd, same_ptr_mut(_event)));
     unimplemented!("epoll_ctl")
 }

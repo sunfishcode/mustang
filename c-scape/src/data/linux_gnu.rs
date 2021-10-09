@@ -316,9 +316,12 @@ pub(crate) struct Ipv6Mreq {
         all(
             target_arch = "x86",
             not(target_env = "musl"),
-            not(target_os = "android")),
-        target_arch = "x86_64"),
-    repr(packed))]
+            not(target_os = "android")
+        ),
+        target_arch = "x86_64"
+    ),
+    repr(packed)
+)]
 pub struct EpollEvent {
     pub events: u32,
     pub u64: u64,
