@@ -2103,7 +2103,7 @@ unsafe extern "C" fn sysconf(name: c_int) -> c_long {
     match name {
         data::_SC_PAGESIZE => rsix::process::page_size() as _,
         data::_SC_GETPW_R_SIZE_MAX => -1,
-        // Oddly, only ever one processor seems to be online.
+        // TODO: Oddly, only ever one processor seems to be online.
         data::_SC_NPROCESSORS_ONLN => 1,
         data::_SC_SYMLOOP_MAX => data::SYMLOOP_MAX,
         _ => panic!("unrecognized sysconf({})", name),
