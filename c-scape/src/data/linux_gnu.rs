@@ -311,6 +311,23 @@ pub(crate) struct Ipv6Mreq {
 }
 
 #[repr(C)]
+#[cfg_attr(
+    any(
+        all(
+            target_arch = "x86",
+            not(target_env = "musl"),
+            not(target_os = "android")
+        ),
+        target_arch = "x86_64"
+    ),
+    repr(packed)
+)]
+pub struct EpollEvent {
+    pub events: u32,
+    pub u64: u64,
+}
+
+#[repr(C)]
 pub(crate) struct OldTimespec {
     pub(crate) tv_sec: OldTime,
     pub(crate) tv_nsec: Suseconds,

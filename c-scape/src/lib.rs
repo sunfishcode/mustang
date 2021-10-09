@@ -62,7 +62,7 @@ use parking_lot::lock_api::RawRwLock;
 #[cfg(feature = "threads")]
 use raw_mutex::RawMutex;
 use rsix::fs::{cwd, openat, AtFlags, FdFlags, Mode, OFlags};
-use rsix::io::{MapFlags, MprotectFlags, MremapFlags, PipeFlags, ProtFlags};
+use rsix::io::{EventfdFlags, MapFlags, MprotectFlags, MremapFlags, PipeFlags, ProtFlags};
 use rsix::io_lifetimes::{AsFd, BorrowedFd, OwnedFd};
 use rsix::net::{
     AcceptFlags, AddressFamily, IpAddr, Ipv4Addr, Ipv6Addr, Protocol, RecvFlags, SendFlags,
@@ -1721,6 +1721,57 @@ unsafe extern "C" fn sendmsg() {
 unsafe extern "C" fn recvmsg() {
     //libc!(recvmsg());
     unimplemented!("recvmsg")
+}
+
+#[inline(never)]
+#[link_section = ".text.__mustang"]
+#[no_mangle]
+unsafe extern "C" fn epoll_create1(_flags: c_int) -> c_int {
+    libc!(epoll_create1(_flags));
+    unimplemented!("epoll_create1")
+}
+
+#[inline(never)]
+#[link_section = ".text.__mustang"]
+#[no_mangle]
+unsafe extern "C" fn epoll_ctl(
+    _epfd: c_int,
+    _op: c_int,
+    _fd: c_int,
+    _event: *mut data::EpollEvent,
+) -> c_int {
+    libc!(epoll_ctl(_epfd, _op, _fd, same_ptr_mut(_event)));
+    unimplemented!("epoll_ctl")
+}
+
+#[inline(never)]
+#[link_section = ".text.__mustang"]
+#[no_mangle]
+unsafe extern "C" fn epoll_wait(
+    _epfd: c_int,
+    _events: *mut data::EpollEvent,
+    _maxevents: c_int,
+    _timeout: c_int,
+) -> c_int {
+    libc!(epoll_wait(
+        _epfd,
+        same_ptr_mut(_events),
+        _maxevents,
+        _timeout
+    ));
+    unimplemented!("epoll_wait")
+}
+
+#[inline(never)]
+#[link_section = ".text.__mustang"]
+#[no_mangle]
+unsafe extern "C" fn eventfd(initval: c_uint, flags: c_int) -> c_int {
+    libc!(eventfd(initval, flags));
+    let flags = EventfdFlags::from_bits(flags.try_into().unwrap()).unwrap();
+    match set_errno(rsix::io::eventfd(initval, flags)) {
+        Some(fd) => fd.into_raw_fd(),
+        None => -1,
+    }
 }
 
 // malloc

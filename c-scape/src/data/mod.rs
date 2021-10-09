@@ -324,6 +324,7 @@ type_!(Ipv4Addr, in_addr);
 type_!(Ipv6Addr, in6_addr);
 type_!(Ipv4Mreq, ip_mreq);
 type_!(Ipv6Mreq, ipv6_mreq);
+struct_!(EpollEvent, epoll_event, events, u64);
 struct_!(OldTimeval, timeval, tv_sec, tv_usec);
 struct_!(OldTimespec, timespec, tv_sec, tv_nsec);
 type_!(OldTime, time_t);
