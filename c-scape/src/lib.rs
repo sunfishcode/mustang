@@ -1726,7 +1726,7 @@ unsafe extern "C" fn recvmsg() {
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-unsafe extern "C" fn epoll_create1(_flags: c_int) {
+unsafe extern "C" fn epoll_create1(_flags: c_int) -> c_int {
     libc!(epoll_create1(_flags));
     unimplemented!("epoll_create1")
 }
@@ -1739,7 +1739,7 @@ unsafe extern "C" fn epoll_ctl(
     _op: c_int,
     _fd: c_int,
     _event: *mut data::EpollEvent,
-) {
+) -> c_int {
     libc!(epoll_ctl(_epfd, _op, _fd, same_ptr_mut(_event)));
     unimplemented!("epoll_ctl")
 }
@@ -1752,7 +1752,7 @@ unsafe extern "C" fn epoll_wait(
     _events: *mut data::EpollEvent,
     _maxevents: c_int,
     _timeout: c_int,
-) {
+) -> c_int {
     libc!(epoll_wait(_epfd, _events, _maxevents, _timeout));
     unimplemented!("epoll_wait")
 }
@@ -1760,9 +1760,9 @@ unsafe extern "C" fn epoll_wait(
 #[inline(never)]
 #[link_section = ".text.__mustang"]
 #[no_mangle]
-unsafe extern "C" fn eventfd(initval: c_uint, flags: c_uint) -> c_int {
+unsafe extern "C" fn eventfd(initval: c_uint, flags: c_int) -> c_int {
     libc!(eventfd(initval, flags));
-    let flags = EventfdFlags::from_bits(flags).unwrap();
+    let flags = EventfdFlags::from_bits(flags.try_into().unwrap()).unwrap();
     match set_errno(rsix::io::eventfd(initval, flags)) {
         Some(fd) => fd.into_raw_fd(),
         None => -1,
