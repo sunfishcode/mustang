@@ -1753,7 +1753,12 @@ unsafe extern "C" fn epoll_wait(
     _maxevents: c_int,
     _timeout: c_int,
 ) -> c_int {
-    libc!(epoll_wait(_epfd, _events, _maxevents, _timeout));
+    libc!(epoll_wait(
+        _epfd,
+        same_ptr_mut(_events),
+        _maxevents,
+        _timeout
+    ));
     unimplemented!("epoll_wait")
 }
 
