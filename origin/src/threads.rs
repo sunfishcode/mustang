@@ -220,11 +220,14 @@ pub unsafe fn thread_stack(thread: *mut Thread) -> (*mut c_void, usize, usize) {
 }
 
 /// Registers a function to call when the current thread exits.
-pub fn at_thread_exit(func: unsafe extern "C" fn(*mut c_void), obj: *mut c_void) {
+///
+/// # Safety
+///
+/// This arranges for `func` to be called, and passed `obj`, when the thread
+/// exits.
+pub unsafe fn at_thread_exit(func: unsafe extern "C" fn(*mut c_void), obj: *mut c_void) {
     let current = current_thread();
-    unsafe {
-        (*current).dtors.push((func, obj));
-    }
+    (*current).dtors.push((func, obj));
 }
 
 /// Call the destructors registered with `at_thread_exit`.

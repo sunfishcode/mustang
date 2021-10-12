@@ -136,7 +136,12 @@ unsafe impl Send for SendArg {}
 static DTORS: OnceCell<Mutex<Vec<(SendFunc, SendArg)>>> = OnceCell::new();
 
 /// Register a function to be called when `exit` is called.
-pub fn at_exit(func: unsafe extern "C" fn(*mut c_void), arg: *mut c_void) {
+///
+/// # Safety
+///
+/// This arranges for `func` to be called, and passed `obj`, when the program
+/// exits.
+pub unsafe fn at_exit(func: unsafe extern "C" fn(*mut c_void), arg: *mut c_void) {
     #[cfg(target_vendor = "mustang")]
     {
         let dtors = DTORS.get_or_init(|| Mutex::new(Vec::new()));
@@ -145,7 +150,7 @@ pub fn at_exit(func: unsafe extern "C" fn(*mut c_void), arg: *mut c_void) {
     }
 
     #[cfg(not(target_vendor = "mustang"))]
-    unsafe {
+    {
         extern "C" {
             fn __cxa_atexit(
                 func: unsafe extern "C" fn(*mut c_void),
