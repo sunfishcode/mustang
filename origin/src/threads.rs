@@ -249,26 +249,25 @@ unsafe fn exit_thread() -> ! {
     // Call functions registered with `at_thread_exit`.
     call_thread_dtors(current);
 
-    // Read all the fields from the `Thread` before we release its memory.
-    let current = &mut *current_thread();
-    let current_thread_id = current.thread_id.load(SeqCst);
-    let current_map_size = current.map_size;
-    let current_stack_addr = current.stack_addr;
-    let current_guard_size = current.guard_size;
-    let state = current
+    // Read the thread's state, and set it to `ABANDONED` if it was `INITIAL`,
+    // which tells `join_thread` to free the memory. Otherwise, it's in the
+    // `DETACHED` state, and we free the memory immediately.
+    let state = (*current)
         .detached
         .compare_exchange(INITIAL, ABANDONED, SeqCst, SeqCst);
-
-    // Deallocate the `Thread`.
-    drop_in_place(current);
-    drop(current);
-
-    // If we're still in the `INITIAL` state, switch to `ABANDONED`, which
-    // tells `join_thread` to free the memory. Otherwise, we're in the
-    // `DETACHED` state, and we free the memory immediately.
     if let Err(e) = state {
+        // The thread was detached. Prepare to free the memory. First read out
+        // all the fields that we'll need before freeing it.
+        let current_thread_id = (*current).thread_id.load(SeqCst);
+        let current_map_size = (*current).map_size;
+        let current_stack_addr = (*current).stack_addr;
+        let current_guard_size = (*current).guard_size;
+
         log::trace!("Thread[{:?}] exiting as detached", current_thread_id);
         debug_assert_eq!(e, DETACHED);
+
+        // Deallocate the `Thread`.
+        drop_in_place(current);
 
         // Free the thread's `mmap` region, if we allocated it.
         let map_size = current_map_size;
@@ -282,7 +281,14 @@ unsafe fn exit_thread() -> ! {
             munmap_and_exit_thread(map.cast(), map_size);
         }
     } else {
-        log::trace!("Thread[{:?}] exiting as joinable", current_thread_id);
+        // The thread was not detached, so its memory will be freed when it's
+        // joined.
+        if log::log_enabled!(log::Level::Trace) {
+            log::trace!(
+                "Thread[{:?}] exiting as joinable",
+                (*current).thread_id.load(SeqCst)
+            );
+        }
     }
 
     // Terminate the thread.
@@ -599,6 +605,13 @@ fn round_up(addr: usize, boundary: usize) -> usize {
 /// detached and will not be joined.
 #[inline]
 pub unsafe fn detach_thread(thread: *mut Thread) {
+    if log::log_enabled!(log::Level::Trace) {
+        log::trace!(
+            "Thread[{:?}] marked as detached",
+            (*thread).thread_id.load(SeqCst)
+        );
+    }
+
     if (*thread).detached.swap(DETACHED, SeqCst) == ABANDONED {
         wait_for_thread_exit(thread);
         free_thread_memory(thread);
@@ -612,6 +625,13 @@ pub unsafe fn detach_thread(thread: *mut Thread) {
 /// `thread` must point to a valid and live thread record that has not already
 /// been detached or joined.
 pub unsafe fn join_thread(thread: *mut Thread) {
+    if log::log_enabled!(log::Level::Trace) {
+        log::trace!(
+            "Thread[{:?}] is being joined",
+            (*thread).thread_id.load(SeqCst)
+        );
+    }
+
     wait_for_thread_exit(thread);
     debug_assert_eq!((*thread).detached.load(SeqCst), ABANDONED);
     free_thread_memory(thread);
@@ -649,12 +669,25 @@ unsafe fn wait_for_thread_exit(thread: *mut Thread) {
 unsafe fn free_thread_memory(thread: *mut Thread) {
     use rsix::io::munmap;
 
+    // The thread was detached. Prepare to free the memory. First read out
+    // all the fields that we'll need before freeing it.
+    let map_size = (*thread).map_size;
+    let stack_addr = (*thread).stack_addr;
+    let guard_size = (*thread).guard_size;
+
+    if log::log_enabled!(log::Level::Trace) {
+        log::trace!(
+            "Thread[{:?}] memory being freed",
+            (*thread).thread_id.load(SeqCst)
+        );
+    }
+
+    // Deallocate the `Thread`.
+    drop_in_place(thread);
+
     // Free the thread's `mmap` region, if we allocated it.
-    let thread = &mut *thread;
-    let map_size = thread.map_size;
     if map_size != 0 {
-        let map = thread.stack_addr.cast::<u8>().sub(thread.guard_size);
-        drop(thread);
+        let map = stack_addr.cast::<u8>().sub(guard_size);
         munmap(map.cast(), map_size).unwrap();
     }
 }
