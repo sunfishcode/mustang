@@ -33,6 +33,10 @@ dlmalloc = ["mustang/dlmalloc"]
 wee_alloc = ["mustang/wee_alloc"]
 env_logger = ["origin/env_logger"]
 
+# Enable the cc dependency to build the empty `libc.a` and similar libraries
+# from the empty.s source file, instead of using the prebuilt libraries.
+cc = ["mustang/cc"]
+
 [workspace]
 members = [
   "mustang",

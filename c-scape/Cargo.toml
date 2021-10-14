@@ -35,7 +35,3 @@ paste = "1.0.5"
 [features]
 default = ["threads"]
 threads = ["origin/threads"]
-
-[lib]
-name = "c"
-path = "src/lib.rs"

@@ -15,8 +15,7 @@
   "pre-link-args": {
     "gcc": [
       "-m64",
-      "-nostartfiles",
-      "-Wl,--require-defined=__mustang_origin"
+      "-nostartfiles"
     ]
   },
   "relro-level": "full",

@@ -43,7 +43,6 @@ pub use threads::{
 /// according to the operating system convention for starting a new program.
 #[cfg(target_vendor = "mustang")]
 #[naked]
-#[link_section = ".text.__mustang"]
 #[no_mangle]
 unsafe extern "C" fn _start() -> ! {
     use program::entry;
@@ -101,9 +100,7 @@ unsafe impl Sync for SendSyncVoidStar {}
 
 /// An ABI-conforming `__dso_handle`.
 #[cfg(target_vendor = "mustang")]
-#[link_section = ".data.__mustang"]
 #[no_mangle]
-#[used]
 static __dso_handle: SendSyncVoidStar = SendSyncVoidStar(&__dso_handle as *const _ as *mut c_void);
 
 /// Initialize logging, if enabled.
@@ -125,13 +122,3 @@ static INIT_ARRAY: unsafe extern "C" fn() = {
     }
     function
 };
-
-/// Ensure that this module is linked in.
-#[cfg(target_vendor = "mustang")]
-#[inline(never)]
-#[link_section = ".text.__mustang"]
-#[no_mangle]
-#[cold]
-unsafe extern "C" fn __mustang_origin() {
-    asm!("# {}", in(reg) &__dso_handle);
-}
