@@ -9,7 +9,8 @@ fn main() {
     // linking in the system versions.
     if vendor == "mustang" {
         for name in &[
-            "gcc_s", "util", "rt", "pthread", "m", "dl", "c", "crypt", "xnet", "resolv",
+            "gcc", "gcc_s", "util", "rt", "pthread", "m", "dl", "c", "crypt", "xnet", "resolv",
+            "unwind",
         ] {
             link_in_empty(name);
         }
