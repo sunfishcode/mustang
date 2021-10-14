@@ -32,6 +32,7 @@ default-alloc = ["mustang/default-alloc"]
 dlmalloc = ["mustang/dlmalloc"]
 wee_alloc = ["mustang/wee_alloc"]
 env_logger = ["origin/env_logger"]
+max_level_off = ["origin/max_level_off"]
 
 [workspace]
 members = [
