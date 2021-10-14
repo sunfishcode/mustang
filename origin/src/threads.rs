@@ -718,6 +718,13 @@ static mut STARTUP_TLS_INFO: StartupTlsInfo = StartupTlsInfo {
     stack_size: 0,
 };
 
+/// The ARM ABI expects this to be defined.
+#[cfg(target_arch = "arm")]
+#[no_mangle]
+unsafe extern "C" fn __aeabi_read_tp() -> *mut c_void {
+    get_thread_pointer()
+}
+
 // We define `clone` and `CloneFlags` here in `origin` instead of `rsix`
 // because `clone` needs custom assembly code that knows about what we're
 // using it for.
