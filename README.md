@@ -138,9 +138,9 @@ Let's find out! Come say hi in the [chat] or an [issue].
 ## How does one port `mustang` to a new architecture?
 
  - Port [`rsix`] to the architecture, adding assembly sequences for
-   making syscalls on the architecture.
- - Add assembly code to the `_start` function in src/lib.rs to call
-   `origin::rust`.
+   making syscalls.
+ - Port [`origin`] to the architecture, adding assembly sequences for
+   program and thread primitives.
  - Create a target file in `specs/`, by first following
    [these instructions] to generate a specification of a built-in target,
    and then:
@@ -186,6 +186,7 @@ NUL-terminated strings, so it can be much safer.
 [build-std]: https://doc.rust-lang.org/cargo/reference/unstable.html#build-std
 [Rust itself already does this]: https://github.com/rust-lang/rust/blob/6bed1f0bc3cc50c10aab26d5f94b16a00776b8a5/library/std/src/sys/unix/mod.rs#L71
 [`rsix`]: https://github.com/bytecodealliance/rsix
+[`origin`]: https://github.com/sunfishcode/mustang/tree/main/origin
 [chat]: https://bytecodealliance.zulipchat.com/#narrow/stream/217126-wasmtime
 [issue]: https://github.com/sunfishcode/mustang/issues
 [these instructions]: https://docs.rust-embedded.org/embedonomicon/custom-target.html#fill-the-target-file
