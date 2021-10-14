@@ -4,7 +4,7 @@ use std::env::var;
 
 fn main() {
     let vendor = var("CARGO_CFG_TARGET_VENDOR").unwrap();
-    // In non-mustang builds, do nothing. In mustang builds link in empty
+    // In non-mustang builds, do nothing. In mustang builds, link in empty
     // versions of libc.a and other libraries, to prevent the linker from
     // linking in the system versions.
     if vendor == "mustang" {
