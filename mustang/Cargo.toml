@@ -1,6 +1,6 @@
 [package]
 name = "mustang"
-version = "0.1.0"
+version = "0.1.1-alpha.0"
 authors = [
     "Dan Gohman <dev@sunfishcode.online>",
 ]
@@ -38,8 +38,8 @@ features = [
 ]
 
 [target.'cfg(target_vendor = "mustang")'.dependencies]
-origin = { path = "../origin", default-features = false, version = "^0.1.0"}
-c-scape = { path = "../c-scape", version = "^0.1.0"}
+origin = { path = "../origin", default-features = false, version = "^0.1.1-alpha.0"}
+c-scape = { path = "../c-scape", version = "^0.1.1-alpha.0"}
 
 [features]
 default = ["default-alloc", "threads"]
