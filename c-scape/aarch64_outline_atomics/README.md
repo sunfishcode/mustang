@@ -5,7 +5,7 @@ The `aarch64_outline_atomics` directory contains the source that
 cargo rustc --release --target=aarch64-unknown-linux-gnu -- --emit asm
 ```
 
-with Rust 1.55
+with Rust 1.55.
 
 Rust 1.55 is before rustc switched from using inline LL-SC atomics to making
 library calls, so we can use those implementations for the library calls.

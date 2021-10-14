@@ -3,3 +3,5 @@ name = "aarch64_outline_atomics"
 version = "0.0.0"
 edition = "2018"
 publish = false
+
+[workspace]
