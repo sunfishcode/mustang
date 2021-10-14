@@ -5,7 +5,7 @@ use std::env::var;
 
 fn main() {
     let name = "aarch64_outline_atomics";
-    let outline_path = format!("aarch64_outline_atomics");
+    let outline_path = "aarch64_outline_atomics";
     let to = format!("{}/lib{}.a", outline_path, name);
     println!("cargo:rerun-if-changed={}", to);
 
