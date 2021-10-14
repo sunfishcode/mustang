@@ -27,6 +27,11 @@ log = "0.4.14"
 [target.'cfg(mustang_use_libc)'.dependencies]
 libc = "0.2.99"
 
+[build-dependencies]
+# Enable the cc dependency to build aarch64_outline_atomics from source
+# instead of using the prebuilt libraries.
+cc = { version = "1.0.68", optional = true }
+
 [dev-dependencies]
 libc = "0.2.99"
 static_assertions = "1.1.0"
