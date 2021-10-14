@@ -15,6 +15,7 @@ publish = false
 [dev-dependencies]
 origin = { path = "origin", default-features = false }
 mustang = { path = "mustang", default-features = false }
+c-scape = { path = "c-scape", default-features = false }
 similar-asserts = "1.1.0"
 rand = "0.8.4"
 
@@ -33,9 +34,9 @@ dlmalloc = ["mustang/dlmalloc"]
 wee_alloc = ["mustang/wee_alloc"]
 env_logger = ["origin/env_logger"]
 
-# Enable the cc dependency to build the empty `libc.a` and similar libraries
-# from the empty.s source file, instead of using the prebuilt libraries.
-cc = ["mustang/cc"]
+# Enable the cc dependency to build assembly-code libraries from .s sources
+# instead of using the prebuilt libraries.
+cc = ["mustang/cc", "c-scape/cc"]
 
 [workspace]
 members = [
