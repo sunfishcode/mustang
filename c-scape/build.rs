@@ -1,9 +1,15 @@
 #[cfg(feature = "cc")]
 use cc::Build;
-#[cfg(feature = "cc")]
 use std::env::var;
 
 fn main() {
+    let arch = var("CARGO_CFG_TARGET_ARCH").unwrap();
+    if arch == "aarch64" {
+        link_in_aarch64_outline_atomics();
+    }
+}
+
+fn link_in_aarch64_outline_atomics() {
     let name = "aarch64_outline_atomics";
     let outline_path = "aarch64_outline_atomics";
     let to = format!("{}/lib{}.a", outline_path, name);
