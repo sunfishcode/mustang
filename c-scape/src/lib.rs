@@ -3376,6 +3376,32 @@ unsafe extern "C" fn pthread_mutex_unlock(mutex: *mut PthreadMutexT) -> c_int {
 
 #[cfg(feature = "threads")]
 #[no_mangle]
+unsafe extern "C" fn pthread_rwlock_tryrdlock(rwlock: *mut PthreadRwlockT) -> c_int {
+    libc!(pthread_rwlock_tryrdlock(same_ptr_mut(rwlock)));
+    let result = (*rwlock).lock.try_lock_shared();
+    if result {
+        (*rwlock).exclusive.store(false, SeqCst);
+        0
+    } else {
+        rsix::io::Error::BUSY.raw_os_error()
+    }
+}
+
+#[cfg(feature = "threads")]
+#[no_mangle]
+unsafe extern "C" fn pthread_rwlock_trywrlock(rwlock: *mut PthreadRwlockT) -> c_int {
+    libc!(pthread_rwlock_trywrlock(same_ptr_mut(rwlock)));
+    let result = (*rwlock).lock.try_lock_exclusive();
+    if result {
+        (*rwlock).exclusive.store(true, SeqCst);
+        0
+    } else {
+        rsix::io::Error::BUSY.raw_os_error()
+    }
+}
+
+#[cfg(feature = "threads")]
+#[no_mangle]
 unsafe extern "C" fn pthread_rwlock_rdlock(rwlock: *mut PthreadRwlockT) -> c_int {
     libc!(pthread_rwlock_rdlock(same_ptr_mut(rwlock)));
     (*rwlock).lock.lock_shared();
