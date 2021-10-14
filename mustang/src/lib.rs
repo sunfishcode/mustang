@@ -11,7 +11,7 @@ macro_rules! can_run_this {
 }
 
 #[cfg(target_vendor = "mustang")]
-extern crate c;
+extern crate c_scape;
 #[cfg(target_vendor = "mustang")]
 extern crate origin;
 #[cfg(not(any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64")))]

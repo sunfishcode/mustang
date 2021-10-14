@@ -10,6 +10,11 @@ license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
 repository = "https://github.com/sunfishcode/mustang"
 edition = "2018"
 
+[build-dependencies]
+# Enable the cc dependency to build the empty `libc.a` and similar libraries
+# from the empty.s source file, instead of using the prebuilt libraries.
+cc = { version = "1.0.68", optional = true }
+
 [dependencies]
 # A general-purpose `global_allocator` implementation.
 dlmalloc = { version = "0.2", features = ["global"], optional = true }

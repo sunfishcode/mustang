@@ -22,8 +22,7 @@
   "target-pointer-width": "64",
   "pre-link-args": {
     "gcc": [
-      "-nostartfiles",
-      "-Wl,--require-defined=__mustang_origin"
+      "-nostartfiles"
     ]
   },
   "vendor": "mustang"
