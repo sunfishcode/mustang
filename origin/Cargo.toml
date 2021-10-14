@@ -31,3 +31,6 @@ default = ["threads"]
 
 # Support for threads.
 threads = []
+
+# Disable logging.
+max_level_off = ["log/max_level_off"]
