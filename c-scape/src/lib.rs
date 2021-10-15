@@ -3448,10 +3448,45 @@ unsafe extern "C" fn pthread_attr_setguardsize(attr: *mut PthreadAttrT, guardsiz
     0
 }
 
+const SIZEOF_PTHREAD_COND_T: usize = 48;
+
+#[cfg(feature = "threads")]
+#[cfg_attr(target_arch = "x86", repr(C, align(4)))]
+#[cfg_attr(not(target_arch = "x86"), repr(C, align(8)))]
+struct PthreadCondT {
+    inner: parking_lot::Condvar,
+    pad: [u8; SIZEOF_PTHREAD_COND_T - std::mem::size_of::<parking_lot::Condvar>()],
+}
+
+#[cfg(feature = "threads")]
+libc_type!(PthreadCondT, pthread_cond_t);
+
+#[cfg(any(
+    target_arch = "x86",
+    target_arch = "x86_64",
+    target_arch = "arm",
+    all(target_arch = "aarch64", target_pointer_width = "32"),
+    target_arch = "riscv64",
+))]
+const SIZEOF_PTHREAD_CONDATTR_T: usize = 4;
+
+#[cfg(all(target_arch = "aarch64", target_pointer_width = "64"))]
+const SIZEOF_PTHREAD_CONDATTR_T: usize = 8;
+
+#[cfg(feature = "threads")]
+#[repr(C, align(4))]
+struct PthreadCondattrT {
+    pad: [u8; SIZEOF_PTHREAD_CONDATTR_T],
+}
+
+#[cfg(feature = "threads")]
+libc_type!(PthreadCondattrT, pthread_condattr_t);
+
 #[cfg(feature = "threads")]
 #[no_mangle]
-unsafe extern "C" fn pthread_condattr_destroy() -> c_int {
-    //libc!(pthread_condattr_destroy());
+unsafe extern "C" fn pthread_condattr_destroy(attr: *mut PthreadCondattrT) -> c_int {
+    libc!(pthread_condattr_destroy(same_ptr_mut(attr)));
+    let _ = attr;
     rsix::io::write(
         &rsix::io::stderr(),
         b"unimplemented: pthread_condattr_destroy\n",
@@ -3462,8 +3497,9 @@ unsafe extern "C" fn pthread_condattr_destroy() -> c_int {
 
 #[cfg(feature = "threads")]
 #[no_mangle]
-unsafe extern "C" fn pthread_condattr_init() -> c_int {
-    //libc!(pthread_condattr_init());
+unsafe extern "C" fn pthread_condattr_init(attr: *mut PthreadCondattrT) -> c_int {
+    libc!(pthread_condattr_init(same_ptr_mut(attr)));
+    let _ = attr;
     rsix::io::write(
         &rsix::io::stderr(),
         b"unimplemented: pthread_condattr_init\n",
@@ -3474,8 +3510,12 @@ unsafe extern "C" fn pthread_condattr_init() -> c_int {
 
 #[cfg(feature = "threads")]
 #[no_mangle]
-unsafe extern "C" fn pthread_condattr_setclock() -> c_int {
-    //libc!(pthread_condattr_setclock());
+unsafe extern "C" fn pthread_condattr_setclock(
+    attr: *mut PthreadCondattrT,
+    clock_id: c_int,
+) -> c_int {
+    libc!(pthread_condattr_setclock(same_ptr_mut(attr), clock_id));
+    let _ = (attr, clock_id);
     rsix::io::write(
         &rsix::io::stderr(),
         b"unimplemented: pthread_condattr_setclock\n",
@@ -3486,8 +3526,9 @@ unsafe extern "C" fn pthread_condattr_setclock() -> c_int {
 
 #[cfg(feature = "threads")]
 #[no_mangle]
-unsafe extern "C" fn pthread_cond_broadcast() -> c_int {
-    //libc!(pthread_cond_broadcast());
+unsafe extern "C" fn pthread_cond_broadcast(cond: *mut PthreadCondT) -> c_int {
+    libc!(pthread_cond_broadcast(same_ptr_mut(cond)));
+    let _ = cond;
     rsix::io::write(
         &rsix::io::stderr(),
         b"unimplemented: pthread_cond_broadcast\n",
@@ -3498,8 +3539,9 @@ unsafe extern "C" fn pthread_cond_broadcast() -> c_int {
 
 #[cfg(feature = "threads")]
 #[no_mangle]
-unsafe extern "C" fn pthread_cond_destroy() -> c_int {
-    //libc!(pthread_cond_destroy());
+unsafe extern "C" fn pthread_cond_destroy(cond: *mut PthreadCondT) -> c_int {
+    libc!(pthread_cond_destroy(same_ptr_mut(cond)));
+    let _ = cond;
     rsix::io::write(
         &rsix::io::stderr(),
         b"unimplemented: pthread_cond_destroy\n",
@@ -3510,37 +3552,53 @@ unsafe extern "C" fn pthread_cond_destroy() -> c_int {
 
 #[cfg(feature = "threads")]
 #[no_mangle]
-unsafe extern "C" fn pthread_cond_init() -> c_int {
-    //libc!(pthread_cond_init());
+unsafe extern "C" fn pthread_cond_init(
+    cond: *mut PthreadCondT,
+    attr: *const PthreadCondattrT,
+) -> c_int {
+    libc!(pthread_cond_init(same_ptr_mut(cond), same_ptr(attr)));
+    let _ = (cond, attr);
     rsix::io::write(&rsix::io::stderr(), b"unimplemented: pthread_cond_init\n").ok();
     0
 }
 
 #[cfg(feature = "threads")]
 #[no_mangle]
-unsafe extern "C" fn pthread_cond_signal() -> c_int {
-    //libc!(pthread_cond_signal());
+unsafe extern "C" fn pthread_cond_signal(cond: *mut PthreadCondT) -> c_int {
+    libc!(pthread_cond_signal(same_ptr_mut(cond)));
+    let _ = cond;
     rsix::io::write(&rsix::io::stderr(), b"unimplemented: pthread_cond_signal\n").ok();
     0
 }
 
 #[cfg(feature = "threads")]
 #[no_mangle]
-unsafe extern "C" fn pthread_cond_wait() -> c_int {
-    //libc!(pthread_cond_wait());
+unsafe extern "C" fn pthread_cond_wait(cond: *mut PthreadCondT, lock: *mut PthreadMutexT) -> c_int {
+    libc!(pthread_cond_wait(same_ptr_mut(cond), same_ptr_mut(lock)));
+    let _ = (cond, lock);
     rsix::io::write(&rsix::io::stderr(), b"unimplemented: pthread_cond_wait\n").ok();
     0
 }
 
 #[cfg(feature = "threads")]
 #[no_mangle]
-unsafe extern "C" fn pthread_cond_timedwait() {
-    //libc!(pthread_cond_timedwait());
+unsafe extern "C" fn pthread_cond_timedwait(
+    cond: *mut PthreadCondT,
+    lock: *mut PthreadMutexT,
+    abstime: *const data::OldTimespec,
+) -> c_int {
+    libc!(pthread_cond_timedwait(
+        same_ptr_mut(cond),
+        same_ptr_mut(lock),
+        same_ptr(abstime),
+    ));
+    let _ = (cond, lock, abstime);
     rsix::io::write(
         &rsix::io::stderr(),
         b"unimplemented: pthread_cond_timedwait\n",
     )
     .ok();
+    0
 }
 
 #[cfg(feature = "threads")]
