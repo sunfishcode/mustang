@@ -109,6 +109,7 @@ constant!(_SC_SYMLOOP_MAX);
 constant_same_as!(SYMLOOP_MAX, unsafe { libc::sysconf(libc::_SC_SYMLOOP_MAX) });
 constant!(SYS_getrandom);
 constant!(SYS_futex);
+constant!(SYS_clone3);
 constant!(CLOCK_MONOTONIC);
 constant!(CLOCK_REALTIME);
 constant!(SIG_DFL);

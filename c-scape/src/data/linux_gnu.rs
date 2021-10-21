@@ -63,6 +63,15 @@ pub(crate) const SYS_futex: c_long = 98;
 #[cfg(target_arch = "arm")]
 pub(crate) const SYS_futex: c_long = 240;
 
+#[cfg(any(
+    target_arch = "x86_64",
+    target_arch = "x86",
+    target_arch = "aarch64",
+    target_arch = "riscv64",
+    target_arch = "arm"
+))]
+pub(crate) const SYS_clone3: c_long = 435;
+
 pub(crate) const CLOCK_REALTIME: c_int = 0;
 pub(crate) const CLOCK_MONOTONIC: c_int = 1;
 
