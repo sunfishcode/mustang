@@ -45,7 +45,7 @@ use rsix::net::{
     Shutdown, SocketAddr, SocketAddrStorage, SocketAddrV4, SocketAddrV6, SocketFlags, SocketType,
 };
 use std::convert::TryInto;
-use std::ffi::{c_void, CStr, OsStr, OsString};
+use std::ffi::{c_void, CStr, OsStr};
 use std::mem::{size_of, transmute, zeroed};
 use std::os::raw::{c_char, c_int, c_long, c_uint, c_ulong};
 use std::os::unix::ffi::OsStrExt;
@@ -113,7 +113,7 @@ unsafe extern "C" fn readlink(pathname: *const c_char, buf: *mut c_char, bufsiz:
     let path = match set_errno(rsix::fs::readlinkat(
         &cwd(),
         CStr::from_ptr(pathname),
-        OsString::new(),
+        Vec::new(),
     )) {
         Some(path) => path,
         None => return -1,
@@ -1169,16 +1169,16 @@ unsafe extern "C" fn gai_strerror(errcode: c_int) -> *const c_char {
 unsafe extern "C" fn gethostname(name: *mut c_char, len: usize) -> c_int {
     let uname = rsix::process::uname();
     let nodename = uname.nodename();
-    if nodename.len() + 1 > len {
+    if nodename.to_bytes().len() + 1 > len {
         *__errno_location() = rsix::io::Error::NAMETOOLONG.raw_os_error();
         return -1;
     }
     memcpy(
         name.cast::<_>(),
-        nodename.as_bytes().as_ptr().cast::<_>(),
-        nodename.len(),
+        nodename.to_bytes().as_ptr().cast::<_>(),
+        nodename.to_bytes().len(),
     );
-    *name.add(nodename.len()) = 0;
+    *name.add(nodename.to_bytes().len()) = 0;
     0
 }
 
@@ -1930,7 +1930,7 @@ unsafe extern "C" fn sysconf(name: c_int) -> c_long {
 unsafe extern "C" fn getcwd(buf: *mut c_char, len: usize) -> *mut c_char {
     libc!(getcwd(buf, len));
 
-    match set_errno(rsix::process::getcwd(OsString::new())) {
+    match set_errno(rsix::process::getcwd(Vec::new())) {
         Some(path) => {
             let path = path.as_bytes();
             if path.len() + 1 <= len {
