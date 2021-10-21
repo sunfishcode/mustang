@@ -2064,11 +2064,12 @@ unsafe extern "C" fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c
         if CStr::from_ptr(symbol).to_bytes() == b"getrandom" {
             return getrandom as *mut c_void;
         }
-        if CStr::from_ptr(symbol).to_bytes() == b"clone3" {
-            return clone3 as *mut c_void;
-        }
         if CStr::from_ptr(symbol).to_bytes() == b"copy_file_range" {
             return copy_file_range as *mut c_void;
+        }
+        if CStr::from_ptr(symbol).to_bytes() == b"clone3" {
+            // Let's just say we don't support this for now.
+            return null_mut();
         }
         if CStr::from_ptr(symbol).to_bytes() == b"__pthread_get_minstack" {
             // Let's just say we don't support this for now.
@@ -2319,6 +2320,11 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
                 Some(result) => result as _,
                 None => -1,
             }
+        }
+        data::SYS_clone3 => {
+            // ensure std::process uses fork as fallback code on linux
+            set_errno::<()>(Err(rustix::io::Error::NOSYS));
+            -1
         }
         _ => unimplemented!("syscall({:?})", number),
     }
