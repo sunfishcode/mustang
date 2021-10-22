@@ -214,3 +214,54 @@ pub fn exit_immediately(status: c_int) -> ! {
 
     rustix::process::exit_group(status)
 }
+
+#[derive(Default)]
+struct RegisteredForkFuncs {
+    pub(crate) prepare: Vec<unsafe extern "C" fn()>,
+    pub(crate) parent: Vec<unsafe extern "C" fn()>,
+    pub(crate) child: Vec<unsafe extern "C" fn()>,
+}
+
+/// Functions registered with `at_fork`.
+#[cfg(target_vendor = "mustang")]
+static FORK_FUNCS: OnceCell<Mutex<RegisteredForkFuncs>> = OnceCell::new();
+
+/// Register functions to be called when `fork` is called.
+///
+/// The handlers for each phase are called in the following order:
+/// the prepare handlers are called in reverse order of registration;
+/// the parent and child handlers are called in the order of registration.
+pub fn at_fork(
+    prepare_func: Option<unsafe extern "C" fn()>,
+    parent_func: Option<unsafe extern "C" fn()>,
+    child_func: Option<unsafe extern "C" fn()>,
+) {
+    #[cfg(target_vendor = "mustang")]
+    {
+        let fork_funcs = FORK_FUNCS.get_or_init(|| Mutex::new(RegisteredForkFuncs::default()));
+        let mut funcs = fork_funcs.lock().unwrap();
+        if let Some(func) = prepare_func {
+            funcs.prepare.push(func);
+        }
+        if let Some(func) = parent_func {
+            funcs.parent.push(func);
+        }
+        if let Some(func) = child_func {
+            funcs.child.push(func);
+        }
+    }
+
+    #[cfg(not(target_vendor = "mustang"))]
+    {
+        extern "C" {
+            fn __register_atfork(
+                prepare: Option<unsafe extern "C" fn()>,
+                parent: Option<unsafe extern "C" fn()>,
+                child: Option<unsafe extern "C" fn()>,
+                dso_handle: *mut c_void,
+            ) -> c_int;
+        }
+        let r = unsafe { __register_atfork(prepare_func, parent_func, child_func, null_mut()) };
+        assert_eq!(r, 0);
+    }
+}
