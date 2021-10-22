@@ -2504,15 +2504,13 @@ unsafe extern "C" fn fork() -> c_int {
 // <https://refspecs.linuxbase.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/baselib---register-atfork.html>
 #[no_mangle]
 unsafe extern "C" fn __register_atfork(
-    _prepare: unsafe extern "C" fn(),
-    _parent: unsafe extern "C" fn(),
-    _child: unsafe extern "C" fn(),
+    prepare: Option<unsafe extern "C" fn()>,
+    parent: Option<unsafe extern "C" fn()>,
+    child: Option<unsafe extern "C" fn()>,
     _dso_handle: *mut c_void,
 ) -> c_int {
-    // TODO: libc!(__register_atfork(_prepare, _parent, _child, _dso_handle));
-
-    // We don't implement `fork` yet, so there's nothing to do.
-
+    libc!(__register_atfork(prepare, parent, child, _dso_handle));
+    origin::at_fork(prepare, parent, child);
     0
 }
 
@@ -3925,14 +3923,12 @@ unsafe extern "C" fn pthread_testcancel() -> c_int {
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_atfork(
-    _prepare: Option<unsafe extern "C" fn()>,
-    _parent: Option<unsafe extern "C" fn()>,
-    _child: Option<unsafe extern "C" fn()>,
+    prepare: Option<unsafe extern "C" fn()>,
+    parent: Option<unsafe extern "C" fn()>,
+    child: Option<unsafe extern "C" fn()>,
 ) -> c_int {
-    libc!(pthread_atfork(_prepare, _parent, _child));
-
-    // We don't implement `fork` yet, so there's nothing to do.
-
+    libc!(pthread_atfork(prepare, parent, child));
+    origin::at_fork(prepare, parent, child);
     0
 }
 
