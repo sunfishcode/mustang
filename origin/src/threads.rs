@@ -175,6 +175,12 @@ pub fn current_thread_id() -> Pid {
     debug_assert_eq!(tid, gettid(), "`current_thread_id` disagrees with `gettid`");
     tid
 }
+/// Change the current thread id.
+#[inline]
+pub(crate) fn set_current_thread_id(tid: Pid) {
+    unsafe { (*current_thread()).thread_id.store(tid.as_raw(), SeqCst) };
+    debug_assert_eq!(tid, gettid(), "`current_thread_id` disagrees with `gettid`");
+}
 
 /// Return the TLS entry for the current thread.
 #[inline]

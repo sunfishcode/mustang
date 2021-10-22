@@ -1,6 +1,6 @@
 #[cfg(target_vendor = "mustang")]
 #[cfg(feature = "threads")]
-use crate::threads::initialize_main_thread;
+use crate::threads::{initialize_main_thread, set_current_thread_id};
 #[cfg(target_vendor = "mustang")]
 use once_cell::sync::OnceCell;
 use std::ffi::c_void;
@@ -263,5 +263,50 @@ pub fn at_fork(
         }
         let r = unsafe { __register_atfork(prepare_func, parent_func, child_func, null_mut()) };
         assert_eq!(r, 0);
+    }
+}
+
+/// Creates a new process by duplicating the calling process.
+///
+/// # Safety
+///
+/// After a fork in a multithreaded process returns in the child,
+/// data structures such as mutexes might be in an unusable state.
+/// code should use `at_fork` to either protect them,
+/// from being used by other threads during the fork,
+/// or reinitialize them in child process.
+pub unsafe fn fork() -> rustix::io::Result<Option<rustix::process::Pid>> {
+    #[cfg(target_vendor = "mustang")]
+    {
+        let fork_funcs = FORK_FUNCS.get_or_init(|| Mutex::new(RegisteredForkFuncs::default()));
+        let funcs = fork_funcs.lock().unwrap();
+        funcs.prepare.iter().rev().for_each(|func| func());
+        match rustix::runtime::fork()? {
+            rustix::process::Pid::NONE => {
+                #[cfg(feature = "threads")]
+                set_current_thread_id(rustix::thread::gettid());
+                funcs.child.iter().for_each(|func| func());
+                return Ok(None);
+            }
+            pid => {
+                funcs.parent.iter().for_each(|func| func());
+                return Ok(Some(pid));
+            }
+        }
+    }
+
+    #[cfg(not(target_vendor = "mustang"))]
+    {
+        extern "C" {
+            fn fork() -> c_int;
+        }
+        return match fork() {
+            -1 => {
+                let raw = unsafe { *libc::__errno_location() };
+                Err(rustix::io::Error::from_raw_os_error(raw))
+            }
+            0 => Ok(None),
+            pid => Ok(Some(unsafe { rustix::process::Pid::from_raw(pid as _) })),
+        };
     }
 }
