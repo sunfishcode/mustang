@@ -44,6 +44,7 @@ use rsix::net::{
     AcceptFlags, AddressFamily, IpAddr, Ipv4Addr, Ipv6Addr, Protocol, RecvFlags, SendFlags,
     Shutdown, SocketAddr, SocketAddrStorage, SocketAddrV4, SocketAddrV6, SocketFlags, SocketType,
 };
+use rsix::process::WaitOptions;
 use std::convert::TryInto;
 use std::ffi::{c_void, CStr, OsStr};
 use std::mem::{size_of, transmute, zeroed};
@@ -2403,9 +2404,40 @@ unsafe extern "C" fn clone3() {
 }
 
 #[no_mangle]
-unsafe extern "C" fn waitpid() {
-    //libc!(waitpid());
-    unimplemented!("waitpid")
+unsafe extern "C" fn waitpid(pid: c_int, status: *mut c_int, options: c_int) -> c_int {
+    libc!(waitpid(pid, status, options));
+    let options = WaitOptions::from_bits_truncate(options as _);
+    let ret_pid;
+    let ret_status;
+    match pid {
+        -1 => match set_errno(rsix::process::wait(options)) {
+            Some(Some((new_pid, new_status))) => {
+                ret_pid = new_pid.as_raw() as c_int;
+                ret_status = new_status.as_raw() as c_int;
+            }
+            Some(None) => return 0,
+            None => return -1,
+        },
+        pid => match set_errno(rsix::process::waitpid(
+            rsix::process::Pid::from_raw(pid as _),
+            options,
+        )) {
+            Some(Some(new_status)) => {
+                ret_pid = if pid == 0 {
+                    rsix::process::getpid().as_raw() as c_int
+                } else {
+                    pid
+                };
+                ret_status = new_status.as_raw() as c_int;
+            }
+            Some(None) => return 0,
+            None => return -1,
+        },
+    }
+    if !status.is_null() {
+        status.write(ret_status);
+    }
+    return ret_pid;
 }
 
 // setjmp
