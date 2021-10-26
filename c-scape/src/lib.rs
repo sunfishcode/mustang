@@ -2406,7 +2406,7 @@ unsafe extern "C" fn clone3() {
 #[no_mangle]
 unsafe extern "C" fn waitpid(pid: c_int, status: *mut c_int, options: c_int) -> c_int {
     libc!(waitpid(pid, status, options));
-    let options = WaitOptions::from_bits_truncate(options as _);
+    let options = WaitOptions::from_bits(options as _).unwrap();
     let ret_pid;
     let ret_status;
     match pid {
