@@ -1,5 +1,6 @@
 use linux_raw_sys::general::{__NR_clone, __NR_exit, __NR_munmap};
 use rsix::process::RawPid;
+use std::any::Any;
 use std::ffi::c_void;
 
 #[inline]
@@ -9,8 +10,7 @@ pub(super) unsafe fn clone(
     parent_tid: *mut RawPid,
     newtls: *mut c_void,
     child_tid: *mut RawPid,
-    arg: *mut c_void,
-    fn_: unsafe extern "C" fn(*mut c_void) -> *mut c_void,
+    fn_: *mut Box<dyn FnOnce() -> Option<Box<dyn Any>>>,
 ) -> isize {
     let mut gs: u32 = 0;
     asm!("mov {0:x},gs", inout(reg) gs);
@@ -35,26 +35,16 @@ pub(super) unsafe fn clone(
     // See the comments for x86's `syscall6` in rsix. Inline asm isn't
     // allowed to name ebp or esi as operands, so we have to jump through
     // extra hoops here.
-    //
-    // The other thing that makes this complex is that x86 doesn't have
-    // enough registers to pass `fn_` and `arg` through to the child, so
-    // we "spill" `arg` onto the child's stack.
     let r0;
     asm!(
         "push esi",
         "push ebp",
 
-        // Pass `arg` to the child by "pushing" it on the child's stack,
-        // and allocating space for `fn_` to be stored next to it.
-        "sub ecx,16",
-        "mov esi,DWORD PTR [eax+8]",
-        "mov DWORD PTR [ecx],esi",
-
         // Pass `fn_` to the child in ebp.
-        "mov ebp,DWORD PTR [eax+12]",
+        "mov ebp,DWORD PTR [eax+8]",
 
-        "mov esi, [eax + 0]",          // `newtls`
-        "mov eax, [eax + 4]",          // `__NR_clone`
+        "mov esi, [eax + 0]", // `newtls`
+        "mov eax, [eax + 4]", // `__NR_clone`
 
         // Use `int 0x80` instead of vsyscall, following `clone`'s
         // documentation; vsyscall would attempt to return to the parent stack
@@ -64,11 +54,13 @@ pub(super) unsafe fn clone(
         "jnz 0f",
 
         // Child thread.
-        "mov DWORD PTR [esp+4],ebp",    // `fn`
-        "",                             // `arg`, already on the stack
-        "xor    ebp,ebp",               // zero the frame pointer
-        "push   ebp",                   // zero the return address
-        "jmp    {entry}",
+        "push eax",           // pad for alignment
+        "push eax",           // pad for alignment
+        "push eax",           // pad for alignment
+        "push ebp",           // `fn`
+        "xor ebp,ebp",        // zero the frame address
+        "push eax",           // zero the return address
+        "jmp {entry}",
 
         // Parent thread.
         "0:",
@@ -76,7 +68,7 @@ pub(super) unsafe fn clone(
         "pop esi",
 
         entry = sym super::threads::entry,
-        inout("eax") &[newtls as usize, __NR_clone as usize, arg as usize, fn_ as usize] => r0,
+        inout("eax") &[newtls as usize, __NR_clone as usize, fn_ as usize] => r0,
         in("ebx") flags,
         in("ecx") child_stack,
         in("edx") parent_tid,

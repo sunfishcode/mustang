@@ -122,18 +122,9 @@ pub(super) unsafe fn call_ctors(argc: c_int, argv: *mut *mut c_char, envp: *mut 
     }
 }
 
-#[repr(transparent)]
-struct SendFunc(unsafe extern "C" fn(*mut c_void));
-#[repr(transparent)]
-struct SendArg(*mut c_void);
-
-/// Safety: Function pointers do not point to data.
-unsafe impl Send for SendFunc {}
-unsafe impl Send for SendArg {}
-
 /// Functions registered with `at_exit`.
 #[cfg(target_vendor = "mustang")]
-static DTORS: OnceCell<Mutex<Vec<(SendFunc, SendArg)>>> = OnceCell::new();
+static DTORS: OnceCell<Mutex<Vec<Box<dyn FnOnce() + Send>>>> = OnceCell::new();
 
 /// Register a function to be called when `exit` is called.
 ///
@@ -141,12 +132,12 @@ static DTORS: OnceCell<Mutex<Vec<(SendFunc, SendArg)>>> = OnceCell::new();
 ///
 /// This arranges for `func` to be called, and passed `obj`, when the program
 /// exits.
-pub unsafe fn at_exit(func: unsafe extern "C" fn(*mut c_void), arg: *mut c_void) {
+pub fn at_exit(func: Box<dyn FnOnce() + Send>) {
     #[cfg(target_vendor = "mustang")]
     {
         let dtors = DTORS.get_or_init(|| Mutex::new(Vec::new()));
         let mut funcs = dtors.lock().unwrap();
-        funcs.push((SendFunc(func), SendArg(arg)));
+        funcs.push(func);
     }
 
     #[cfg(not(target_vendor = "mustang"))]
@@ -158,7 +149,11 @@ pub unsafe fn at_exit(func: unsafe extern "C" fn(*mut c_void), arg: *mut c_void)
                 _dso: *mut c_void,
             ) -> c_int;
         }
-        let r = __cxa_atexit(func, arg, null_mut());
+        unsafe extern "C" fn at_exit_func(arg: *mut c_void) {
+            Box::from_raw(arg as *mut Box<dyn FnOnce() + Send>)();
+        }
+        let at_exit_arg = Box::into_raw(Box::new(func)).cast::<c_void>();
+        let r = unsafe { __cxa_atexit(at_exit_func, at_exit_arg, null_mut()) };
         assert_eq!(r, 0);
     }
 }
@@ -172,15 +167,9 @@ pub fn exit(status: c_int) -> ! {
     #[cfg(target_vendor = "mustang")]
     if let Some(dtors) = DTORS.get() {
         while let Some(dtor) = dtors.lock().unwrap().pop() {
-            log::trace!(
-                "Calling `at_exit`-registered function `{:?}({:?})`",
-                dtor.0 .0,
-                dtor.1 .0
-            );
+            log::trace!("Calling `at_exit`-registered function",);
 
-            // Safety: Adding an item to `DTORS` requires `unsafe`, so we assume
-            // anything that has been added is safe to call.
-            unsafe { dtor.0 .0(dtor.1 .0) };
+            dtor();
         }
     }
 

@@ -1,5 +1,6 @@
 use linux_raw_sys::general::{__NR_clone, __NR_exit, __NR_munmap};
 use rsix::process::RawPid;
+use std::any::Any;
 use std::ffi::c_void;
 
 #[inline]
@@ -9,8 +10,7 @@ pub(super) unsafe fn clone(
     parent_tid: *mut RawPid,
     newtls: *mut c_void,
     child_tid: *mut RawPid,
-    arg: *mut c_void,
-    fn_: unsafe extern "C" fn(*mut c_void) -> *mut c_void,
+    fn_: *mut Box<dyn FnOnce() -> Option<Box<dyn Any>>>,
 ) -> isize {
     let r0;
     asm!(
@@ -19,8 +19,7 @@ pub(super) unsafe fn clone(
         "bne 0f",
 
         // Child thread.
-        "mov r0,{arg}",       // `arg`
-        "mov r1,{fn_}",       // `fn_`
+        "mov r0,{fn_}",       // `fn_`
         "mov fp, #0",         // zero the frame address
         "mov lr, #0",         // zero the return address
         "b {entry}",
@@ -29,7 +28,6 @@ pub(super) unsafe fn clone(
         "0:",
 
         entry = sym super::threads::entry,
-        arg = in(reg) arg,
         fn_ = in(reg) fn_,
         in("r7") __NR_clone,
         inlateout("r0") flags as isize => r0,

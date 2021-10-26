@@ -47,7 +47,7 @@ use rsix::net::{
 use rsix::process::WaitOptions;
 use std::convert::TryInto;
 use std::ffi::{c_void, CStr, OsStr};
-use std::mem::{size_of, transmute, zeroed};
+use std::mem::{size_of, zeroed};
 use std::os::raw::{c_char, c_int, c_long, c_uint, c_ulong};
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd};
@@ -3682,7 +3682,14 @@ unsafe extern "C" fn pthread_create(
     };
     assert!(stack_addr.is_null());
 
-    let thread = match origin::create_thread(fn_, arg, stack_size, guard_size) {
+    let thread = match origin::create_thread(
+        Box::new(move || {
+            fn_(arg);
+            Some(Box::new(arg))
+        }),
+        stack_size,
+        guard_size,
+    ) {
         Ok(thread) => thread,
         Err(e) => return e.raw_os_error(),
     };
@@ -3800,7 +3807,8 @@ unsafe extern "C" fn __cxa_thread_atexit_impl(
     _dso_symbol: *mut c_void,
 ) -> c_int {
     // TODO: libc!(__cxa_thread_atexit_impl(func, obj, _dso_symbol));
-    origin::at_thread_exit(func, obj);
+    let obj = obj as usize;
+    origin::at_thread_exit(Box::new(move || func(obj as *mut c_void)));
     0
 }
 
@@ -3817,7 +3825,8 @@ unsafe extern "C" fn __cxa_atexit(
     arg: *mut c_void,
     _dso: *mut c_void,
 ) -> c_int {
-    origin::at_exit(func, arg);
+    let arg = arg as usize;
+    origin::at_exit(Box::new(move || func(arg as *mut c_void)));
     0
 }
 
@@ -3828,14 +3837,7 @@ unsafe extern "C" fn __cxa_finalize(_d: *mut c_void) {}
 #[no_mangle]
 unsafe extern "C" fn atexit(func: extern "C" fn()) -> c_int {
     libc!(atexit(func));
-
-    /// Adapter to let `atexit`-style functions be called in the same manner as
-    /// `__cxa_atexit` functions.
-    unsafe extern "C" fn adapter(func: *mut c_void) {
-        transmute::<_, unsafe extern "C" fn()>(func)();
-    }
-
-    origin::at_exit(adapter, func as *mut c_void);
+    origin::at_exit(Box::new(move || func()));
     0
 }
 

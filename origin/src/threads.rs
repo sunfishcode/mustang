@@ -10,6 +10,7 @@ use rsix::process::{getrlimit, linux_execfn, Resource};
 use rsix::process::{page_size, Pid};
 use rsix::runtime::{set_tid_address, StartupTlsInfo};
 use rsix::thread::gettid;
+use std::any::Any;
 use std::cmp::max;
 use std::ffi::c_void;
 use std::mem::{align_of, size_of};
@@ -27,16 +28,10 @@ use std::sync::atomic::{AtomicU32, AtomicU8};
 ///
 /// After calling `func`, this terminates the thread.
 #[cfg(feature = "threads")]
-pub(super) unsafe extern "C" fn entry(
-    arg: *mut c_void,
-    func: unsafe extern "C" fn(*mut c_void) -> *mut c_void,
-) -> ! {
-    log::trace!(
-        "Thread[{:?}] launched; calling `{:?}({:?})`",
-        current_thread_id(),
-        func,
-        arg
-    );
+pub(super) unsafe extern "C" fn entry(fn_: *mut Box<dyn FnOnce() -> Option<Box<dyn Any>>>) -> ! {
+    let fn_ = Box::from_raw(fn_);
+
+    log::trace!("Thread[{:?}] launched", current_thread_id());
 
     // Do some basic precondition checks, to ensure that our assembly code did
     // what we expect it to do. These are debug-only for now, to keep the
@@ -75,7 +70,7 @@ pub(super) unsafe extern "C" fn entry(
 
     // Call the user thread function. In `std`, this is `thread_start`. Ignore
     // the return value for now, as `std` doesn't need it.
-    let _result = func(arg);
+    let _result = fn_();
 
     exit_thread()
 }
@@ -127,7 +122,7 @@ pub struct Thread {
     stack_size: usize,
     guard_size: usize,
     map_size: usize,
-    dtors: Vec<(unsafe extern "C" fn(*mut c_void), *mut c_void)>,
+    dtors: Vec<Box<dyn FnOnce()>>,
 }
 
 // Values for `Thread::detached`.
@@ -225,23 +220,30 @@ pub unsafe fn thread_stack(thread: *mut Thread) -> (*mut c_void, usize, usize) {
 ///
 /// This arranges for `func` to be called, and passed `obj`, when the thread
 /// exits.
-pub unsafe fn at_thread_exit(func: unsafe extern "C" fn(*mut c_void), obj: *mut c_void) {
-    let current = current_thread();
-    (*current).dtors.push((func, obj));
+pub fn at_thread_exit(func: Box<dyn FnOnce() + Send>) {
+    // Safety: `current_thread()` points to thread-local data which is valid
+    // as long as the thread is alive.
+    unsafe {
+        (*current_thread()).dtors.push(func);
+    }
 }
 
 /// Call the destructors registered with `at_thread_exit`.
-unsafe fn call_thread_dtors(current: *mut Thread) {
+fn call_thread_dtors(current: *mut Thread) {
     // Run the `dtors`, in reverse order of registration. Note that destructors
     // may register new destructors.
-    while let Some((func, obj)) = (*current).dtors.pop() {
-        log::trace!(
-            "Thread[{:?}] calling `at_thread_exit`-registered function `{:?}({:?})`",
-            (*current).thread_id,
-            func,
-            obj
-        );
-        func(obj);
+    //
+    // Safety: `current` points to thread-local data which is valid as long
+    // as the thread is alive.
+    while let Some(func) = unsafe { (*current).dtors.pop() } {
+        if log::log_enabled!(log::Level::Trace) {
+            log::trace!(
+                "Thread[{:?}] calling `at_thread_exit`-registered function",
+                unsafe { (*current).thread_id.load(SeqCst) },
+            );
+        }
+
+        func();
     }
 }
 
@@ -417,8 +419,7 @@ pub(super) unsafe fn initialize_main_thread(mem: *mut c_void) {
 /// calls `fn_`, which does, and it's marked `unsafe`.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub fn create_thread(
-    fn_: unsafe extern "C" fn(*mut c_void) -> *mut c_void,
-    arg: *mut c_void,
+    fn_: Box<dyn FnOnce() -> Option<Box<dyn Any>>>,
     stack_size: usize,
     guard_size: usize,
 ) -> io::Result<*mut Thread> {
@@ -567,8 +568,7 @@ pub fn create_thread(
             thread_id_ptr,
             thread_id_ptr,
             newtls.cast::<u8>().cast(),
-            arg,
-            fn_,
+            Box::into_raw(Box::new(fn_)),
         );
         #[cfg(any(
             target_arch = "x86",
@@ -582,8 +582,7 @@ pub fn create_thread(
             thread_id_ptr,
             newtls.cast::<u8>().cast(),
             thread_id_ptr,
-            arg,
-            fn_,
+            Box::into_raw(Box::new(fn_)),
         );
         if clone_res >= 0 {
             Ok(&mut (*metadata).thread)
