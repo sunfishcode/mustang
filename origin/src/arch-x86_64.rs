@@ -1,5 +1,6 @@
 use linux_raw_sys::general::{__NR_clone, __NR_exit, __NR_munmap};
 use rsix::process::RawPid;
+use std::any::Any;
 use std::ffi::c_void;
 
 #[inline]
@@ -9,27 +10,19 @@ pub(super) unsafe fn clone(
     parent_tid: *mut RawPid,
     child_tid: *mut RawPid,
     newtls: *mut c_void,
-    arg: *mut c_void,
-    fn_: unsafe extern "C" fn(*mut c_void) -> *mut c_void,
+    fn_: *mut Box<dyn FnOnce() -> Option<Box<dyn Any>>>,
 ) -> isize {
     let r0;
     asm!(
-        // Pass `fn_` and `arg` to the child thread. We don't have enough
-        // registers, so `arg` has to go on the child thread's stack.
-        "mov    rcx,QWORD PTR [r9]",
-        "mov    QWORD PTR [rsi-8],rcx",
-        "mov    r9,QWORD PTR [r9+8]",
-
         "syscall",
-        "test   eax,eax",
-        "jnz    0f",
+        "test eax,eax",
+        "jnz 0f",
 
         // Child thread.
-        "xor    ebp,ebp",     // zero the frame pointer
-        "mov    rdi,[rsp-8]", // `arg`
-        "mov    rsi,r9",      // `fn_`
-        "push   rbp",         // zero the return address
-        "jmp    {entry}",
+        "xor ebp,ebp",     // zero the frame address
+        "mov rdi,r9",      // `fn_`
+        "push rax",        // zero the return address
+        "jmp {entry}",
 
         // Parent thread.
         "0:",
@@ -41,7 +34,7 @@ pub(super) unsafe fn clone(
         in("rdx") parent_tid,
         in("r10") child_tid,
         in("r8") newtls,
-        in("r9") &[arg, fn_ as _],
+        in("r9") fn_,
         lateout("rcx") _,
         lateout("r11") _,
         options(nostack)
