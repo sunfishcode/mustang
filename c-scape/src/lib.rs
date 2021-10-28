@@ -2195,15 +2195,17 @@ unsafe extern "C" fn sigaltstack(_ss: *const c_void, _old_ss: *mut c_void) -> c_
 }
 
 #[no_mangle]
-unsafe extern "C" fn sigaddset() {
-    //libc!(sigaddset);
-    unimplemented!("sigaddset")
+unsafe extern "C" fn sigaddset(_sigset: *mut c_void, _signum: c_int) -> c_int {
+    libc!(sigaddset(_sigset.cast::<_>(), _signum));
+    // Signal sets are not used right now.
+    0
 }
 
 #[no_mangle]
-unsafe extern "C" fn sigemptyset() {
-    //libc!(sigemptyset);
-    unimplemented!("sigemptyset")
+unsafe extern "C" fn sigemptyset(_sigset: *mut c_void) -> c_int {
+    libc!(sigemptyset(_sigset.cast::<_>()));
+    // Signal sets are not used right now.
+    0
 }
 
 // syscall
