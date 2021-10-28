@@ -220,7 +220,7 @@ pub unsafe fn thread_stack(thread: *mut Thread) -> (*mut c_void, usize, usize) {
 ///
 /// This arranges for `func` to be called, and passed `obj`, when the thread
 /// exits.
-pub fn at_thread_exit(func: Box<dyn FnOnce() + Send>) {
+pub fn at_thread_exit(func: Box<dyn FnOnce()>) {
     // Safety: `current_thread()` points to thread-local data which is valid
     // as long as the thread is alive.
     unsafe {
