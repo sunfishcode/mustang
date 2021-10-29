@@ -15,6 +15,7 @@ mod error_str;
 mod raw_mutex;
 // Unwinding isn't supported on 32-bit arm yet.
 // On aarch64 and riscg64 unwinding currently depends on a pre-release gimli.
+mod allocator;
 #[cfg(any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"))]
 mod unwind;
 

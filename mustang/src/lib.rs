@@ -17,20 +17,3 @@ extern crate origin;
 #[cfg(not(any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64")))]
 #[cfg(target_vendor = "mustang")]
 extern crate unwinding;
-
-#[cfg(target_vendor = "mustang")]
-#[cfg(feature = "dlmalloc")]
-#[global_allocator]
-static GLOBAL_ALLOCATOR: dlmalloc::GlobalDlmalloc = dlmalloc::GlobalDlmalloc;
-
-#[cfg(target_vendor = "mustang")]
-#[cfg(feature = "wee_alloc")]
-#[global_allocator]
-static GLOBAL_ALLOCATOR: wee_alloc::WeeAlloc<'static> = wee_alloc::WeeAlloc::INIT;
-
-// We need to enable some global allocator, because `c-scape` implements
-// `malloc` using the Rust global allocator, and the default Rust global
-// allocator uses `malloc`.
-#[cfg(target_vendor = "mustang")]
-#[cfg(not(any(feature = "dlmalloc", feature = "wee_alloc")))]
-compile_error!("Either feature \"dlmalloc\" or \"wee_alloc\" must be enabled for this crate.");

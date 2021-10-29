@@ -16,11 +16,6 @@ edition = "2018"
 cc = { version = "1.0.68", optional = true }
 
 [dependencies]
-# A general-purpose `global_allocator` implementation.
-dlmalloc = { version = "0.2", features = ["global"], optional = true }
-# A small `global_allocator` implementation.
-wee_alloc = { version = "0.4", optional = true }
-
 # Enable "libc" and don't depend on "spin".
 # TODO: Eventually, we should propose a `fde-phdr-rsix` backend option to
 # upstream `unwinding` so that it doesn't need to go through `dl_iterate_phdr`,
@@ -42,6 +37,5 @@ origin = { path = "../origin", default-features = false, version = "^0.1.1-alpha
 c-scape = { path = "../c-scape", version = "^0.1.1-alpha.0"}
 
 [features]
-default = ["default-alloc", "threads"]
-default-alloc = ["dlmalloc"]
+default = ["threads"]
 threads = ["origin/threads", "c-scape/threads"]

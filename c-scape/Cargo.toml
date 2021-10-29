@@ -22,6 +22,10 @@ sync-resolve = "0.3.0"
 origin = { path = "../origin", default-features = false, version = "^0.1.1-alpha.0"}
 parking_lot = "0.11.2"
 log = "0.4.14"
+# A general-purpose `global_allocator` implementation.
+dlmalloc = { version = "0.2", features = ["global"], optional = true }
+# A small `global_allocator` implementation.
+wee_alloc = { version = "0.4", optional = true }
 
 # When requested, check against libc signatures.
 [target.'cfg(mustang_use_libc)'.dependencies]
@@ -38,5 +42,6 @@ static_assertions = "1.1.0"
 paste = "1.0.5"
 
 [features]
-default = ["threads"]
+default = ["default-alloc", "threads"]
+default-alloc = ["dlmalloc"]
 threads = ["origin/threads"]
