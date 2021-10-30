@@ -1651,6 +1651,9 @@ unsafe extern "C" fn posix_memalign(
     size: usize,
 ) -> c_int {
     libc!(posix_memalign(memptr, alignment, size));
+    if !(alignment.is_power_of_two() && alignment % std::mem::size_of::<*const c_void>() == 0) {
+        return rsix::io::Error::INVAL.raw_os_error();
+    }
 
     let layout = std::alloc::Layout::from_size_align(size, alignment).unwrap();
     let ptr = std::alloc::alloc(layout).cast::<_>();
