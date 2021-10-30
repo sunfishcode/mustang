@@ -1590,22 +1590,75 @@ unsafe extern "C" fn eventfd(initval: c_uint, flags: c_int) -> c_int {
 
 // malloc
 
-// Keep track of every `malloc`'d pointer. This isn't amazingly efficient,
-// but it works.
-static MALLOC_METADATA: once_cell::sync::Lazy<
-    std::sync::Mutex<std::collections::HashMap<usize, std::alloc::Layout>>,
-> = once_cell::sync::Lazy::new(|| std::sync::Mutex::new(std::collections::HashMap::new()));
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+struct Tag {
+    size: usize,
+    align: usize,
+}
+
+/// allocates for a given layout, with a tag prepended to the allocation,
+/// to keep track of said layout.
+/// returns null if the allocation failed
+fn tagged_alloc(type_layout: std::alloc::Layout) -> *mut u8 {
+    if type_layout.size() == 0 {
+        return std::ptr::null_mut();
+    }
+
+    let tag_layout = std::alloc::Layout::new::<Tag>();
+    let tag = Tag {
+        size: type_layout.size(),
+        align: type_layout.align(),
+    };
+    if let Ok((total_layout, offset)) = tag_layout.extend(type_layout) {
+        let total_ptr = unsafe { std::alloc::alloc(total_layout) };
+        if total_ptr.is_null() {
+            return total_ptr;
+        }
+
+        let tag_offset = offset - tag_layout.size();
+        unsafe {
+            total_ptr.wrapping_add(tag_offset).cast::<Tag>().write(tag);
+            total_ptr.wrapping_add(offset).cast::<_>()
+        }
+    } else {
+        std::ptr::null_mut()
+    }
+}
+
+/// get the layout out of a tagged allocation
+///
+/// #Safety
+/// the given pointer must be a non-null pointer,
+/// gotten from calling `tagged_alloc`
+unsafe fn get_layout(ptr: *mut u8) -> std::alloc::Layout {
+    let tag = ptr
+        .wrapping_sub(std::mem::size_of::<Tag>())
+        .cast::<Tag>()
+        .read();
+    std::alloc::Layout::from_size_align_unchecked(tag.size, tag.align)
+}
+
+/// get the layout out of a tagged allocation
+///
+/// #Safety
+/// the given pointer must be a non-null pointer,
+/// gotten from calling `tagged_alloc`
+unsafe fn tagged_dealloc(ptr: *mut u8) {
+    let tag_layout = std::alloc::Layout::new::<Tag>();
+    let type_layout = get_layout(ptr);
+    if let Ok((total_layout, offset)) = tag_layout.extend(type_layout) {
+        let total_ptr = ptr.wrapping_sub(offset);
+        std::alloc::dealloc(total_ptr, total_layout);
+    }
+}
 
 #[no_mangle]
 unsafe extern "C" fn malloc(size: usize) -> *mut c_void {
     libc!(malloc(size));
 
     let layout = std::alloc::Layout::from_size_align(size, data::ALIGNOF_MAXALIGN_T).unwrap();
-    let ptr = std::alloc::alloc(layout).cast::<_>();
-
-    MALLOC_METADATA.lock().unwrap().insert(ptr as usize, layout);
-
-    ptr
+    tagged_alloc(layout).cast::<_>()
 }
 
 #[no_mangle]
@@ -1615,15 +1668,14 @@ unsafe extern "C" fn realloc(old: *mut c_void, size: usize) -> *mut c_void {
     if old.is_null() {
         malloc(size)
     } else {
-        let remove = MALLOC_METADATA.lock().unwrap().remove(&(old as usize));
-        let old_layout = remove.unwrap();
+        let old_layout = get_layout(old.cast::<_>());
         if old_layout.size() >= size {
             return old;
         }
 
         let new = malloc(size);
         memcpy(new, old, std::cmp::min(size, old_layout.size()));
-        std::alloc::dealloc(old.cast::<_>(), old_layout);
+        tagged_dealloc(old.cast::<_>());
         new
     }
 }
@@ -1656,9 +1708,7 @@ unsafe extern "C" fn posix_memalign(
     }
 
     let layout = std::alloc::Layout::from_size_align(size, alignment).unwrap();
-    let ptr = std::alloc::alloc(layout).cast::<_>();
-
-    MALLOC_METADATA.lock().unwrap().insert(ptr as usize, layout);
+    let ptr = tagged_alloc(layout).cast::<_>();
 
     *memptr = ptr;
     0
@@ -1672,9 +1722,7 @@ unsafe extern "C" fn free(ptr: *mut c_void) {
         return;
     }
 
-    let remove = MALLOC_METADATA.lock().unwrap().remove(&(ptr as usize));
-    let layout = remove.unwrap();
-    std::alloc::dealloc(ptr.cast::<_>(), layout);
+    tagged_dealloc(ptr.cast::<_>());
 }
 
 // mem
