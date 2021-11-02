@@ -1,5 +1,8 @@
-use lock_api::{GuardSend, Mutex as GenericMutex, RawMutex as MutexApi};
+use lock_api::{
+    GuardSend, Mutex as GenericMutex, MutexGuard as GenericMutexGuard, RawMutex as MutexApi,
+};
 use rsix::thread::{futex, FutexFlags, FutexOperation};
+use std::ops::{Deref, DerefMut};
 use std::ptr::{null, null_mut};
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::SeqCst;
@@ -13,9 +16,7 @@ use std::sync::atomic::Ordering::SeqCst;
 // 0 => unlocked
 // 1 => locked
 // 2 => locked with waiters waiting
-pub(crate) struct RawMutex(AtomicU32);
-
-pub(crate) type Mutex<T> = GenericMutex<RawMutex, T>;
+struct RawMutex(AtomicU32);
 
 unsafe impl MutexApi for RawMutex {
     const INIT: Self = unsafe { RawMutex::new() };
@@ -130,5 +131,41 @@ impl RawMutex {
             )
             .unwrap();
         }
+    }
+}
+
+pub(crate) struct Mutex<T> {
+    inner: GenericMutex<RawMutex, T>,
+}
+
+pub(crate) struct MutexGuard<'a, T> {
+    inner: GenericMutexGuard<'a, RawMutex, T>,
+}
+
+impl<T> Mutex<T> {
+    pub const unsafe fn new(value: T) -> Self {
+        Mutex {
+            inner: GenericMutex::const_new(RawMutex::new(), value),
+        }
+    }
+
+    pub fn lock(&self) -> MutexGuard<'_, T> {
+        MutexGuard {
+            inner: self.inner.lock(),
+        }
+    }
+}
+
+impl<'a, T> Deref for MutexGuard<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<'a, T> DerefMut for MutexGuard<'a, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
