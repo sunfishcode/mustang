@@ -7,6 +7,8 @@
 
 mod program;
 #[cfg(feature = "threads")]
+mod raw_mutex;
+#[cfg(feature = "threads")]
 mod threads;
 
 #[cfg(all(target_arch = "aarch64", feature = "threads"))]

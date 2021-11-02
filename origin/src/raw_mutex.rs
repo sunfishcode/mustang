@@ -1,4 +1,4 @@
-use parking_lot::lock_api::{GuardSend, Mutex as GenericMutex, MutexGuard, RawMutex as MutexApi};
+use lock_api::{GuardSend, Mutex as GenericMutex, RawMutex as MutexApi};
 use rsix::thread::{futex, FutexFlags, FutexOperation};
 use std::ptr::{null, null_mut};
 use std::sync::atomic::AtomicU32;
@@ -9,15 +9,14 @@ use std::sync::atomic::Ordering::SeqCst;
 /// The current implementation does not provide fairness, is not reentrant,
 /// and is not proven correct.
 ///
-/// This type is not movable when locked; the `new` function is `unsafe` to
-/// reflect this.
+/// This type is not movable when locked.
 // 0 => unlocked
 // 1 => locked
 // 2 => locked with waiters waiting
 pub(crate) struct RawMutex(AtomicU32);
 
-/// This implements the same API as `lock_api::RawMutex`, except it doesn't
-/// have `INIT`, so that constructing a `RawMutex` can be `unsafe`.
+pub(crate) type Mutex<T> = GenericMutex<RawMutex, T>;
+
 unsafe impl MutexApi for RawMutex {
     const INIT: Self = unsafe { RawMutex::new() };
 
@@ -131,23 +130,5 @@ impl RawMutex {
             )
             .unwrap();
         }
-    }
-}
-
-pub(crate) struct Mutex<T> {
-    inner: GenericMutex<RawMutex, T>,
-}
-
-impl<T> Mutex<T> {
-    pub const fn new(value: T) -> Self {
-        unsafe {
-            Mutex {
-                inner: GenericMutex::const_new(RawMutex::new(), value),
-            }
-        }
-    }
-
-    pub fn lock(&self) -> MutexGuard<'_, RawMutex, T> {
-        self.inner.lock()
     }
 }
