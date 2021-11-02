@@ -34,7 +34,7 @@ use memoffset::offset_of;
 #[cfg(feature = "threads")]
 use origin::Thread;
 #[cfg(feature = "threads")]
-use parking_lot::lock_api::RawRwLock;
+use parking_lot::lock_api::{RawMutex as _, RawRwLock};
 #[cfg(feature = "threads")]
 use raw_mutex::RawMutex;
 use rsix::fs::{cwd, openat, AtFlags, FdFlags, Mode, OFlags};
