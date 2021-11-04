@@ -5,10 +5,8 @@
 #![feature(link_llvm_intrinsics)]
 #![feature(atomic_mut_ptr)]
 
-#[cfg(feature = "threads")]
 mod allocator;
 mod program;
-#[cfg(feature = "threads")]
 mod raw_mutex;
 #[cfg(feature = "threads")]
 mod threads;
