@@ -22,4 +22,4 @@ extern crate unwinding;
 // to ensure symbols from the above crates are actually linked
 #[cfg(target_vendor = "mustang")]
 #[global_allocator]
-static GLOBAL_ALLOCATOR: origin::GlobalAllocator = origin::GlobalAllocator::new();
+static GLOBAL_ALLOCATOR: origin::GlobalAllocator = origin::GlobalAllocator;
