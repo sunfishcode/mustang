@@ -2479,13 +2479,12 @@ unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> 
     libc!(execvp(file, args));
     let args = null_terminated_array(args);
     let envs = null_terminated_array(environ.cast::<_>());
-    if let None = set_errno(
+    match set_errno(
         resolve_binary(CStr::from_ptr(file), &envs)
             .and_then(|path| rsix::runtime::execve::<&CStr>(&path, &args, &envs)),
     ) {
-        -1
-    } else {
-        0
+        Some(_) => 0,
+        None => -1,
     }
 }
 
