@@ -3393,7 +3393,11 @@ unsafe extern "C" fn pthread_attr_getstack(
 #[no_mangle]
 unsafe extern "C" fn pthread_getspecific() -> *const c_void {
     //libc!(pthread_getspecific());
-    rustix::io::write(&rustix::io::stderr(), b"unimplemented: pthread_getspecific\n").ok();
+    rustix::io::write(
+        &rustix::io::stderr(),
+        b"unimplemented: pthread_getspecific\n",
+    )
+    .ok();
     null()
 }
 
@@ -3401,7 +3405,11 @@ unsafe extern "C" fn pthread_getspecific() -> *const c_void {
 #[no_mangle]
 unsafe extern "C" fn pthread_key_create() -> c_int {
     //libc!(pthread_key_create());
-    rustix::io::write(&rustix::io::stderr(), b"unimplemented: pthread_key_create\n").ok();
+    rustix::io::write(
+        &rustix::io::stderr(),
+        b"unimplemented: pthread_key_create\n",
+    )
+    .ok();
     0
 }
 
@@ -3409,7 +3417,11 @@ unsafe extern "C" fn pthread_key_create() -> c_int {
 #[no_mangle]
 unsafe extern "C" fn pthread_key_delete() -> c_int {
     //libc!(pthread_key_delete());
-    rustix::io::write(&rustix::io::stderr(), b"unimplemented: pthread_key_delete\n").ok();
+    rustix::io::write(
+        &rustix::io::stderr(),
+        b"unimplemented: pthread_key_delete\n",
+    )
+    .ok();
     0
 }
 
@@ -3570,7 +3582,11 @@ unsafe extern "C" fn pthread_rwlock_unlock(rwlock: *mut PthreadRwlockT) -> c_int
 #[no_mangle]
 unsafe extern "C" fn pthread_setspecific() -> c_int {
     //libc!(pthread_setspecific());
-    rustix::io::write(&rustix::io::stderr(), b"unimplemented: pthread_getspecific\n").ok();
+    rustix::io::write(
+        &rustix::io::stderr(),
+        b"unimplemented: pthread_getspecific\n",
+    )
+    .ok();
     0
 }
 
@@ -3712,7 +3728,11 @@ unsafe extern "C" fn pthread_cond_init(
 unsafe extern "C" fn pthread_cond_signal(cond: *mut PthreadCondT) -> c_int {
     libc!(pthread_cond_signal(same_ptr_mut(cond)));
     let _ = cond;
-    rustix::io::write(&rustix::io::stderr(), b"unimplemented: pthread_cond_signal\n").ok();
+    rustix::io::write(
+        &rustix::io::stderr(),
+        b"unimplemented: pthread_cond_signal\n",
+    )
+    .ok();
     0
 }
 
