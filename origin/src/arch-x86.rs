@@ -1,5 +1,5 @@
 use linux_raw_sys::general::{__NR_clone, __NR_exit, __NR_munmap};
-use rsix::process::RawPid;
+use rustix::process::RawPid;
 use std::any::Any;
 use std::ffi::c_void;
 
@@ -16,7 +16,7 @@ pub(super) unsafe fn clone(
     asm!("mov {0:x},gs", inout(reg) gs);
     let entry_number = gs >> 3;
 
-    let mut user_desc = rsix::runtime::UserDesc {
+    let mut user_desc = rustix::runtime::UserDesc {
         entry_number,
         base_addr: newtls as u32,
         limit: 0xfffff,
@@ -32,7 +32,7 @@ pub(super) unsafe fn clone(
     user_desc.set_useable(1);
     let newtls: *const _ = &user_desc;
 
-    // See the comments for x86's `syscall6` in rsix. Inline asm isn't
+    // See the comments for x86's `syscall6` in `rustix`. Inline asm isn't
     // allowed to name ebp or esi as operands, so we have to jump through
     // extra hoops here.
     let r0;
@@ -80,7 +80,7 @@ pub(super) unsafe fn clone(
 #[cfg(target_vendor = "mustang")]
 #[inline]
 pub(super) unsafe fn set_thread_pointer(ptr: *mut c_void) {
-    let mut user_desc = rsix::runtime::UserDesc {
+    let mut user_desc = rustix::runtime::UserDesc {
         entry_number: -1i32 as u32,
         base_addr: ptr as u32,
         limit: 0xfffff,
@@ -94,7 +94,7 @@ pub(super) unsafe fn set_thread_pointer(ptr: *mut c_void) {
     user_desc.set_limit_in_pages(1);
     user_desc.set_seg_not_present(0);
     user_desc.set_useable(1);
-    rsix::runtime::set_thread_area(&mut user_desc).expect("set_thread_area");
+    rustix::runtime::set_thread_area(&mut user_desc).expect("set_thread_area");
     asm!("mov gs,{0:x}", in(reg) ((user_desc.entry_number << 3) | 3) as u16);
     debug_assert_eq!(*ptr.cast::<*const c_void>(), ptr);
     debug_assert_eq!(get_thread_pointer(), ptr);

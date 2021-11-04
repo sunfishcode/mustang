@@ -4,12 +4,12 @@
 use crate::arch::set_thread_pointer;
 use crate::arch::{clone, get_thread_pointer, munmap_and_exit_thread, TLS_OFFSET};
 use memoffset::offset_of;
-use rsix::io;
+use rustix::io;
 #[cfg(target_vendor = "mustang")]
-use rsix::process::{getrlimit, linux_execfn, Resource};
-use rsix::process::{page_size, Pid};
-use rsix::runtime::{set_tid_address, StartupTlsInfo};
-use rsix::thread::gettid;
+use rustix::process::{getrlimit, linux_execfn, Resource};
+use rustix::process::{page_size, Pid};
+use rustix::runtime::{set_tid_address, StartupTlsInfo};
+use rustix::thread::gettid;
 use std::any::Any;
 use std::cmp::max;
 use std::ffi::c_void;
@@ -167,7 +167,7 @@ pub fn current_thread() -> *mut Thread {
 
 /// Return the current thread id.
 ///
-/// This is the same as `rsix::thread::gettid()`, but loads the value from a
+/// This is the same as `rustix::thread::gettid()`, but loads the value from a
 /// field in the runtime rather than making a system call.
 #[inline]
 pub fn current_thread_id() -> Pid {
@@ -297,7 +297,7 @@ unsafe fn exit_thread() -> ! {
     }
 
     // Terminate the thread.
-    rsix::runtime::exit_thread(0)
+    rustix::runtime::exit_thread(0)
 }
 
 /// Initialize the main thread.
@@ -308,7 +308,7 @@ unsafe fn exit_thread() -> ! {
 #[cfg(target_vendor = "mustang")]
 pub(super) unsafe fn initialize_main_thread(mem: *mut c_void) {
     // Read the TLS information from the ELF header.
-    STARTUP_TLS_INFO = rsix::runtime::startup_tls_info();
+    STARTUP_TLS_INFO = rustix::runtime::startup_tls_info();
 
     // Determine the top of the stack. Linux puts the `AT_EXECFN` string at
     // the top, so find the end of that, and then round up to the page size.
@@ -640,7 +640,7 @@ pub unsafe fn join_thread(thread: *mut Thread) {
 }
 
 unsafe fn wait_for_thread_exit(thread: *mut Thread) {
-    use rsix::thread::{futex, FutexFlags, FutexOperation};
+    use rustix::thread::{futex, FutexFlags, FutexOperation};
 
     // Check whether the thread has exited already; we set the
     // `CloneFlags::CHILD_CLEARTID` flag on the clone syscall, so we can test
@@ -669,7 +669,7 @@ unsafe fn wait_for_thread_exit(thread: *mut Thread) {
 }
 
 unsafe fn free_thread_memory(thread: *mut Thread) {
-    use rsix::io::munmap;
+    use rustix::io::munmap;
 
     // The thread was detached. Prepare to free the memory. First read out
     // all the fields that we'll need before freeing it.
@@ -724,7 +724,7 @@ unsafe extern "C" fn __aeabi_read_tp() -> *mut c_void {
     get_thread_pointer()
 }
 
-// We define `clone` and `CloneFlags` here in `origin` instead of `rsix`
+// We define `clone` and `CloneFlags` here in `origin` instead of `rustix`
 // because `clone` needs custom assembly code that knows about what we're
 // using it for.
 bitflags::bitflags! {

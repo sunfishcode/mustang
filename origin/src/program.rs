@@ -4,8 +4,6 @@ use crate::threads::initialize_main_thread;
 #[cfg(target_vendor = "mustang")]
 use once_cell::sync::OnceCell;
 use std::ffi::c_void;
-#[cfg(target_vendor = "mustang")]
-use std::os::raw::c_char;
 use std::os::raw::c_int;
 #[cfg(not(target_vendor = "mustang"))]
 use std::ptr::null_mut;
@@ -20,7 +18,7 @@ use std::sync::Mutex;
 #[cfg(target_vendor = "mustang")]
 pub(super) unsafe extern "C" fn entry(mem: *mut usize) -> ! {
     extern "C" {
-        fn main(argc: c_int, argv: *mut *mut c_char, envp: *mut *mut c_char) -> c_int;
+        fn main(argc: c_int, argv: *mut *mut u8, envp: *mut *mut u8) -> c_int;
     }
 
     // Do some basic precondition checks, to ensure that our assembly code did
@@ -62,7 +60,7 @@ pub(super) unsafe extern "C" fn entry(mem: *mut usize) -> ! {
 
     // Compute `argc`, `argv`, and `envp`.
     let argc = *mem as c_int;
-    let argv = mem.add(1).cast::<*mut c_char>();
+    let argv = mem.add(1).cast::<*mut u8>();
     let envp = argv.add(argc as usize + 1);
 
     // Do a few more precondition checks on `argc` and `argv`.
@@ -70,10 +68,10 @@ pub(super) unsafe extern "C" fn entry(mem: *mut usize) -> ! {
     debug_assert_eq!(*mem, argc as _);
     debug_assert_eq!(*argv.add(argc as usize), std::ptr::null_mut());
 
-    // Explicitly initialize rsix. On non-mustang platforms it uses a
+    // Explicitly initialize `rustix`. On non-mustang platforms it uses a
     // .init_array hook to initialize itself automatically, but for mustang, we
     // do it manually so that we can control the initialization order.
-    rsix::process::init(envp);
+    rustix::process::init(envp);
 
     // Initialize the main thread.
     #[cfg(feature = "threads")]
@@ -95,14 +93,14 @@ pub(super) unsafe extern "C" fn entry(mem: *mut usize) -> ! {
 }
 
 #[cfg(target_vendor = "mustang")]
-pub(super) unsafe fn call_ctors(argc: c_int, argv: *mut *mut c_char, envp: *mut *mut c_char) {
+pub(super) unsafe fn call_ctors(argc: c_int, argv: *mut *mut u8, envp: *mut *mut u8) {
     extern "C" {
         static __init_array_start: c_void;
         static __init_array_end: c_void;
     }
 
     // Call the `.init_array` functions.
-    type InitFn = fn(c_int, *mut *mut c_char, *mut *mut c_char);
+    type InitFn = fn(c_int, *mut *mut u8, *mut *mut u8);
     let mut init = &__init_array_start as *const _ as usize as *const InitFn;
     let init_end = &__init_array_end as *const _ as usize as *const InitFn;
     // Prevent the optimizer from optimizing the `!=` comparison to true;
@@ -214,5 +212,5 @@ pub fn exit(status: c_int) -> ! {
 pub fn exit_immediately(status: c_int) -> ! {
     log::trace!("Program exiting");
 
-    rsix::process::exit_group(status)
+    rustix::process::exit_group(status)
 }

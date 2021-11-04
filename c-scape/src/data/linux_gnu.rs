@@ -276,7 +276,7 @@ pub(crate) struct Addrinfo {
     pub(crate) ai_socktype: c_int,
     pub(crate) ai_protocol: c_int,
     pub(crate) ai_addrlen: SockLen,
-    pub(crate) ai_addr: *mut rsix::net::SocketAddrStorage,
+    pub(crate) ai_addr: *mut rustix::net::SocketAddrStorage,
     pub(crate) ai_canonname: *mut i8,
     pub(crate) ai_next: *mut Addrinfo,
 }

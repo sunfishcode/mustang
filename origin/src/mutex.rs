@@ -1,4 +1,4 @@
-use rsix::thread::{futex, FutexFlags, FutexOperation};
+use rustix::thread::{futex, FutexFlags, FutexOperation};
 use std::cell::UnsafeCell;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::AtomicU32;
@@ -90,7 +90,7 @@ impl FutexMutex {
                         null_mut(),
                         0,
                     ) {
-                        Ok(_) | Err(rsix::io::Error::AGAIN) => {}
+                        Ok(_) | Err(rustix::io::Error::AGAIN) => {}
                         Err(err) => Err(err).unwrap(),
                     }
                 }
