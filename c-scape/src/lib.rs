@@ -2458,7 +2458,7 @@ fn resolve_binary<'a>(file: &'a CStr, envs: &[&CStr]) -> rsix::io::Result<Cow<'a
             .map(CStr::to_bytes)
             .find(|env| env.starts_with(b"PATH="))
             .map(|env| env.split_at(b"PATH=".len()).1)
-            .unwrap_or(b".")
+            .unwrap_or(b"/bin:/usr/bin")
             .split(|&byte| byte == b':')
             .filter_map(|path_bytes| {
                 let mut full_path = path_bytes.to_vec();
