@@ -45,8 +45,9 @@ use rsix::net::{
     Shutdown, SocketAddr, SocketAddrStorage, SocketAddrV4, SocketAddrV6, SocketFlags, SocketType,
 };
 use rsix::process::WaitOptions;
+use std::borrow::Cow;
 use std::convert::TryInto;
-use std::ffi::{c_void, CStr, OsStr};
+use std::ffi::{c_void, CStr, CString, OsStr};
 use std::mem::{size_of, zeroed};
 use std::os::raw::{c_char, c_int, c_long, c_uint, c_ulong};
 use std::os::unix::ffi::OsStrExt;
@@ -2423,10 +2424,68 @@ unsafe extern "C" fn nanosleep(
 
 // exec
 
+unsafe fn null_terminated_array<'a>(list: *const *const c_char) -> Vec<&'a CStr> {
+    let mut len = 0;
+    while !(*list.wrapping_add(len)).is_null() {
+        len += 1;
+    }
+    let list = std::slice::from_raw_parts(list, len);
+    list.into_iter()
+        .copied()
+        .map(|ptr| CStr::from_ptr(ptr))
+        .collect()
+}
+
+fn file_exists(cwd: &rsix::io_lifetimes::BorrowedFd<'_>, path: &CStr) -> bool {
+    rsix::fs::accessat(
+        cwd,
+        path,
+        rsix::fs::Access::EXISTS | rsix::fs::Access::EXEC_OK,
+        rsix::fs::AtFlags::empty(),
+    )
+    .is_ok()
+}
+
+fn resolve_binary<'a>(file: &'a CStr, envs: &[&CStr]) -> rsix::io::Result<Cow<'a, CStr>> {
+    let file_bytes = file.to_bytes();
+    if file_bytes.contains(&b'/') {
+        Ok(Cow::Borrowed(file))
+    } else {
+        let cwd = rsix::fs::cwd();
+        match envs
+            .into_iter()
+            .copied()
+            .map(CStr::to_bytes)
+            .find(|env| env.starts_with(b"PATH="))
+            .map(|env| env.split_at(b"PATH=".len()).1)
+            .unwrap_or(b"/bin:/usr/bin")
+            .split(|&byte| byte == b':')
+            .filter_map(|path_bytes| {
+                let mut full_path = path_bytes.to_vec();
+                full_path.push(b'/');
+                full_path.extend_from_slice(file_bytes);
+                CString::new(full_path).ok()
+            })
+            .find(|path| file_exists(&cwd, &path))
+        {
+            Some(path) => Ok(Cow::Owned(path)),
+            None => Err(rsix::io::Error::ACCES),
+        }
+    }
+}
+
 #[no_mangle]
-unsafe extern "C" fn execvp() {
-    //libc!(execvp());
-    unimplemented!("execvp")
+unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> c_int {
+    libc!(execvp(file, args));
+    let args = null_terminated_array(args);
+    let envs = null_terminated_array(environ.cast::<_>());
+    match set_errno(
+        resolve_binary(CStr::from_ptr(file), &envs)
+            .and_then(|path| rsix::runtime::execve::<&CStr>(&path, &args, &envs)),
+    ) {
+        Some(_) => 0,
+        None => -1,
+    }
 }
 
 #[no_mangle]
