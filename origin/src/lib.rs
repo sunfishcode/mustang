@@ -38,6 +38,11 @@ pub use threads::{
     default_guard_size, default_stack_size, detach_thread, join_thread, thread_stack, Thread,
 };
 
+use allocator::GlobalAllocator;
+
+#[global_allocator]
+static GLOBAL_ALLOCATOR: GlobalAllocator = GlobalAllocator::new();
+
 /// The program entry point.
 ///
 /// # Safety
