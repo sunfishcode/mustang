@@ -6,8 +6,8 @@
 #![feature(atomic_mut_ptr)]
 
 mod allocator;
+mod mutex;
 mod program;
-mod raw_mutex;
 #[cfg(feature = "threads")]
 mod threads;
 
