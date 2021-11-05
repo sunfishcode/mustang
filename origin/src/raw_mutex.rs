@@ -145,6 +145,10 @@ pub(crate) struct Mutex<T> {
     inner: GenericMutex<FutexMutex, T>,
 }
 
+/// this types wraps the mutex guard,
+/// which normally provides direct access to the underlying RawMutex.
+/// This allows the FutexMutex to remain private to this module,
+/// thus ensuring that it will only be constructed via `Mutex`.
 pub(crate) struct MutexGuard<'a, T> {
     inner: GenericMutexGuard<'a, FutexMutex, T>,
 }
