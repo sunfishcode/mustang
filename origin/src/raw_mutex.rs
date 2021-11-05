@@ -10,7 +10,16 @@ use std::sync::atomic::Ordering::SeqCst;
 /// The current implementation does not provide fairness, is not reentrant,
 /// and is not proven correct.
 ///
-/// This type is not movable when locked.
+/// #Safety:
+/// This type is not movable when locked; the `new` function is `unsafe` to
+/// reflect this.
+/// The `INIT` constant only exists to implement `lock_api::RawMutex`,
+/// and should not be used to construct the type directly.
+///
+/// it is safe to use outside this module, since the only way to construct it,
+/// is inside a `Mutex`, which returns a `MutexGuard` while locked.
+/// While the `MutexGuard` is in scope, the `Mutex` is borrowed,
+/// and so in safe rust cannot be accidently moved.
 // 0 => unlocked
 // 1 => locked
 // 2 => locked with waiters waiting
