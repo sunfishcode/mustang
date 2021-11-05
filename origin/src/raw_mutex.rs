@@ -1,6 +1,4 @@
-use lock_api::{
-    GuardSend, Mutex as GenericMutex, MutexGuard as GenericMutexGuard, RawMutex as MutexApi,
-};
+use lock_api::{GuardSend, Mutex as GenericMutex, MutexGuard as GenericMutexGuard, RawMutex};
 use rsix::thread::{futex, FutexFlags, FutexOperation};
 use std::ops::{Deref, DerefMut};
 use std::ptr::{null, null_mut};
@@ -16,10 +14,10 @@ use std::sync::atomic::Ordering::SeqCst;
 // 0 => unlocked
 // 1 => locked
 // 2 => locked with waiters waiting
-struct RawMutex(AtomicU32);
+struct FutexMutex(AtomicU32);
 
-unsafe impl MutexApi for RawMutex {
-    const INIT: Self = unsafe { RawMutex::new() };
+unsafe impl RawMutex for FutexMutex {
+    const INIT: Self = unsafe { FutexMutex::new() };
 
     type GuardMarker = GuardSend;
 
@@ -71,13 +69,13 @@ unsafe impl MutexApi for RawMutex {
 }
 
 /// This implements the same API as `lock_api::RawMutex`, except it doesn't
-/// have `INIT`, so that constructing a `RawMutex` can be `unsafe`.
-impl RawMutex {
-    /// Returns a new `RawMutex`.
+/// have `INIT`, so that constructing a `FutexMutex` can be `unsafe`.
+impl FutexMutex {
+    /// Returns a new `FutexMutex`.
     ///
     /// # Safety
     ///
-    /// This `RawMutex` type is not movable when it is locked, so it should
+    /// This `FutexMutex` type is not movable when it is locked, so it should
     /// only be constructed in a place where it's never moved once it can be
     /// locked.
     #[inline]
@@ -135,17 +133,17 @@ impl RawMutex {
 }
 
 pub(crate) struct Mutex<T> {
-    inner: GenericMutex<RawMutex, T>,
+    inner: GenericMutex<FutexMutex, T>,
 }
 
 pub(crate) struct MutexGuard<'a, T> {
-    inner: GenericMutexGuard<'a, RawMutex, T>,
+    inner: GenericMutexGuard<'a, FutexMutex, T>,
 }
 
 impl<T> Mutex<T> {
     pub const unsafe fn new(value: T) -> Self {
         Mutex {
-            inner: GenericMutex::const_new(RawMutex::new(), value),
+            inner: GenericMutex::const_new(FutexMutex::new(), value),
         }
     }
 
