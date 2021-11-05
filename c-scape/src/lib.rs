@@ -6,9 +6,6 @@
 #![feature(untagged_unions)] // for `PthreadMutexT`
 #![feature(atomic_mut_ptr)] // for `RawMutex`
 
-#[cfg(not(any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64")))]
-extern crate unwinding;
-
 #[macro_use]
 mod use_libc;
 
