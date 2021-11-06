@@ -14,7 +14,7 @@
 </div>
 
 C-ABI-compatible libc, libm, libpthread, and libunwind interfaces, implemented
-in terms of crates written in Rust, such as [rsix], [origin], [sync-resolve],
+in terms of crates written in Rust, such as [rustix], [origin], [sync-resolve],
 [libm], [realpath-ext], [memchr], and [parking\_lot]. Currently this only
 supports `*-*-linux-gnu` ABIs, though other ABIs could be added.
 
@@ -34,7 +34,7 @@ This is part of the [Mustang] project, building Rust programs written entirely
 in Rust.
 
 [Mustang]: https://github.com/sunfishcode/mustang/
-[rsix]: https://crates.io/crates/rsix
+[rustix]: https://crates.io/crates/rustix
 [origin]: https://crates.io/crates/origin
 [sync-resolve]: https://crates.io/crates/sync-resolve
 [libm]: https://crates.io/crates/libm

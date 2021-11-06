@@ -1,5 +1,5 @@
 use linux_raw_sys::general::{__NR_clone, __NR_exit, __NR_munmap};
-use rsix::process::RawPid;
+use rustix::process::RawPid;
 use std::any::Any;
 use std::ffi::c_void;
 

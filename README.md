@@ -17,9 +17,9 @@ Mustang is a system for building programs built entirely in Rust, meaning they
 do not depend on any part of libc or crt1.o, and do not link in any C code.
 
 Why? For fun! And to exercise some components built for other purposes (such as
-[`rsix`]) but which happen to also be part of what's needed to do what Mustang
-is doing. And in the future, possibly also for experimenting with new kinds of
-platform ABIs and new forms of process argument passing.
+[`rustix`]) but which happen to also be part of what's needed to do what
+Mustang is doing. And in the future, possibly also for experimenting with new
+kinds of platform ABIs and new forms of process argument passing.
 
 Mustang isn't about making anything safer, for the foreseeable future. The
 major libc implementations are extraordinarily well tested and mature. Mustang
@@ -126,7 +126,7 @@ rather than reimplementing `std`. This is likely to evolve, but whatever we
 do, a high-level goal of Mustang is to avoid ever having to reimplement `std`.
 
 Where does `mustang` go from here? Will it support feature X, platform Y, or
-use case Z? If `origin` can do program startup in Rust, and [`rsix`] can do
+use case Z? If `origin` can do program startup in Rust, and [`rustix`] can do
 system calls in Rust, what does it all mean?
 
 And could `mustang` eventually support new ABIs that aren't limited to passing
@@ -137,7 +137,7 @@ Let's find out! Come say hi in the [chat] or an [issue].
 
 ## How does one port `mustang` to a new architecture?
 
- - Port [`rsix`] to the architecture, adding assembly sequences for
+ - Port [`rustix`] to the architecture, adding assembly sequences for
    making syscalls.
  - Port [`origin`] to the architecture, adding assembly sequences for
    program and thread primitives.
@@ -184,7 +184,7 @@ NUL-terminated strings, so it can be much safer.
 [`steed`]: https://github.com/japaric/steed
 [build-std]: https://doc.rust-lang.org/cargo/reference/unstable.html#build-std
 [Rust itself already does this]: https://github.com/rust-lang/rust/blob/6bed1f0bc3cc50c10aab26d5f94b16a00776b8a5/library/std/src/sys/unix/mod.rs#L71
-[`rsix`]: https://github.com/bytecodealliance/rsix
+[`rustix`]: https://github.com/bytecodealliance/rustix
 [`origin`]: https://github.com/sunfishcode/mustang/tree/main/origin
 [chat]: https://bytecodealliance.zulipchat.com/#narrow/stream/217126-wasmtime
 [issue]: https://github.com/sunfishcode/mustang/issues

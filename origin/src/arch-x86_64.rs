@@ -1,5 +1,5 @@
 use linux_raw_sys::general::{__NR_clone, __NR_exit, __NR_munmap};
-use rsix::process::RawPid;
+use rustix::process::RawPid;
 use std::any::Any;
 use std::ffi::c_void;
 
@@ -45,7 +45,7 @@ pub(super) unsafe fn clone(
 #[cfg(target_vendor = "mustang")]
 #[inline]
 pub(super) unsafe fn set_thread_pointer(ptr: *mut c_void) {
-    rsix::runtime::set_fs(ptr);
+    rustix::runtime::set_fs(ptr);
     debug_assert_eq!(*ptr.cast::<*const c_void>(), ptr);
     debug_assert_eq!(get_thread_pointer(), ptr);
 }

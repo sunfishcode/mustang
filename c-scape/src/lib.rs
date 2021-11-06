@@ -22,9 +22,9 @@ mod unwind;
 // to provide things that `std` and possibly popular crates are currently
 // using.
 //
-// This effectively undoes the work that `rsix` does: it calls `rsix` and
+// This effectively undoes the work that `rustix` does: it calls `rustix` and
 // translates it back into a C-like ABI. Ideally, Rust code should just call
-// the `rsix` APIs directly, which are safer, more ergonomic, and skip this
+// the `rustix` APIs directly, which are safer, more ergonomic, and skip this
 // whole layer.
 
 use error_str::error_str;
@@ -35,14 +35,15 @@ use origin::Thread;
 use parking_lot::lock_api::{RawMutex as _, RawRwLock};
 #[cfg(feature = "threads")]
 use parking_lot::RawMutex;
-use rsix::fs::{cwd, openat, AtFlags, FdFlags, Mode, OFlags};
-use rsix::io::{EventfdFlags, MapFlags, MprotectFlags, MremapFlags, PipeFlags, ProtFlags};
-use rsix::io_lifetimes::{AsFd, BorrowedFd, OwnedFd};
-use rsix::net::{
+use rustix::fs::{cwd, openat, AtFlags, FdFlags, Mode, OFlags};
+use rustix::io::{EventfdFlags, MapFlags, MprotectFlags, MremapFlags, PipeFlags, ProtFlags};
+use rustix::io_lifetimes::{AsFd, BorrowedFd, OwnedFd};
+use rustix::net::{
     AcceptFlags, AddressFamily, IpAddr, Ipv4Addr, Ipv6Addr, Protocol, RecvFlags, SendFlags,
-    Shutdown, SocketAddr, SocketAddrStorage, SocketAddrV4, SocketAddrV6, SocketFlags, SocketType,
+    Shutdown, SocketAddrAny, SocketAddrStorage, SocketAddrV4, SocketAddrV6, SocketFlags,
+    SocketType,
 };
-use rsix::process::WaitOptions;
+use rustix::process::WaitOptions;
 use std::borrow::Cow;
 use std::convert::TryInto;
 use std::ffi::{c_void, CStr, CString, OsStr};
@@ -75,7 +76,7 @@ unsafe extern "C" fn __errno_location() -> *mut c_int {
 unsafe extern "C" fn __xpg_strerror_r(errnum: c_int, buf: *mut c_char, buflen: usize) -> c_int {
     libc!(strerror_r(errnum, buf, buflen));
 
-    let message = match error_str(rsix::io::Error::from_raw_os_error(errnum)) {
+    let message = match error_str(rustix::io::Error::from_raw_os_error(errnum)) {
         Some(s) => s.to_owned(),
         None => format!("Unknown error {}", errnum),
     };
@@ -110,7 +111,7 @@ unsafe extern "C" fn open() {
 unsafe extern "C" fn readlink(pathname: *const c_char, buf: *mut c_char, bufsiz: usize) -> isize {
     libc!(readlink(pathname, buf, bufsiz));
 
-    let path = match set_errno(rsix::fs::readlinkat(
+    let path = match set_errno(rustix::fs::readlinkat(
         &cwd(),
         CStr::from_ptr(pathname),
         Vec::new(),
@@ -131,10 +132,10 @@ unsafe extern "C" fn stat() -> c_int {
 }
 
 #[no_mangle]
-unsafe extern "C" fn stat64(pathname: *const c_char, stat_: *mut rsix::fs::Stat) -> c_int {
+unsafe extern "C" fn stat64(pathname: *const c_char, stat_: *mut rustix::fs::Stat) -> c_int {
     libc!(stat64(pathname, same_ptr_mut(stat_)));
 
-    match set_errno(rsix::fs::statat(
+    match set_errno(rustix::fs::statat(
         &cwd(),
         CStr::from_ptr(pathname),
         AtFlags::empty(),
@@ -148,16 +149,16 @@ unsafe extern "C" fn stat64(pathname: *const c_char, stat_: *mut rsix::fs::Stat)
 }
 
 #[no_mangle]
-unsafe extern "C" fn fstat(_fd: c_int, _stat: *mut rsix::fs::Stat) -> c_int {
+unsafe extern "C" fn fstat(_fd: c_int, _stat: *mut rustix::fs::Stat) -> c_int {
     libc!(fstat(_fd, same_ptr_mut(_stat)));
     unimplemented!("fstat")
 }
 
 #[no_mangle]
-unsafe extern "C" fn fstat64(fd: c_int, stat_: *mut rsix::fs::Stat) -> c_int {
+unsafe extern "C" fn fstat64(fd: c_int, stat_: *mut rustix::fs::Stat) -> c_int {
     libc!(fstat64(fd, same_ptr_mut(stat_)));
 
-    match set_errno(rsix::fs::fstat(&BorrowedFd::borrow_raw_fd(fd))) {
+    match set_errno(rustix::fs::fstat(&BorrowedFd::borrow_raw_fd(fd))) {
         Some(r) => {
             *stat_ = r;
             0
@@ -172,18 +173,18 @@ unsafe extern "C" fn statx(
     path: *const c_char,
     flags: c_int,
     mask: c_uint,
-    stat_: *mut rsix::fs::Statx,
+    stat_: *mut rustix::fs::Statx,
 ) -> c_int {
     libc!(statx(dirfd_, path, flags, mask, same_ptr_mut(stat_)));
 
     if path.is_null() || stat_.is_null() {
-        *__errno_location() = rsix::io::Error::FAULT.raw_os_error();
+        *__errno_location() = rustix::io::Error::FAULT.raw_os_error();
         return -1;
     }
 
     let flags = AtFlags::from_bits(flags as _).unwrap();
-    let mask = rsix::fs::StatxFlags::from_bits(mask).unwrap();
-    match set_errno(rsix::fs::statx(
+    let mask = rustix::fs::StatxFlags::from_bits(mask).unwrap();
+    match set_errno(rustix::fs::statx(
         &BorrowedFd::borrow_raw_fd(dirfd_),
         CStr::from_ptr(path),
         flags,
@@ -209,7 +210,7 @@ unsafe extern "C" fn realpath(path: *const c_char, resolved_path: *mut c_char) -
             if resolved_path.is_null() {
                 let ptr = malloc(path.as_os_str().len() + 1).cast::<u8>();
                 if ptr.is_null() {
-                    *__errno_location() = rsix::io::Error::NOMEM.raw_os_error();
+                    *__errno_location() = rustix::io::Error::NOMEM.raw_os_error();
                     return null_mut();
                 }
                 slice::from_raw_parts_mut(ptr, path.as_os_str().len())
@@ -239,7 +240,7 @@ unsafe extern "C" fn fcntl(fd: c_int, cmd: c_int, mut args: ...) -> c_int {
         data::F_GETFL => {
             libc!(fcntl(fd, F_GETFL));
             let fd = BorrowedFd::borrow_raw_fd(fd);
-            match set_errno(rsix::fs::fcntl_getfl(&fd)) {
+            match set_errno(rustix::fs::fcntl_getfl(&fd)) {
                 Some(flags) => flags.bits() as _,
                 None => -1,
             }
@@ -248,7 +249,7 @@ unsafe extern "C" fn fcntl(fd: c_int, cmd: c_int, mut args: ...) -> c_int {
             let flags = args.arg::<c_int>();
             libc!(fcntl(fd, F_SETFD, flags));
             let fd = BorrowedFd::borrow_raw_fd(fd);
-            match set_errno(rsix::fs::fcntl_setfd(
+            match set_errno(rustix::fs::fcntl_setfd(
                 &fd,
                 FdFlags::from_bits(flags as _).unwrap(),
             )) {
@@ -260,7 +261,7 @@ unsafe extern "C" fn fcntl(fd: c_int, cmd: c_int, mut args: ...) -> c_int {
             let arg = args.arg::<c_int>();
             libc!(fcntl(fd, F_DUPFD_CLOEXEC, arg));
             let fd = BorrowedFd::borrow_raw_fd(fd);
-            match set_errno(rsix::fs::fcntl_dupfd_cloexec(&fd, arg)) {
+            match set_errno(rustix::fs::fcntl_dupfd_cloexec(&fd, arg)) {
                 Some(fd) => fd.into_raw_fd(),
                 None => -1,
             }
@@ -274,7 +275,7 @@ unsafe extern "C" fn mkdir(pathname: *const c_char, mode: c_uint) -> c_int {
     libc!(mkdir(pathname, mode));
 
     let mode = Mode::from_bits(mode as _).unwrap();
-    match set_errno(rsix::fs::mkdirat(&cwd(), CStr::from_ptr(pathname), mode)) {
+    match set_errno(rustix::fs::mkdirat(&cwd(), CStr::from_ptr(pathname), mode)) {
         Some(()) => 0,
         None => -1,
     }
@@ -284,7 +285,7 @@ unsafe extern "C" fn mkdir(pathname: *const c_char, mode: c_uint) -> c_int {
 unsafe extern "C" fn fdatasync(fd: c_int) -> c_int {
     libc!(fdatasync(fd));
 
-    match set_errno(rsix::fs::fdatasync(&BorrowedFd::borrow_raw_fd(fd))) {
+    match set_errno(rustix::fs::fdatasync(&BorrowedFd::borrow_raw_fd(fd))) {
         Some(()) => 0,
         None => -1,
     }
@@ -294,13 +295,13 @@ unsafe extern "C" fn fdatasync(fd: c_int) -> c_int {
 unsafe extern "C" fn fstatat64(
     fd: c_int,
     pathname: *const c_char,
-    stat_: *mut rsix::fs::Stat,
+    stat_: *mut rustix::fs::Stat,
     flags: c_int,
 ) -> c_int {
     libc!(fstatat64(fd, pathname, same_ptr_mut(stat_), flags));
 
     let flags = AtFlags::from_bits(flags as _).unwrap();
-    match set_errno(rsix::fs::statat(
+    match set_errno(rustix::fs::statat(
         &BorrowedFd::borrow_raw_fd(fd),
         CStr::from_ptr(pathname),
         flags,
@@ -317,7 +318,7 @@ unsafe extern "C" fn fstatat64(
 unsafe extern "C" fn fsync(fd: c_int) -> c_int {
     libc!(fsync(fd));
 
-    match set_errno(rsix::fs::fdatasync(&BorrowedFd::borrow_raw_fd(fd))) {
+    match set_errno(rustix::fs::fdatasync(&BorrowedFd::borrow_raw_fd(fd))) {
         Some(()) => 0,
         None => -1,
     }
@@ -327,7 +328,7 @@ unsafe extern "C" fn fsync(fd: c_int) -> c_int {
 unsafe extern "C" fn ftruncate64(fd: c_int, length: i64) -> c_int {
     libc!(ftruncate64(fd, length));
 
-    match set_errno(rsix::fs::ftruncate(
+    match set_errno(rustix::fs::ftruncate(
         &BorrowedFd::borrow_raw_fd(fd),
         length as u64,
     )) {
@@ -340,7 +341,7 @@ unsafe extern "C" fn ftruncate64(fd: c_int, length: i64) -> c_int {
 unsafe extern "C" fn rename(old: *const c_char, new: *const c_char) -> c_int {
     libc!(rename(old, new));
 
-    match set_errno(rsix::fs::renameat(
+    match set_errno(rustix::fs::renameat(
         &cwd(),
         CStr::from_ptr(old),
         &cwd(),
@@ -355,7 +356,7 @@ unsafe extern "C" fn rename(old: *const c_char, new: *const c_char) -> c_int {
 unsafe extern "C" fn rmdir(pathname: *const c_char) -> c_int {
     libc!(rmdir(pathname));
 
-    match set_errno(rsix::fs::unlinkat(
+    match set_errno(rustix::fs::unlinkat(
         &cwd(),
         CStr::from_ptr(pathname),
         AtFlags::REMOVEDIR,
@@ -369,7 +370,7 @@ unsafe extern "C" fn rmdir(pathname: *const c_char) -> c_int {
 unsafe extern "C" fn unlink(pathname: *const c_char) -> c_int {
     libc!(unlink(pathname));
 
-    match set_errno(rsix::fs::unlinkat(
+    match set_errno(rustix::fs::unlinkat(
         &cwd(),
         CStr::from_ptr(pathname),
         AtFlags::empty(),
@@ -389,17 +390,17 @@ unsafe extern "C" fn lseek64(fd: c_int, offset: i64, whence: c_int) -> i64 {
         data::SEEK_END => std::io::SeekFrom::End(offset),
         _ => panic!("unrecognized whence({})", whence),
     };
-    match set_errno(rsix::fs::seek(&BorrowedFd::borrow_raw_fd(fd), seek_from)) {
+    match set_errno(rustix::fs::seek(&BorrowedFd::borrow_raw_fd(fd), seek_from)) {
         Some(offset) => offset as i64,
         None => -1,
     }
 }
 
 #[no_mangle]
-unsafe extern "C" fn lstat64(pathname: *const c_char, stat_: *mut rsix::fs::Stat) -> c_int {
+unsafe extern "C" fn lstat64(pathname: *const c_char, stat_: *mut rustix::fs::Stat) -> c_int {
     libc!(lstat64(pathname, same_ptr_mut(stat_)));
 
-    match set_errno(rsix::fs::statat(
+    match set_errno(rustix::fs::statat(
         &cwd(),
         CStr::from_ptr(pathname),
         AtFlags::SYMLINK_NOFOLLOW,
@@ -416,7 +417,7 @@ unsafe extern "C" fn lstat64(pathname: *const c_char, stat_: *mut rsix::fs::Stat
 unsafe extern "C" fn opendir(pathname: *const c_char) -> *mut c_void {
     libc!(opendir(pathname).cast::<_>());
 
-    match set_errno(rsix::fs::openat(
+    match set_errno(rustix::fs::openat(
         &cwd(),
         CStr::from_ptr(pathname),
         OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC,
@@ -431,7 +432,7 @@ unsafe extern "C" fn opendir(pathname: *const c_char) -> *mut c_void {
 unsafe extern "C" fn fdopendir(fd: c_int) -> *mut c_void {
     libc!(fdopendir(fd).cast::<_>());
 
-    match set_errno(rsix::fs::Dir::from(OwnedFd::from_raw_fd(fd))) {
+    match set_errno(rustix::fs::Dir::from(OwnedFd::from_raw_fd(fd))) {
         Some(dir) => Box::into_raw(Box::new(dir)).cast::<_>(),
         None => null_mut(),
     }
@@ -449,7 +450,7 @@ unsafe extern "C" fn readdir64_r(
         same_ptr_mut(ptr)
     ));
 
-    let dir = dir.cast::<rsix::fs::Dir>();
+    let dir = dir.cast::<rustix::fs::Dir>();
     match (*dir).read() {
         None => {
             *ptr = null_mut();
@@ -457,14 +458,14 @@ unsafe extern "C" fn readdir64_r(
         }
         Some(Ok(e)) => {
             let file_type = match e.file_type() {
-                rsix::fs::FileType::RegularFile => data::DT_REG,
-                rsix::fs::FileType::Directory => data::DT_DIR,
-                rsix::fs::FileType::Symlink => data::DT_LNK,
-                rsix::fs::FileType::Fifo => data::DT_FIFO,
-                rsix::fs::FileType::Socket => data::DT_SOCK,
-                rsix::fs::FileType::CharacterDevice => data::DT_CHR,
-                rsix::fs::FileType::BlockDevice => data::DT_BLK,
-                rsix::fs::FileType::Unknown => data::DT_UNKNOWN,
+                rustix::fs::FileType::RegularFile => data::DT_REG,
+                rustix::fs::FileType::Directory => data::DT_DIR,
+                rustix::fs::FileType::Symlink => data::DT_LNK,
+                rustix::fs::FileType::Fifo => data::DT_FIFO,
+                rustix::fs::FileType::Socket => data::DT_SOCK,
+                rustix::fs::FileType::CharacterDevice => data::DT_CHR,
+                rustix::fs::FileType::BlockDevice => data::DT_BLK,
+                rustix::fs::FileType::Unknown => data::DT_UNKNOWN,
             };
             *entry = data::Dirent64 {
                 d_ino: e.ino(),
@@ -488,7 +489,7 @@ unsafe extern "C" fn readdir64_r(
 unsafe extern "C" fn closedir(dir: *mut c_void) -> c_int {
     libc!(closedir(dir.cast::<_>()));
 
-    drop(Box::<rsix::fs::Dir>::from_raw(dir.cast()));
+    drop(Box::<rustix::fs::Dir>::from_raw(dir.cast()));
     0
 }
 
@@ -496,7 +497,7 @@ unsafe extern "C" fn closedir(dir: *mut c_void) -> c_int {
 unsafe extern "C" fn dirfd(dir: *mut c_void) -> c_int {
     libc!(dirfd(dir.cast::<_>()));
 
-    let dir = dir.cast::<rsix::fs::Dir>();
+    let dir = dir.cast::<rustix::fs::Dir>();
     (*dir).as_fd().as_raw_fd()
 }
 
@@ -542,7 +543,7 @@ unsafe extern "C" fn copy_file_range(
     libc!(copy_file_range(fd_in, off_in, fd_out, off_out, len, flags));
 
     if fd_in == -1 || fd_out == -1 {
-        *__errno_location() = rsix::io::Error::BADF.raw_os_error();
+        *__errno_location() = rustix::io::Error::BADF.raw_os_error();
         return -1;
     }
     assert_eq!(flags, 0);
@@ -556,7 +557,7 @@ unsafe extern "C" fn copy_file_range(
     } else {
         Some(&mut *off_out.cast::<u64>())
     };
-    match set_errno(rsix::fs::copy_file_range(
+    match set_errno(rustix::fs::copy_file_range(
         &BorrowedFd::borrow_raw_fd(fd_in),
         off_in,
         &BorrowedFd::borrow_raw_fd(fd_out),
@@ -573,7 +574,7 @@ unsafe extern "C" fn chmod(pathname: *const c_char, mode: c_uint) -> c_int {
     libc!(chmod(pathname, mode));
 
     let mode = Mode::from_bits(mode as _).unwrap();
-    match set_errno(rsix::fs::chmodat(&cwd(), CStr::from_ptr(pathname), mode)) {
+    match set_errno(rustix::fs::chmodat(&cwd(), CStr::from_ptr(pathname), mode)) {
         Some(()) => 0,
         None => -1,
     }
@@ -584,7 +585,7 @@ unsafe extern "C" fn fchmod(fd: c_int, mode: c_uint) -> c_int {
     libc!(fchmod(fd, mode));
 
     let mode = Mode::from_bits(mode as _).unwrap();
-    match set_errno(rsix::fs::fchmod(&BorrowedFd::borrow_raw_fd(fd), mode)) {
+    match set_errno(rustix::fs::fchmod(&BorrowedFd::borrow_raw_fd(fd), mode)) {
         Some(()) => 0,
         None => -1,
     }
@@ -601,7 +602,7 @@ unsafe extern "C" fn linkat(
     libc!(linkat(olddirfd, oldpath, newdirfd, newpath, flags));
 
     let flags = AtFlags::from_bits(flags as _).unwrap();
-    match set_errno(rsix::fs::linkat(
+    match set_errno(rustix::fs::linkat(
         &BorrowedFd::borrow_raw_fd(olddirfd),
         CStr::from_ptr(oldpath),
         &BorrowedFd::borrow_raw_fd(newdirfd),
@@ -617,7 +618,7 @@ unsafe extern "C" fn linkat(
 unsafe extern "C" fn symlink(target: *const c_char, linkpath: *const c_char) -> c_int {
     libc!(symlink(target, linkpath));
 
-    match set_errno(rsix::fs::symlinkat(
+    match set_errno(rustix::fs::symlinkat(
         CStr::from_ptr(target),
         &cwd(),
         CStr::from_ptr(linkpath),
@@ -655,7 +656,7 @@ unsafe extern "C" fn accept(
 ) -> c_int {
     libc!(accept(fd, same_ptr_mut(addr), len));
 
-    match set_errno(rsix::net::acceptfrom(&BorrowedFd::borrow_raw_fd(fd))) {
+    match set_errno(rustix::net::acceptfrom(&BorrowedFd::borrow_raw_fd(fd))) {
         Some((accepted_fd, from)) => {
             let encoded_len = from.write(addr);
             *len = encoded_len.try_into().unwrap();
@@ -675,7 +676,7 @@ unsafe extern "C" fn accept4(
     libc!(accept4(fd, same_ptr_mut(addr), len, flags));
 
     let flags = AcceptFlags::from_bits(flags as _).unwrap();
-    match set_errno(rsix::net::acceptfrom_with(
+    match set_errno(rustix::net::acceptfrom_with(
         &BorrowedFd::borrow_raw_fd(fd),
         flags,
     )) {
@@ -696,15 +697,17 @@ unsafe extern "C" fn bind(
 ) -> c_int {
     libc!(bind(sockfd, same_ptr(addr), len));
 
-    let addr = match set_errno(SocketAddr::read(addr, len.try_into().unwrap())) {
+    let addr = match set_errno(SocketAddrAny::read(addr, len.try_into().unwrap())) {
         Some(addr) => addr,
         None => return -1,
     };
     match set_errno(match addr {
-        SocketAddr::V4(v4) => rsix::net::bind_v4(&BorrowedFd::borrow_raw_fd(sockfd), &v4),
-        SocketAddr::V6(v6) => rsix::net::bind_v6(&BorrowedFd::borrow_raw_fd(sockfd), &v6),
-        SocketAddr::Unix(unix) => rsix::net::bind_unix(&BorrowedFd::borrow_raw_fd(sockfd), &unix),
-        _ => panic!("unrecognized SocketAddr {:?}", addr),
+        SocketAddrAny::V4(v4) => rustix::net::bind_v4(&BorrowedFd::borrow_raw_fd(sockfd), &v4),
+        SocketAddrAny::V6(v6) => rustix::net::bind_v6(&BorrowedFd::borrow_raw_fd(sockfd), &v6),
+        SocketAddrAny::Unix(unix) => {
+            rustix::net::bind_unix(&BorrowedFd::borrow_raw_fd(sockfd), &unix)
+        }
+        _ => panic!("unrecognized SocketAddrAny {:?}", addr),
     }) {
         Some(()) => 0,
         None => -1,
@@ -719,17 +722,17 @@ unsafe extern "C" fn connect(
 ) -> c_int {
     libc!(connect(sockfd, same_ptr(addr), len));
 
-    let addr = match set_errno(SocketAddr::read(addr, len.try_into().unwrap())) {
+    let addr = match set_errno(SocketAddrAny::read(addr, len.try_into().unwrap())) {
         Some(addr) => addr,
         None => return -1,
     };
     match set_errno(match addr {
-        SocketAddr::V4(v4) => rsix::net::connect_v4(&BorrowedFd::borrow_raw_fd(sockfd), &v4),
-        SocketAddr::V6(v6) => rsix::net::connect_v6(&BorrowedFd::borrow_raw_fd(sockfd), &v6),
-        SocketAddr::Unix(unix) => {
-            rsix::net::connect_unix(&BorrowedFd::borrow_raw_fd(sockfd), &unix)
+        SocketAddrAny::V4(v4) => rustix::net::connect_v4(&BorrowedFd::borrow_raw_fd(sockfd), &v4),
+        SocketAddrAny::V6(v6) => rustix::net::connect_v6(&BorrowedFd::borrow_raw_fd(sockfd), &v6),
+        SocketAddrAny::Unix(unix) => {
+            rustix::net::connect_unix(&BorrowedFd::borrow_raw_fd(sockfd), &unix)
         }
-        _ => panic!("unrecognized SocketAddr {:?}", addr),
+        _ => panic!("unrecognized SocketAddrAny {:?}", addr),
     }) {
         Some(()) => 0,
         None => -1,
@@ -744,7 +747,7 @@ unsafe extern "C" fn getpeername(
 ) -> c_int {
     libc!(getpeername(fd, same_ptr_mut(addr), len));
 
-    match set_errno(rsix::net::getpeername(&BorrowedFd::borrow_raw_fd(fd))) {
+    match set_errno(rustix::net::getpeername(&BorrowedFd::borrow_raw_fd(fd))) {
         Some(from) => {
             let encoded_len = from.write(addr);
             *len = encoded_len.try_into().unwrap();
@@ -762,7 +765,7 @@ unsafe extern "C" fn getsockname(
 ) -> c_int {
     libc!(getsockname(fd, same_ptr_mut(addr), len));
 
-    match set_errno(rsix::net::getsockname(&BorrowedFd::borrow_raw_fd(fd))) {
+    match set_errno(rustix::net::getsockname(&BorrowedFd::borrow_raw_fd(fd))) {
         Some(from) => {
             let encoded_len = from.write(addr);
             *len = encoded_len.try_into().unwrap();
@@ -780,30 +783,30 @@ unsafe extern "C" fn getsockopt(
     optval: *mut c_void,
     optlen: *mut data::SockLen,
 ) -> c_int {
-    use rsix::net::sockopt::{self, Timeout};
+    use rustix::net::sockopt::{self, Timeout};
     use std::time::Duration;
 
     unsafe fn write_bool(
-        value: rsix::io::Result<bool>,
+        value: rustix::io::Result<bool>,
         optval: *mut c_void,
         optlen: *mut data::SockLen,
-    ) -> rsix::io::Result<()> {
+    ) -> rustix::io::Result<()> {
         Ok(write(value? as c_uint, optval.cast::<c_uint>(), optlen))
     }
 
     unsafe fn write_u32(
-        value: rsix::io::Result<u32>,
+        value: rustix::io::Result<u32>,
         optval: *mut c_void,
         optlen: *mut data::SockLen,
-    ) -> rsix::io::Result<()> {
+    ) -> rustix::io::Result<()> {
         Ok(write(value?, optval.cast::<u32>(), optlen))
     }
 
     unsafe fn write_linger(
-        linger: rsix::io::Result<Option<Duration>>,
+        linger: rustix::io::Result<Option<Duration>>,
         optval: *mut c_void,
         optlen: *mut data::SockLen,
-    ) -> rsix::io::Result<()> {
+    ) -> rustix::io::Result<()> {
         let linger = linger?;
         let linger = data::Linger {
             l_onoff: linger.is_some() as c_int,
@@ -813,10 +816,10 @@ unsafe extern "C" fn getsockopt(
     }
 
     unsafe fn write_timeval(
-        value: rsix::io::Result<Option<Duration>>,
+        value: rustix::io::Result<Option<Duration>>,
         optval: *mut c_void,
         optlen: *mut data::SockLen,
-    ) -> rsix::io::Result<()> {
+    ) -> rustix::io::Result<()> {
         let timeval = match value? {
             None => data::OldTimeval {
                 tv_sec: 0,
@@ -826,7 +829,7 @@ unsafe extern "C" fn getsockopt(
                 tv_sec: duration
                     .as_secs()
                     .try_into()
-                    .map_err(|_| rsix::io::Error::OVERFLOW)?,
+                    .map_err(|_| rustix::io::Error::OVERFLOW)?,
                 tv_usec: duration.subsec_micros() as _,
             },
         };
@@ -900,7 +903,7 @@ unsafe extern "C" fn setsockopt(
     optval: *const c_void,
     optlen: data::SockLen,
 ) -> c_int {
-    use rsix::net::sockopt::{self, Timeout};
+    use rustix::net::sockopt::{self, Timeout};
     use std::time::Duration;
 
     unsafe fn read_bool(optval: *const c_void, optlen: data::SockLen) -> bool {
@@ -1072,7 +1075,7 @@ unsafe extern "C" fn getaddrinfo(
     let host = match CStr::from_ptr(node).to_str() {
         Ok(host) => host,
         Err(_) => {
-            *__errno_location() = rsix::io::Error::ILSEQ.raw_os_error();
+            *__errno_location() = rustix::io::Error::ILSEQ.raw_os_error();
             return data::EAI_SYSTEM;
         }
     };
@@ -1091,14 +1094,14 @@ unsafe extern "C" fn getaddrinfo(
                     IpAddr::V4(v4) => {
                         // TODO: Create and write to `SocketAddrV4Storage`?
                         let storage = std::alloc::alloc(addr_layout).cast::<SocketAddrStorage>();
-                        let len = SocketAddr::V4(SocketAddrV4::new(v4, 0)).write(storage);
+                        let len = SocketAddrAny::V4(SocketAddrV4::new(v4, 0)).write(storage);
                         info.ai_addr = storage;
                         info.ai_addrlen = len.try_into().unwrap();
                     }
                     IpAddr::V6(v6) => {
                         // TODO: Create and write to `SocketAddrV6Storage`?
                         let storage = std::alloc::alloc(addr_layout).cast::<SocketAddrStorage>();
-                        let len = SocketAddr::V6(SocketAddrV6::new(v6, 0, 0, 0)).write(storage);
+                        let len = SocketAddrAny::V6(SocketAddrV6::new(v6, 0, 0, 0)).write(storage);
                         info.ai_addr = storage;
                         info.ai_addrlen = len.try_into().unwrap();
                     }
@@ -1115,7 +1118,7 @@ unsafe extern "C" fn getaddrinfo(
             0
         }
         Err(err) => {
-            if let Some(err) = rsix::io::Error::from_io_error(&err) {
+            if let Some(err) = rustix::io::Error::from_io_error(&err) {
                 *__errno_location() = err.raw_os_error();
                 data::EAI_SYSTEM
             } else {
@@ -1167,10 +1170,10 @@ unsafe extern "C" fn gai_strerror(errcode: c_int) -> *const c_char {
 
 #[no_mangle]
 unsafe extern "C" fn gethostname(name: *mut c_char, len: usize) -> c_int {
-    let uname = rsix::process::uname();
+    let uname = rustix::process::uname();
     let nodename = uname.nodename();
     if nodename.to_bytes().len() + 1 > len {
-        *__errno_location() = rsix::io::Error::NAMETOOLONG.raw_os_error();
+        *__errno_location() = rustix::io::Error::NAMETOOLONG.raw_os_error();
         return -1;
     }
     memcpy(
@@ -1186,7 +1189,7 @@ unsafe extern "C" fn gethostname(name: *mut c_char, len: usize) -> c_int {
 unsafe extern "C" fn listen(fd: c_int, backlog: c_int) -> c_int {
     libc!(listen(fd, backlog));
 
-    match set_errno(rsix::net::listen(&BorrowedFd::borrow_raw_fd(fd), backlog)) {
+    match set_errno(rustix::net::listen(&BorrowedFd::borrow_raw_fd(fd), backlog)) {
         Some(()) => 0,
         None => -1,
     }
@@ -1197,7 +1200,7 @@ unsafe extern "C" fn recv(fd: c_int, ptr: *mut c_void, len: usize, flags: c_int)
     libc!(recv(fd, ptr, len, flags));
 
     let flags = RecvFlags::from_bits(flags as _).unwrap();
-    match set_errno(rsix::net::recv(
+    match set_errno(rustix::net::recv(
         &BorrowedFd::borrow_raw_fd(fd),
         slice::from_raw_parts_mut(ptr.cast::<u8>(), len),
         flags,
@@ -1219,7 +1222,7 @@ unsafe extern "C" fn recvfrom(
     libc!(recvfrom(fd, buf, len, flags, same_ptr_mut(from), from_len));
 
     let flags = RecvFlags::from_bits(flags as _).unwrap();
-    match set_errno(rsix::net::recvfrom(
+    match set_errno(rustix::net::recvfrom(
         &BorrowedFd::borrow_raw_fd(fd),
         slice::from_raw_parts_mut(buf.cast::<u8>(), len),
         flags,
@@ -1238,7 +1241,7 @@ unsafe extern "C" fn send(fd: c_int, buf: *const c_void, len: usize, flags: c_in
     libc!(send(fd, buf, len, flags));
 
     let flags = SendFlags::from_bits(flags as _).unwrap();
-    match set_errno(rsix::net::send(
+    match set_errno(rustix::net::send(
         &BorrowedFd::borrow_raw_fd(fd),
         slice::from_raw_parts(buf.cast::<u8>(), len),
         flags,
@@ -1260,30 +1263,30 @@ unsafe extern "C" fn sendto(
     libc!(sendto(fd, buf, len, flags, same_ptr(to), to_len));
 
     let flags = SendFlags::from_bits(flags as _).unwrap();
-    let addr = match set_errno(SocketAddr::read(to, to_len.try_into().unwrap())) {
+    let addr = match set_errno(SocketAddrAny::read(to, to_len.try_into().unwrap())) {
         Some(addr) => addr,
         None => return -1,
     };
     match set_errno(match addr {
-        SocketAddr::V4(v4) => rsix::net::sendto_v4(
+        SocketAddrAny::V4(v4) => rustix::net::sendto_v4(
             &BorrowedFd::borrow_raw_fd(fd),
             slice::from_raw_parts(buf.cast::<u8>(), len),
             flags,
             &v4,
         ),
-        SocketAddr::V6(v6) => rsix::net::sendto_v6(
+        SocketAddrAny::V6(v6) => rustix::net::sendto_v6(
             &BorrowedFd::borrow_raw_fd(fd),
             slice::from_raw_parts(buf.cast::<u8>(), len),
             flags,
             &v6,
         ),
-        SocketAddr::Unix(unix) => rsix::net::sendto_unix(
+        SocketAddrAny::Unix(unix) => rustix::net::sendto_unix(
             &BorrowedFd::borrow_raw_fd(fd),
             slice::from_raw_parts(buf.cast::<u8>(), len),
             flags,
             &unix,
         ),
-        _ => panic!("unrecognized SocketAddr {:?}", addr),
+        _ => panic!("unrecognized SocketAddrAny {:?}", addr),
     }) {
         Some(nwritten) => nwritten as isize,
         None => -1,
@@ -1300,7 +1303,7 @@ unsafe extern "C" fn shutdown(fd: c_int, how: c_int) -> c_int {
         data::SHUT_RDWR => Shutdown::ReadWrite,
         _ => panic!("unrecognized shutdown kind {}", how),
     };
-    match set_errno(rsix::net::shutdown(&BorrowedFd::borrow_raw_fd(fd), how)) {
+    match set_errno(rustix::net::shutdown(&BorrowedFd::borrow_raw_fd(fd), how)) {
         Some(()) => 0,
         None => -1,
     }
@@ -1314,7 +1317,7 @@ unsafe extern "C" fn socket(domain: c_int, type_: c_int, protocol: c_int) -> c_i
     let flags = SocketFlags::from_bits_truncate(type_ as _);
     let type_ = SocketType::from_raw(type_ as u32 & !SocketFlags::all().bits());
     let protocol = Protocol::from_raw(protocol as _);
-    match set_errno(rsix::net::socket_with(domain, type_, flags, protocol)) {
+    match set_errno(rustix::net::socket_with(domain, type_, flags, protocol)) {
         Some(fd) => fd.into_raw_fd(),
         None => -1,
     }
@@ -1333,7 +1336,7 @@ unsafe extern "C" fn socketpair(
     let flags = SocketFlags::from_bits_truncate(type_ as _);
     let type_ = SocketType::from_raw(type_ as u32 & !SocketFlags::all().bits());
     let protocol = Protocol::from_raw(protocol as _);
-    match set_errno(rsix::net::socketpair(domain, type_, flags, protocol)) {
+    match set_errno(rustix::net::socketpair(domain, type_, flags, protocol)) {
         Some((fd0, fd1)) => {
             (*sv) = [fd0.into_raw_fd(), fd1.into_raw_fd()];
             0
@@ -1355,7 +1358,7 @@ unsafe extern "C" fn __res_init() -> c_int {
 unsafe extern "C" fn write(fd: c_int, ptr: *const c_void, len: usize) -> isize {
     libc!(write(fd, ptr, len));
 
-    match set_errno(rsix::io::write(
+    match set_errno(rustix::io::write(
         &BorrowedFd::borrow_raw_fd(fd),
         slice::from_raw_parts(ptr.cast::<u8>(), len),
     )) {
@@ -1369,11 +1372,11 @@ unsafe extern "C" fn writev(fd: c_int, iov: *const std::io::IoSlice, iovcnt: c_i
     libc!(writev(fd, same_ptr(iov), iovcnt));
 
     if iovcnt < 0 {
-        *__errno_location() = rsix::io::Error::INVAL.raw_os_error();
+        *__errno_location() = rustix::io::Error::INVAL.raw_os_error();
         return -1;
     }
 
-    match set_errno(rsix::io::writev(
+    match set_errno(rustix::io::writev(
         &BorrowedFd::borrow_raw_fd(fd),
         slice::from_raw_parts(iov, iovcnt as usize),
     )) {
@@ -1386,7 +1389,7 @@ unsafe extern "C" fn writev(fd: c_int, iov: *const std::io::IoSlice, iovcnt: c_i
 unsafe extern "C" fn read(fd: c_int, ptr: *mut c_void, len: usize) -> isize {
     libc!(read(fd, ptr, len));
 
-    match set_errno(rsix::io::read(
+    match set_errno(rustix::io::read(
         &BorrowedFd::borrow_raw_fd(fd),
         slice::from_raw_parts_mut(ptr.cast::<u8>(), len),
     )) {
@@ -1400,11 +1403,11 @@ unsafe extern "C" fn readv(fd: c_int, iov: *const std::io::IoSliceMut, iovcnt: c
     libc!(readv(fd, same_ptr(iov), iovcnt));
 
     if iovcnt < 0 {
-        *__errno_location() = rsix::io::Error::INVAL.raw_os_error();
+        *__errno_location() = rustix::io::Error::INVAL.raw_os_error();
         return -1;
     }
 
-    match set_errno(rsix::io::readv(
+    match set_errno(rustix::io::readv(
         &BorrowedFd::borrow_raw_fd(fd),
         slice::from_raw_parts(iov, iovcnt as usize),
     )) {
@@ -1417,7 +1420,7 @@ unsafe extern "C" fn readv(fd: c_int, iov: *const std::io::IoSliceMut, iovcnt: c
 unsafe extern "C" fn pread64(fd: c_int, ptr: *mut c_void, len: usize, offset: i64) -> isize {
     libc!(pread64(fd, ptr, len, offset));
 
-    match set_errno(rsix::io::pread(
+    match set_errno(rustix::io::pread(
         &BorrowedFd::borrow_raw_fd(fd),
         slice::from_raw_parts_mut(ptr.cast::<u8>(), len),
         offset as u64,
@@ -1431,7 +1434,7 @@ unsafe extern "C" fn pread64(fd: c_int, ptr: *mut c_void, len: usize, offset: i6
 unsafe extern "C" fn pwrite64(fd: c_int, ptr: *const c_void, len: usize, offset: i64) -> isize {
     libc!(pwrite64(fd, ptr, len, offset));
 
-    match set_errno(rsix::io::pwrite(
+    match set_errno(rustix::io::pwrite(
         &BorrowedFd::borrow_raw_fd(fd),
         slice::from_raw_parts(ptr.cast::<u8>(), len),
         offset as u64,
@@ -1442,11 +1445,11 @@ unsafe extern "C" fn pwrite64(fd: c_int, ptr: *const c_void, len: usize, offset:
 }
 
 #[no_mangle]
-unsafe extern "C" fn poll(fds: *mut rsix::io::PollFd, nfds: c_ulong, timeout: c_int) -> c_int {
+unsafe extern "C" fn poll(fds: *mut rustix::io::PollFd, nfds: c_ulong, timeout: c_int) -> c_int {
     libc!(poll(same_ptr_mut(fds), nfds, timeout));
 
     let fds = slice::from_raw_parts_mut(fds, nfds.try_into().unwrap());
-    match set_errno(rsix::io::poll(fds, timeout)) {
+    match set_errno(rustix::io::poll(fds, timeout)) {
         Some(num) => num.try_into().unwrap(),
         None => -1,
     }
@@ -1456,7 +1459,7 @@ unsafe extern "C" fn poll(fds: *mut rsix::io::PollFd, nfds: c_ulong, timeout: c_
 unsafe extern "C" fn close(fd: c_int) -> c_int {
     libc!(close(fd));
 
-    rsix::io::close(fd);
+    rustix::io::close(fd);
     0
 }
 
@@ -1465,7 +1468,7 @@ unsafe extern "C" fn dup2(fd: c_int, to: c_int) -> c_int {
     libc!(dup2(fd, to));
 
     let to = OwnedFd::from_raw_fd(to).into();
-    match set_errno(rsix::io::dup2(&BorrowedFd::borrow_raw_fd(fd), &to)) {
+    match set_errno(rustix::io::dup2(&BorrowedFd::borrow_raw_fd(fd), &to)) {
         Some(()) => OwnedFd::from(to).into_raw_fd(),
         None => -1,
     }
@@ -1475,10 +1478,10 @@ unsafe extern "C" fn dup2(fd: c_int, to: c_int) -> c_int {
 unsafe extern "C" fn isatty(fd: c_int) -> c_int {
     libc!(isatty(fd));
 
-    if rsix::io::isatty(&BorrowedFd::borrow_raw_fd(fd)) {
+    if rustix::io::isatty(&BorrowedFd::borrow_raw_fd(fd)) {
         1
     } else {
-        *__errno_location() = rsix::io::Error::NOTTY.raw_os_error();
+        *__errno_location() = rustix::io::Error::NOTTY.raw_os_error();
         0
     }
 }
@@ -1489,9 +1492,9 @@ unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
         data::TCGETS => {
             libc!(ioctl(fd, TCGETS));
             let fd = BorrowedFd::borrow_raw_fd(fd);
-            match set_errno(rsix::io::ioctl_tcgets(&fd)) {
+            match set_errno(rustix::io::ioctl_tcgets(&fd)) {
                 Some(x) => {
-                    *args.arg::<*mut rsix::io::Termios>() = x;
+                    *args.arg::<*mut rustix::io::Termios>() = x;
                     0
                 }
                 None => -1,
@@ -1502,7 +1505,7 @@ unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
             let fd = BorrowedFd::borrow_raw_fd(fd);
             let ptr = args.arg::<*mut c_int>();
             let value = *ptr != 0;
-            match set_errno(rsix::io::ioctl_fionbio(&fd, value)) {
+            match set_errno(rustix::io::ioctl_fionbio(&fd, value)) {
                 Some(()) => 0,
                 None => -1,
             }
@@ -1516,7 +1519,7 @@ unsafe extern "C" fn pipe2(pipefd: *mut c_int, flags: c_int) -> c_int {
     libc!(pipe2(pipefd, flags));
 
     let flags = PipeFlags::from_bits(flags as _).unwrap();
-    match set_errno(rsix::io::pipe_with(flags)) {
+    match set_errno(rustix::io::pipe_with(flags)) {
         Some((a, b)) => {
             *pipefd = a.into_raw_fd();
             *pipefd.add(1) = b.into_raw_fd();
@@ -1581,7 +1584,7 @@ unsafe extern "C" fn epoll_wait(
 unsafe extern "C" fn eventfd(initval: c_uint, flags: c_int) -> c_int {
     libc!(eventfd(initval, flags));
     let flags = EventfdFlags::from_bits(flags.try_into().unwrap()).unwrap();
-    match set_errno(rsix::io::eventfd(initval, flags)) {
+    match set_errno(rustix::io::eventfd(initval, flags)) {
         Some(fd) => fd.into_raw_fd(),
         None => -1,
     }
@@ -1686,7 +1689,7 @@ unsafe extern "C" fn calloc(nmemb: usize, size: usize) -> *mut c_void {
     let product = match nmemb.checked_mul(size) {
         Some(product) => product,
         None => {
-            *__errno_location() = rsix::io::Error::NOMEM.raw_os_error();
+            *__errno_location() = rustix::io::Error::NOMEM.raw_os_error();
             return null_mut();
         }
     };
@@ -1703,7 +1706,7 @@ unsafe extern "C" fn posix_memalign(
 ) -> c_int {
     libc!(posix_memalign(memptr, alignment, size));
     if !(alignment.is_power_of_two() && alignment % std::mem::size_of::<*const c_void>() == 0) {
-        return rsix::io::Error::INVAL.raw_os_error();
+        return rustix::io::Error::INVAL.raw_os_error();
     }
 
     let layout = std::alloc::Layout::from_size_align(size, alignment).unwrap();
@@ -1813,9 +1816,9 @@ unsafe extern "C" fn mmap(
     let prot = ProtFlags::from_bits(prot as _).unwrap();
     let flags = MapFlags::from_bits((flags & !data::MAP_ANONYMOUS) as _).unwrap();
     match set_errno(if anon {
-        rsix::io::mmap_anonymous(addr, length, prot, flags)
+        rustix::io::mmap_anonymous(addr, length, prot, flags)
     } else {
-        rsix::io::mmap(
+        rustix::io::mmap(
             addr,
             length,
             prot,
@@ -1844,9 +1847,9 @@ unsafe extern "C" fn mmap64(
     let prot = ProtFlags::from_bits(prot as _).unwrap();
     let flags = MapFlags::from_bits((flags & !data::MAP_ANONYMOUS) as _).unwrap();
     match set_errno(if anon {
-        rsix::io::mmap_anonymous(addr, length, prot, flags)
+        rustix::io::mmap_anonymous(addr, length, prot, flags)
     } else {
-        rsix::io::mmap(
+        rustix::io::mmap(
             addr,
             length,
             prot,
@@ -1864,7 +1867,7 @@ unsafe extern "C" fn mmap64(
 unsafe extern "C" fn munmap(ptr: *mut c_void, len: usize) -> c_int {
     libc!(munmap(ptr, len));
 
-    match set_errno(rsix::io::munmap(ptr, len)) {
+    match set_errno(rustix::io::munmap(ptr, len)) {
         Some(()) => 0,
         None => -1,
     }
@@ -1884,7 +1887,7 @@ unsafe extern "C" fn mremap(
 
         let flags = flags & !data::MREMAP_FIXED;
         let flags = MremapFlags::from_bits(flags as _).unwrap();
-        match set_errno(rsix::io::mremap_fixed(
+        match set_errno(rustix::io::mremap_fixed(
             old_address,
             old_size,
             new_size,
@@ -1898,7 +1901,7 @@ unsafe extern "C" fn mremap(
         libc!(mremap(old_address, old_size, new_size, flags));
 
         let flags = MremapFlags::from_bits(flags as _).unwrap();
-        match set_errno(rsix::io::mremap(old_address, old_size, new_size, flags)) {
+        match set_errno(rustix::io::mremap(old_address, old_size, new_size, flags)) {
             Some(new_address) => new_address,
             None => data::MAP_FAILED,
         }
@@ -1910,7 +1913,7 @@ unsafe extern "C" fn mprotect(addr: *mut c_void, length: usize, prot: c_int) -> 
     libc!(mprotect(addr, length, prot));
 
     let prot = MprotectFlags::from_bits(prot as _).unwrap();
-    match set_errno(rsix::io::mprotect(addr, length, prot)) {
+    match set_errno(rustix::io::mprotect(addr, length, prot)) {
         Some(()) => 0,
         None => -1,
     }
@@ -1925,8 +1928,8 @@ unsafe extern "C" fn getrandom(buf: *mut c_void, buflen: usize, flags: u32) -> i
     if buflen == 0 {
         return 0;
     }
-    let flags = rsix::rand::GetRandomFlags::from_bits(flags).unwrap();
-    match set_errno(rsix::rand::getrandom(
+    let flags = rustix::rand::GetRandomFlags::from_bits(flags).unwrap();
+    match set_errno(rustix::rand::getrandom(
         slice::from_raw_parts_mut(buf.cast::<u8>(), buflen),
         flags,
     )) {
@@ -1968,7 +1971,7 @@ unsafe extern "C" fn sysconf(name: c_int) -> c_long {
     libc!(sysconf(name));
 
     match name {
-        data::_SC_PAGESIZE => rsix::process::page_size() as _,
+        data::_SC_PAGESIZE => rustix::process::page_size() as _,
         data::_SC_GETPW_R_SIZE_MAX => -1,
         // TODO: Oddly, only ever one processor seems to be online.
         data::_SC_NPROCESSORS_ONLN => 1,
@@ -1981,7 +1984,7 @@ unsafe extern "C" fn sysconf(name: c_int) -> c_long {
 unsafe extern "C" fn getcwd(buf: *mut c_char, len: usize) -> *mut c_char {
     libc!(getcwd(buf, len));
 
-    match set_errno(rsix::process::getcwd(Vec::new())) {
+    match set_errno(rustix::process::getcwd(Vec::new())) {
         Some(path) => {
             let path = path.as_bytes();
             if path.len() + 1 <= len {
@@ -1989,7 +1992,7 @@ unsafe extern "C" fn getcwd(buf: *mut c_char, len: usize) -> *mut c_char {
                 *buf.add(path.len()) = 0;
                 buf
             } else {
-                *__errno_location() = rsix::io::Error::RANGE.raw_os_error();
+                *__errno_location() = rustix::io::Error::RANGE.raw_os_error();
                 null_mut()
             }
         }
@@ -2002,7 +2005,7 @@ unsafe extern "C" fn chdir(path: *const c_char) -> c_int {
     libc!(chdir(path));
 
     let path = CStr::from_ptr(path);
-    match set_errno(rsix::process::chdir(path)) {
+    match set_errno(rustix::process::chdir(path)) {
         Some(()) => 0,
         None => -1,
     }
@@ -2019,7 +2022,7 @@ unsafe extern "C" fn getauxval(type_: c_ulong) -> c_ulong {
 unsafe extern "C" fn __getauxval(type_: c_ulong) -> c_ulong {
     libc!(getauxval(type_));
     match type_ {
-        data::AT_HWCAP => rsix::process::linux_hwcap().0 as c_ulong,
+        data::AT_HWCAP => rustix::process::linux_hwcap().0 as c_ulong,
         _ => unimplemented!("unrecognized __getauxval {}", type_),
     }
 }
@@ -2038,7 +2041,7 @@ unsafe extern "C" fn dl_iterate_phdr(
     // Disabled for now, as our `DlPhdrInfo` has fewer fields than libc's.
     //libc!(dl_iterate_phdr(callback, data));
 
-    let (phdr, phnum) = rsix::runtime::exe_phdrs();
+    let (phdr, phnum) = rustix::runtime::exe_phdrs();
     let mut info = data::DlPhdrInfo {
         dlpi_addr: &mut __executable_start as *mut _ as usize,
         dlpi_name: b"/proc/self/exe\0".as_ptr().cast(),
@@ -2118,7 +2121,7 @@ unsafe extern "C" fn ___tls_get_addr() {
 unsafe extern "C" fn sched_yield() -> c_int {
     libc!(sched_yield());
 
-    rsix::process::sched_yield();
+    rustix::process::sched_yield();
     0
 }
 
@@ -2139,7 +2142,7 @@ unsafe extern "C" fn prctl(
     libc!(prctl(option, arg2, _arg3, _arg4, _arg5));
     match option {
         data::PR_SET_NAME => {
-            match set_errno(rsix::runtime::set_thread_name(CStr::from_ptr(
+            match set_errno(rustix::runtime::set_thread_name(CStr::from_ptr(
                 arg2 as *const c_char,
             ))) {
                 Some(()) => 0,
@@ -2171,25 +2174,25 @@ unsafe extern "C" fn setuid() {
 #[no_mangle]
 unsafe extern "C" fn getpid() -> c_int {
     libc!(getpid());
-    rsix::process::getpid().as_raw() as _
+    rustix::process::getpid().as_raw() as _
 }
 
 #[no_mangle]
 unsafe extern "C" fn getppid() -> c_int {
     libc!(getppid());
-    rsix::process::getppid().as_raw() as _
+    rustix::process::getppid().as_raw() as _
 }
 
 #[no_mangle]
 unsafe extern "C" fn getuid() -> c_uint {
     libc!(getuid());
-    rsix::process::getuid().as_raw()
+    rustix::process::getuid().as_raw()
 }
 
 #[no_mangle]
 unsafe extern "C" fn getgid() -> c_uint {
     libc!(getgid());
-    rsix::process::getgid().as_raw()
+    rustix::process::getgid().as_raw()
 }
 
 #[no_mangle]
@@ -2271,7 +2274,7 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
             getrandom(buf, len, flags) as _
         }
         data::SYS_futex => {
-            use rsix::thread::{futex, FutexFlags, FutexOperation};
+            use rustix::thread::{futex, FutexFlags, FutexOperation};
 
             let uaddr = args.arg::<*mut u32>();
             let futex_op = args.arg::<c_int>();
@@ -2303,7 +2306,7 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
             } else {
                 ptr::read(timeout)
             };
-            let new_timespec = rsix::time::Timespec {
+            let new_timespec = rustix::time::Timespec {
                 tv_sec: old_timespec.tv_sec.into(),
                 tv_nsec: old_timespec.tv_nsec as _,
             };
@@ -2380,15 +2383,15 @@ unsafe extern "C" fn posix_spawn_file_actions_init() {
 // time
 
 #[no_mangle]
-unsafe extern "C" fn clock_gettime(id: c_int, tp: *mut rsix::time::Timespec) -> c_int {
+unsafe extern "C" fn clock_gettime(id: c_int, tp: *mut rustix::time::Timespec) -> c_int {
     libc!(clock_gettime(id, same_ptr_mut(tp)));
 
     let id = match id {
-        data::CLOCK_MONOTONIC => rsix::time::ClockId::Monotonic,
-        data::CLOCK_REALTIME => rsix::time::ClockId::Realtime,
+        data::CLOCK_MONOTONIC => rustix::time::ClockId::Monotonic,
+        data::CLOCK_REALTIME => rustix::time::ClockId::Realtime,
         _ => panic!("unimplemented clock({})", id),
     };
-    *tp = rsix::time::clock_gettime(id);
+    *tp = rustix::time::clock_gettime(id);
     0
 }
 
@@ -2399,21 +2402,21 @@ unsafe extern "C" fn nanosleep(
 ) -> c_int {
     libc!(nanosleep(same_ptr(req), same_ptr_mut(rem)));
 
-    let req = rsix::time::Timespec {
+    let req = rustix::time::Timespec {
         tv_sec: (*req).tv_sec.into(),
         tv_nsec: (*req).tv_nsec as _,
     };
-    match rsix::time::nanosleep(&req) {
-        rsix::time::NanosleepRelativeResult::Ok => 0,
-        rsix::time::NanosleepRelativeResult::Interrupted(remaining) => {
+    match rustix::time::nanosleep(&req) {
+        rustix::time::NanosleepRelativeResult::Ok => 0,
+        rustix::time::NanosleepRelativeResult::Interrupted(remaining) => {
             *rem = data::OldTimespec {
                 tv_sec: remaining.tv_sec.try_into().unwrap(),
                 tv_nsec: remaining.tv_nsec as _,
             };
-            *__errno_location() = rsix::io::Error::INTR.raw_os_error();
+            *__errno_location() = rustix::io::Error::INTR.raw_os_error();
             -1
         }
-        rsix::time::NanosleepRelativeResult::Err(err) => {
+        rustix::time::NanosleepRelativeResult::Err(err) => {
             *__errno_location() = err.raw_os_error();
             -1
         }
@@ -2434,22 +2437,22 @@ unsafe fn null_terminated_array<'a>(list: *const *const c_char) -> Vec<&'a CStr>
         .collect()
 }
 
-fn file_exists(cwd: &rsix::io_lifetimes::BorrowedFd<'_>, path: &CStr) -> bool {
-    rsix::fs::accessat(
+fn file_exists(cwd: &rustix::io_lifetimes::BorrowedFd<'_>, path: &CStr) -> bool {
+    rustix::fs::accessat(
         cwd,
         path,
-        rsix::fs::Access::EXISTS | rsix::fs::Access::EXEC_OK,
-        rsix::fs::AtFlags::empty(),
+        rustix::fs::Access::EXISTS | rustix::fs::Access::EXEC_OK,
+        rustix::fs::AtFlags::empty(),
     )
     .is_ok()
 }
 
-fn resolve_binary<'a>(file: &'a CStr, envs: &[&CStr]) -> rsix::io::Result<Cow<'a, CStr>> {
+fn resolve_binary<'a>(file: &'a CStr, envs: &[&CStr]) -> rustix::io::Result<Cow<'a, CStr>> {
     let file_bytes = file.to_bytes();
     if file_bytes.contains(&b'/') {
         Ok(Cow::Borrowed(file))
     } else {
-        let cwd = rsix::fs::cwd();
+        let cwd = rustix::fs::cwd();
         match envs
             .into_iter()
             .copied()
@@ -2467,7 +2470,7 @@ fn resolve_binary<'a>(file: &'a CStr, envs: &[&CStr]) -> rsix::io::Result<Cow<'a
             .find(|path| file_exists(&cwd, &path))
         {
             Some(path) => Ok(Cow::Owned(path)),
-            None => Err(rsix::io::Error::ACCES),
+            None => Err(rustix::io::Error::ACCES),
         }
     }
 }
@@ -2479,7 +2482,7 @@ unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> 
     let envs = null_terminated_array(environ.cast::<_>());
     match set_errno(
         resolve_binary(CStr::from_ptr(file), &envs)
-            .and_then(|path| rsix::runtime::execve::<&CStr>(&path, &args, &envs)),
+            .and_then(|path| rustix::runtime::execve(path, &args, &envs)),
     ) {
         Some(_) => 0,
         None => -1,
@@ -2520,7 +2523,7 @@ unsafe extern "C" fn waitpid(pid: c_int, status: *mut c_int, options: c_int) -> 
     let ret_pid;
     let ret_status;
     match pid {
-        -1 => match set_errno(rsix::process::wait(options)) {
+        -1 => match set_errno(rustix::process::wait(options)) {
             Some(Some((new_pid, new_status))) => {
                 ret_pid = new_pid.as_raw() as c_int;
                 ret_status = new_status.as_raw() as c_int;
@@ -2528,13 +2531,13 @@ unsafe extern "C" fn waitpid(pid: c_int, status: *mut c_int, options: c_int) -> 
             Some(None) => return 0,
             None => return -1,
         },
-        pid => match set_errno(rsix::process::waitpid(
-            rsix::process::Pid::from_raw(pid as _),
+        pid => match set_errno(rustix::process::waitpid(
+            rustix::process::Pid::from_raw(pid as _),
             options,
         )) {
             Some(Some(new_status)) => {
                 ret_pid = if pid == 0 {
-                    rsix::process::getpid().as_raw() as c_int
+                    rustix::process::getpid().as_raw() as c_int
                 } else {
                     pid
                 };
@@ -3390,7 +3393,11 @@ unsafe extern "C" fn pthread_attr_getstack(
 #[no_mangle]
 unsafe extern "C" fn pthread_getspecific() -> *const c_void {
     //libc!(pthread_getspecific());
-    rsix::io::write(&rsix::io::stderr(), b"unimplemented: pthread_getspecific\n").ok();
+    rustix::io::write(
+        &rustix::io::stderr(),
+        b"unimplemented: pthread_getspecific\n",
+    )
+    .ok();
     null()
 }
 
@@ -3398,7 +3405,11 @@ unsafe extern "C" fn pthread_getspecific() -> *const c_void {
 #[no_mangle]
 unsafe extern "C" fn pthread_key_create() -> c_int {
     //libc!(pthread_key_create());
-    rsix::io::write(&rsix::io::stderr(), b"unimplemented: pthread_key_create\n").ok();
+    rustix::io::write(
+        &rustix::io::stderr(),
+        b"unimplemented: pthread_key_create\n",
+    )
+    .ok();
     0
 }
 
@@ -3406,7 +3417,11 @@ unsafe extern "C" fn pthread_key_create() -> c_int {
 #[no_mangle]
 unsafe extern "C" fn pthread_key_delete() -> c_int {
     //libc!(pthread_key_delete());
-    rsix::io::write(&rsix::io::stderr(), b"unimplemented: pthread_key_delete\n").ok();
+    rustix::io::write(
+        &rustix::io::stderr(),
+        b"unimplemented: pthread_key_delete\n",
+    )
+    .ok();
     0
 }
 
@@ -3499,7 +3514,7 @@ unsafe extern "C" fn pthread_mutex_trylock(mutex: *mut PthreadMutexT) -> c_int {
     } {
         0
     } else {
-        rsix::io::Error::BUSY.raw_os_error()
+        rustix::io::Error::BUSY.raw_os_error()
     }
 }
 
@@ -3525,7 +3540,7 @@ unsafe extern "C" fn pthread_rwlock_tryrdlock(rwlock: *mut PthreadRwlockT) -> c_
         (*rwlock).exclusive.store(false, SeqCst);
         0
     } else {
-        rsix::io::Error::BUSY.raw_os_error()
+        rustix::io::Error::BUSY.raw_os_error()
     }
 }
 
@@ -3538,7 +3553,7 @@ unsafe extern "C" fn pthread_rwlock_trywrlock(rwlock: *mut PthreadRwlockT) -> c_
         (*rwlock).exclusive.store(true, SeqCst);
         0
     } else {
-        rsix::io::Error::BUSY.raw_os_error()
+        rustix::io::Error::BUSY.raw_os_error()
     }
 }
 
@@ -3567,7 +3582,11 @@ unsafe extern "C" fn pthread_rwlock_unlock(rwlock: *mut PthreadRwlockT) -> c_int
 #[no_mangle]
 unsafe extern "C" fn pthread_setspecific() -> c_int {
     //libc!(pthread_setspecific());
-    rsix::io::write(&rsix::io::stderr(), b"unimplemented: pthread_getspecific\n").ok();
+    rustix::io::write(
+        &rustix::io::stderr(),
+        b"unimplemented: pthread_getspecific\n",
+    )
+    .ok();
     0
 }
 
@@ -3629,8 +3648,8 @@ libc_type!(PthreadCondattrT, pthread_condattr_t);
 unsafe extern "C" fn pthread_condattr_destroy(attr: *mut PthreadCondattrT) -> c_int {
     libc!(pthread_condattr_destroy(same_ptr_mut(attr)));
     let _ = attr;
-    rsix::io::write(
-        &rsix::io::stderr(),
+    rustix::io::write(
+        &rustix::io::stderr(),
         b"unimplemented: pthread_condattr_destroy\n",
     )
     .ok();
@@ -3642,8 +3661,8 @@ unsafe extern "C" fn pthread_condattr_destroy(attr: *mut PthreadCondattrT) -> c_
 unsafe extern "C" fn pthread_condattr_init(attr: *mut PthreadCondattrT) -> c_int {
     libc!(pthread_condattr_init(same_ptr_mut(attr)));
     let _ = attr;
-    rsix::io::write(
-        &rsix::io::stderr(),
+    rustix::io::write(
+        &rustix::io::stderr(),
         b"unimplemented: pthread_condattr_init\n",
     )
     .ok();
@@ -3658,8 +3677,8 @@ unsafe extern "C" fn pthread_condattr_setclock(
 ) -> c_int {
     libc!(pthread_condattr_setclock(same_ptr_mut(attr), clock_id));
     let _ = (attr, clock_id);
-    rsix::io::write(
-        &rsix::io::stderr(),
+    rustix::io::write(
+        &rustix::io::stderr(),
         b"unimplemented: pthread_condattr_setclock\n",
     )
     .ok();
@@ -3671,8 +3690,8 @@ unsafe extern "C" fn pthread_condattr_setclock(
 unsafe extern "C" fn pthread_cond_broadcast(cond: *mut PthreadCondT) -> c_int {
     libc!(pthread_cond_broadcast(same_ptr_mut(cond)));
     let _ = cond;
-    rsix::io::write(
-        &rsix::io::stderr(),
+    rustix::io::write(
+        &rustix::io::stderr(),
         b"unimplemented: pthread_cond_broadcast\n",
     )
     .ok();
@@ -3684,8 +3703,8 @@ unsafe extern "C" fn pthread_cond_broadcast(cond: *mut PthreadCondT) -> c_int {
 unsafe extern "C" fn pthread_cond_destroy(cond: *mut PthreadCondT) -> c_int {
     libc!(pthread_cond_destroy(same_ptr_mut(cond)));
     let _ = cond;
-    rsix::io::write(
-        &rsix::io::stderr(),
+    rustix::io::write(
+        &rustix::io::stderr(),
         b"unimplemented: pthread_cond_destroy\n",
     )
     .ok();
@@ -3700,7 +3719,7 @@ unsafe extern "C" fn pthread_cond_init(
 ) -> c_int {
     libc!(pthread_cond_init(same_ptr_mut(cond), same_ptr(attr)));
     let _ = (cond, attr);
-    rsix::io::write(&rsix::io::stderr(), b"unimplemented: pthread_cond_init\n").ok();
+    rustix::io::write(&rustix::io::stderr(), b"unimplemented: pthread_cond_init\n").ok();
     0
 }
 
@@ -3709,7 +3728,11 @@ unsafe extern "C" fn pthread_cond_init(
 unsafe extern "C" fn pthread_cond_signal(cond: *mut PthreadCondT) -> c_int {
     libc!(pthread_cond_signal(same_ptr_mut(cond)));
     let _ = cond;
-    rsix::io::write(&rsix::io::stderr(), b"unimplemented: pthread_cond_signal\n").ok();
+    rustix::io::write(
+        &rustix::io::stderr(),
+        b"unimplemented: pthread_cond_signal\n",
+    )
+    .ok();
     0
 }
 
@@ -3718,7 +3741,7 @@ unsafe extern "C" fn pthread_cond_signal(cond: *mut PthreadCondT) -> c_int {
 unsafe extern "C" fn pthread_cond_wait(cond: *mut PthreadCondT, lock: *mut PthreadMutexT) -> c_int {
     libc!(pthread_cond_wait(same_ptr_mut(cond), same_ptr_mut(lock)));
     let _ = (cond, lock);
-    rsix::io::write(&rsix::io::stderr(), b"unimplemented: pthread_cond_wait\n").ok();
+    rustix::io::write(&rustix::io::stderr(), b"unimplemented: pthread_cond_wait\n").ok();
     0
 }
 
@@ -3735,8 +3758,8 @@ unsafe extern "C" fn pthread_cond_timedwait(
         same_ptr(abstime),
     ));
     let _ = (cond, lock, abstime);
-    rsix::io::write(
-        &rsix::io::stderr(),
+    rustix::io::write(
+        &rustix::io::stderr(),
         b"unimplemented: pthread_cond_timedwait\n",
     )
     .ok();
@@ -3831,7 +3854,7 @@ unsafe extern "C" fn pthread_join(pthread: PthreadT, retval: *mut *mut c_void) -
 #[no_mangle]
 unsafe extern "C" fn pthread_sigmask() -> c_int {
     //libc!(pthread_sigmask());
-    rsix::io::write(&rsix::io::stderr(), b"unimplemented: pthread_sigmask\n").ok();
+    rustix::io::write(&rustix::io::stderr(), b"unimplemented: pthread_sigmask\n").ok();
     0
 }
 
@@ -3978,7 +4001,7 @@ unsafe extern "C" fn __aeabi_d2f(_a: f64) -> f32 {
 
 // utilities
 
-fn set_errno<T>(result: Result<T, rsix::io::Error>) -> Option<T> {
+fn set_errno<T>(result: Result<T, rustix::io::Error>) -> Option<T> {
     result
         .map_err(|err| unsafe {
             *__errno_location() = err.raw_os_error();

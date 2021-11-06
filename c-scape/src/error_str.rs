@@ -1,4 +1,4 @@
-use rsix::io::Error;
+use rustix::io::Error;
 
 pub(crate) const fn error_str(e: Error) -> Option<&'static str> {
     // Recognize errors documented in POSIX and use the documented strings.
