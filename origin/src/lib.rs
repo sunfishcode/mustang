@@ -5,6 +5,8 @@
 #![feature(link_llvm_intrinsics)]
 #![feature(atomic_mut_ptr)]
 
+mod allocator;
+mod mutex;
 mod program;
 #[cfg(feature = "threads")]
 mod threads;
@@ -122,3 +124,7 @@ static INIT_ARRAY: unsafe extern "C" fn() = {
     }
     function
 };
+
+#[cfg(target_vendor = "mustang")]
+#[global_allocator]
+static GLOBAL_ALLOCATOR: allocator::GlobalAllocator = allocator::GlobalAllocator;

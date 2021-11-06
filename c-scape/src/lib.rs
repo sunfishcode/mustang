@@ -11,8 +11,6 @@ mod use_libc;
 
 mod data;
 mod error_str;
-#[cfg(feature = "threads")]
-mod raw_mutex;
 // Unwinding isn't supported on 32-bit arm yet.
 // On aarch64 and riscg64 unwinding currently depends on a pre-release gimli.
 #[cfg(any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"))]
@@ -34,9 +32,9 @@ use memoffset::offset_of;
 #[cfg(feature = "threads")]
 use origin::Thread;
 #[cfg(feature = "threads")]
-use parking_lot::lock_api::RawRwLock;
+use parking_lot::lock_api::{RawMutex as _, RawRwLock};
 #[cfg(feature = "threads")]
-use raw_mutex::RawMutex;
+use parking_lot::RawMutex;
 use rsix::fs::{cwd, openat, AtFlags, FdFlags, Mode, OFlags};
 use rsix::io::{EventfdFlags, MapFlags, MprotectFlags, MremapFlags, PipeFlags, ProtFlags};
 use rsix::io_lifetimes::{AsFd, BorrowedFd, OwnedFd};
@@ -3464,7 +3462,7 @@ unsafe extern "C" fn pthread_mutex_init(
     libc!(pthread_mutex_init(same_ptr_mut(mutex), same_ptr(mutexattr)));
     let kind = (*mutexattr).kind.load(SeqCst);
     match kind as i32 {
-        data::PTHREAD_MUTEX_NORMAL => ptr::write(&mut (*mutex).u.normal, RawMutex::new()),
+        data::PTHREAD_MUTEX_NORMAL => ptr::write(&mut (*mutex).u.normal, RawMutex::INIT),
         data::PTHREAD_MUTEX_RECURSIVE => ptr::write(
             &mut (*mutex).u.reentrant,
             parking_lot::lock_api::RawReentrantMutex::<parking_lot::RawMutex, GetThreadId>::INIT,

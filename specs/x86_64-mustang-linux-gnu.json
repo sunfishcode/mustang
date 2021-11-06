@@ -15,7 +15,8 @@
   "pre-link-args": {
     "gcc": [
       "-m64",
-      "-nostartfiles"
+      "-nostartfiles",
+      "-Wl,--undefined=_Unwind_Backtrace"
     ]
   },
   "relro-level": "full",

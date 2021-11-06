@@ -1,4 +1,5 @@
 use rsix::thread::{futex, FutexFlags, FutexOperation};
+use std::cell::UnsafeCell;
 use std::ptr::{null, null_mut};
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::SeqCst;
@@ -13,20 +14,29 @@ use std::sync::atomic::Ordering::SeqCst;
 // 0 => unlocked
 // 1 => locked
 // 2 => locked with waiters waiting
-pub(crate) struct RawMutex(AtomicU32);
+struct FutexMutex(AtomicU32);
+
+/// a safe wrapper around `FutexMutex`, ensuring that it won't be moved while locked.
+pub(crate) struct Mutex<T> {
+    inner: FutexMutex,
+    value: UnsafeCell<T>,
+}
+
+/// access to the data is protected by the mutex
+unsafe impl<T> Sync for Mutex<T> {}
 
 /// This implements the same API as `lock_api::RawMutex`, except it doesn't
 /// have `INIT`, so that constructing a `RawMutex` can be `unsafe`.
-impl RawMutex {
-    /// Returns a new `RawMutex`.
+impl FutexMutex {
+    /// Returns a new `FutexMutex`.
     ///
     /// # Safety
     ///
-    /// This `RawMutex` type is not movable when it is locked, so it should
+    /// This `FutexMutex` type is not movable when it is locked, so it should
     /// only be constructed in a place where it's never moved once it can be
     /// locked.
     #[inline]
-    pub(crate) const unsafe fn new() -> Self {
+    const unsafe fn new() -> Self {
         Self(AtomicU32::new(0))
     }
 
@@ -37,21 +47,10 @@ impl RawMutex {
     ///
     /// [`lock_api::RawMutex::lock`]: https://docs.rs/lock_api/current/lock_api/trait.RawMutex.html#tymethod.lock
     #[inline]
-    pub(crate) fn lock(&self) {
+    fn lock(&self) {
         if let Err(c) = self.0.compare_exchange(0, 1, SeqCst, SeqCst) {
             self.block(c)
         }
-    }
-
-    /// Attempts to acquire this mutex without blocking. Returns `true` if the
-    /// lock was successfully acquired and `false` otherwise.
-    ///
-    /// This is similar to [`lock_api::RawMutex::try_lock`].
-    ///
-    /// [`lock_api::RawMutex::try_lock`]: https://docs.rs/lock_api/current/lock_api/trait.RawMutex.html#tymethod.try_lock
-    #[inline]
-    pub(crate) fn try_lock(&self) -> bool {
-        self.0.compare_exchange(0, 1, SeqCst, SeqCst).is_ok()
     }
 
     /// Unlocks this mutex.
@@ -66,7 +65,7 @@ impl RawMutex {
     /// context, i.e. it must be paired with a successful call to `lock` or
     /// `try_lock`.
     #[inline]
-    pub(crate) unsafe fn unlock(&self) {
+    unsafe fn unlock(&self) {
         if self.0.swap(0, SeqCst) != 1 {
             self.wake();
         }
@@ -117,6 +116,27 @@ impl RawMutex {
                 0,
             )
             .unwrap();
+        }
+    }
+}
+
+impl<T> Mutex<T> {
+    pub const fn new(value: T) -> Self {
+        Mutex {
+            inner: unsafe { FutexMutex::new() },
+            value: UnsafeCell::new(value),
+        }
+    }
+
+    pub fn lock<R, F: FnOnce(&mut T) -> R>(&self, fun: F) -> R {
+        // since the futex is guarenteed to be unlocked by the end of the function,
+        // the mutex can be moved freely outside of it.
+        unsafe {
+            self.inner.lock();
+            let value = &mut *self.value.get();
+            let res = fun(value);
+            self.inner.unlock();
+            res
         }
     }
 }
