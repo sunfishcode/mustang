@@ -2,7 +2,7 @@ use crate::mutex::Mutex;
 use dlmalloc::Dlmalloc;
 use std::alloc::{GlobalAlloc, Layout};
 
-static INNER_ALLOC: Mutex<Dlmalloc> = Mutex::new(Dlmalloc::new());
+pub(crate) static INNER_ALLOC: Mutex<Dlmalloc> = Mutex::new(Dlmalloc::new());
 
 /// the global allocator that should be used when targeting mustang
 pub struct GlobalAllocator;

@@ -281,7 +281,9 @@ pub unsafe fn fork() -> rustix::io::Result<Option<rustix::process::Pid>> {
         let fork_funcs = FORK_FUNCS.get_or_init(|| Mutex::new(RegisteredForkFuncs::default()));
         let funcs = fork_funcs.lock().unwrap();
         funcs.prepare.iter().rev().for_each(|func| func());
-        match rustix::runtime::fork()? {
+        // protect the allocator lock while the fork is in progress,
+        // to avoid deadlocks in the child process from allocations.
+        match crate::allocator::INNER_ALLOC.lock(|_| rustix::runtime::fork())? {
             rustix::process::Pid::NONE => {
                 #[cfg(feature = "threads")]
                 set_current_thread_id(rustix::thread::gettid());
