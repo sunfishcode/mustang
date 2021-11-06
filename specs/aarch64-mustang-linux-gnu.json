@@ -26,7 +26,8 @@
   "target-pointer-width": "64",
   "pre-link-args": {
     "gcc": [
-      "-nostartfiles"
+      "-nostartfiles",
+      "-Wl,--undefined=__aarch64_swp4_rel"
     ]
   },
   "vendor": "mustang"
