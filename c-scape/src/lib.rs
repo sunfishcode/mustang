@@ -3862,7 +3862,7 @@ unsafe extern "C" fn pthread_join(pthread: PthreadT, retval: *mut *mut c_void) -
 #[no_mangle]
 unsafe extern "C" fn pthread_sigmask() -> c_int {
     //libc!(pthread_sigmask());
-    rustix::io::write(&rustix::io::stderr(), b"unimplemented: pthread_sigmask\n").ok();
+    // not yet implemented, what is needed fo `std::Command` to work.
     0
 }
 
