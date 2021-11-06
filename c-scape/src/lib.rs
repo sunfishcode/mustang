@@ -2498,7 +2498,11 @@ unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> 
 #[no_mangle]
 unsafe extern "C" fn fork() -> c_int {
     libc!(fork());
-    unimplemented!("fork")
+    match set_errno(origin::fork()) {
+        Some(Some(pid)) => pid.as_raw() as c_int,
+        Some(None) => 0,
+        None => -1,
+    }
 }
 
 // <https://refspecs.linuxbase.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/baselib---register-atfork.html>
