@@ -112,11 +112,8 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
     }
 }
 
-// TODO: Mustang can't quite compile this yet: the `Command` API needs
-// child-process support.
-#[cfg_attr(target_vendor = "mustang", ignore)]
 #[test]
-fn test() {
+fn test_examples() {
     test_example("empty", "", "", "");
     test_example("hello", "", "Hello, world!\n", "");
     test_example("test-args", "", "", "");
