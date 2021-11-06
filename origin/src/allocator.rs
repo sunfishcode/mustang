@@ -7,19 +7,9 @@ static INNER_ALLOC: Mutex<Dlmalloc> = Mutex::new(Dlmalloc::new());
 /// the global allocator that should be used when targeting mustang
 pub struct GlobalAllocator;
 
-struct Dropable;
-
-impl Drop for Dropable {
-    #[inline(never)]
-    fn drop(&mut self) {}
-}
-
 unsafe impl GlobalAlloc for GlobalAllocator {
     #[inline]
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        // for some reason, for symbols for the mustang crate to link,
-        // the allocator must drop something
-        let _d = Dropable;
         INNER_ALLOC.lock(|dlmalloc| dlmalloc.malloc(layout.size(), layout.align()))
     }
 

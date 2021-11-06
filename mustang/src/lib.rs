@@ -17,9 +17,3 @@ extern crate origin;
 #[cfg(not(any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64")))]
 #[cfg(target_vendor = "mustang")]
 extern crate unwinding;
-
-// global allocator must be defined in the mustang crate,
-// to ensure symbols from the above crates are actually linked
-#[cfg(target_vendor = "mustang")]
-#[global_allocator]
-static GLOBAL_ALLOCATOR: origin::GlobalAllocator = origin::GlobalAllocator;

@@ -36,10 +36,6 @@ pub use threads::{
     default_guard_size, default_stack_size, detach_thread, join_thread, thread_stack, Thread,
 };
 
-#[cfg(target_vendor = "mustang")]
-/// must be used as the global allocator on mustang
-pub use allocator::GlobalAllocator;
-
 /// The program entry point.
 ///
 /// # Safety
@@ -128,3 +124,7 @@ static INIT_ARRAY: unsafe extern "C" fn() = {
     }
     function
 };
+
+#[cfg(target_vendor = "mustang")]
+#[global_allocator]
+static GLOBAL_ALLOCATOR: allocator::GlobalAllocator = allocator::GlobalAllocator;
