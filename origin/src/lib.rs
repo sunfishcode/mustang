@@ -1,6 +1,8 @@
 #![doc = include_str!("../README.md")]
 #![deny(missing_docs)]
 #![feature(asm)]
+#![feature(asm_const)]
+#![feature(asm_sym)]
 #![feature(naked_functions)]
 #![feature(link_llvm_intrinsics)]
 #![feature(atomic_mut_ptr)]
