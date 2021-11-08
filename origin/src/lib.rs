@@ -29,7 +29,7 @@ mod arch;
 
 use std::ffi::c_void;
 
-pub use program::{at_exit, exit, exit_immediately};
+pub use program::{at_exit, at_fork, exit, exit_immediately, fork};
 #[cfg(feature = "threads")]
 pub use threads::{
     at_thread_exit, create_thread, current_thread, current_thread_id, current_thread_tls_addr,

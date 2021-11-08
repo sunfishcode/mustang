@@ -2064,11 +2064,12 @@ unsafe extern "C" fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c
         if CStr::from_ptr(symbol).to_bytes() == b"getrandom" {
             return getrandom as *mut c_void;
         }
-        if CStr::from_ptr(symbol).to_bytes() == b"clone3" {
-            return clone3 as *mut c_void;
-        }
         if CStr::from_ptr(symbol).to_bytes() == b"copy_file_range" {
             return copy_file_range as *mut c_void;
+        }
+        if CStr::from_ptr(symbol).to_bytes() == b"clone3" {
+            // Let's just say we don't support this for now.
+            return null_mut();
         }
         if CStr::from_ptr(symbol).to_bytes() == b"__pthread_get_minstack" {
             // Let's just say we don't support this for now.
@@ -2320,6 +2321,11 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
                 None => -1,
             }
         }
+        data::SYS_clone3 => {
+            // ensure std::process uses fork as fallback code on linux
+            set_errno::<()>(Err(rustix::io::Error::NOSYS));
+            -1
+        }
         _ => unimplemented!("syscall({:?})", number),
     }
 }
@@ -2492,21 +2498,23 @@ unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> 
 #[no_mangle]
 unsafe extern "C" fn fork() -> c_int {
     libc!(fork());
-    unimplemented!("fork")
+    match set_errno(origin::fork()) {
+        Some(Some(pid)) => pid.as_raw() as c_int,
+        Some(None) => 0,
+        None => -1,
+    }
 }
 
 // <https://refspecs.linuxbase.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/baselib---register-atfork.html>
 #[no_mangle]
 unsafe extern "C" fn __register_atfork(
-    _prepare: unsafe extern "C" fn(),
-    _parent: unsafe extern "C" fn(),
-    _child: unsafe extern "C" fn(),
+    prepare: Option<unsafe extern "C" fn()>,
+    parent: Option<unsafe extern "C" fn()>,
+    child: Option<unsafe extern "C" fn()>,
     _dso_handle: *mut c_void,
 ) -> c_int {
-    // TODO: libc!(__register_atfork(_prepare, _parent, _child, _dso_handle));
-
-    // We don't implement `fork` yet, so there's nothing to do.
-
+    libc!(__register_atfork(prepare, parent, child, _dso_handle));
+    origin::at_fork(prepare, parent, child);
     0
 }
 
@@ -3854,7 +3862,7 @@ unsafe extern "C" fn pthread_join(pthread: PthreadT, retval: *mut *mut c_void) -
 #[no_mangle]
 unsafe extern "C" fn pthread_sigmask() -> c_int {
     //libc!(pthread_sigmask());
-    rustix::io::write(&rustix::io::stderr(), b"unimplemented: pthread_sigmask\n").ok();
+    // not yet implemented, what is needed fo `std::Command` to work.
     0
 }
 
@@ -3919,14 +3927,12 @@ unsafe extern "C" fn pthread_testcancel() -> c_int {
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_atfork(
-    _prepare: Option<unsafe extern "C" fn()>,
-    _parent: Option<unsafe extern "C" fn()>,
-    _child: Option<unsafe extern "C" fn()>,
+    prepare: Option<unsafe extern "C" fn()>,
+    parent: Option<unsafe extern "C" fn()>,
+    child: Option<unsafe extern "C" fn()>,
 ) -> c_int {
-    libc!(pthread_atfork(_prepare, _parent, _child));
-
-    // We don't implement `fork` yet, so there's nothing to do.
-
+    libc!(pthread_atfork(prepare, parent, child));
+    origin::at_fork(prepare, parent, child);
     0
 }
 

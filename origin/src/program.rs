@@ -1,6 +1,6 @@
 #[cfg(target_vendor = "mustang")]
 #[cfg(feature = "threads")]
-use crate::threads::initialize_main_thread;
+use crate::threads::{initialize_main_thread, set_current_thread_id};
 #[cfg(target_vendor = "mustang")]
 use once_cell::sync::OnceCell;
 use std::ffi::c_void;
@@ -213,4 +213,102 @@ pub fn exit_immediately(status: c_int) -> ! {
     log::trace!("Program exiting");
 
     rustix::process::exit_group(status)
+}
+
+#[derive(Default)]
+struct RegisteredForkFuncs {
+    pub(crate) prepare: Vec<unsafe extern "C" fn()>,
+    pub(crate) parent: Vec<unsafe extern "C" fn()>,
+    pub(crate) child: Vec<unsafe extern "C" fn()>,
+}
+
+/// Functions registered with `at_fork`.
+#[cfg(target_vendor = "mustang")]
+static FORK_FUNCS: OnceCell<Mutex<RegisteredForkFuncs>> = OnceCell::new();
+
+/// Register functions to be called when `fork` is called.
+///
+/// The handlers for each phase are called in the following order:
+/// the prepare handlers are called in reverse order of registration;
+/// the parent and child handlers are called in the order of registration.
+pub fn at_fork(
+    prepare_func: Option<unsafe extern "C" fn()>,
+    parent_func: Option<unsafe extern "C" fn()>,
+    child_func: Option<unsafe extern "C" fn()>,
+) {
+    #[cfg(target_vendor = "mustang")]
+    {
+        let fork_funcs = FORK_FUNCS.get_or_init(|| Mutex::new(RegisteredForkFuncs::default()));
+        let mut funcs = fork_funcs.lock().unwrap();
+        if let Some(func) = prepare_func {
+            funcs.prepare.push(func);
+        }
+        if let Some(func) = parent_func {
+            funcs.parent.push(func);
+        }
+        if let Some(func) = child_func {
+            funcs.child.push(func);
+        }
+    }
+
+    #[cfg(not(target_vendor = "mustang"))]
+    {
+        extern "C" {
+            fn __register_atfork(
+                prepare: Option<unsafe extern "C" fn()>,
+                parent: Option<unsafe extern "C" fn()>,
+                child: Option<unsafe extern "C" fn()>,
+                dso_handle: *mut c_void,
+            ) -> c_int;
+        }
+        let r = unsafe { __register_atfork(prepare_func, parent_func, child_func, null_mut()) };
+        assert_eq!(r, 0);
+    }
+}
+
+/// Creates a new process by duplicating the calling process.
+///
+/// # Safety
+///
+/// After a fork in a multithreaded process returns in the child,
+/// data structures such as mutexes might be in an unusable state.
+/// code should use `at_fork` to either protect them,
+/// from being used by other threads during the fork,
+/// or reinitialize them in child process.
+pub unsafe fn fork() -> rustix::io::Result<Option<rustix::process::Pid>> {
+    #[cfg(target_vendor = "mustang")]
+    {
+        let fork_funcs = FORK_FUNCS.get_or_init(|| Mutex::new(RegisteredForkFuncs::default()));
+        let funcs = fork_funcs.lock().unwrap();
+        funcs.prepare.iter().rev().for_each(|func| func());
+        // protect the allocator lock while the fork is in progress,
+        // to avoid deadlocks in the child process from allocations.
+        match crate::allocator::INNER_ALLOC.lock(|_| rustix::runtime::fork())? {
+            rustix::process::Pid::NONE => {
+                #[cfg(feature = "threads")]
+                set_current_thread_id(rustix::thread::gettid());
+                funcs.child.iter().for_each(|func| func());
+                return Ok(None);
+            }
+            pid => {
+                funcs.parent.iter().for_each(|func| func());
+                return Ok(Some(pid));
+            }
+        }
+    }
+
+    #[cfg(not(target_vendor = "mustang"))]
+    {
+        extern "C" {
+            fn fork() -> c_int;
+        }
+        return match fork() {
+            -1 => {
+                let raw = unsafe { *libc::__errno_location() };
+                Err(rustix::io::Error::from_raw_os_error(raw))
+            }
+            0 => Ok(None),
+            pid => Ok(Some(unsafe { rustix::process::Pid::from_raw(pid as _) })),
+        };
+    }
 }
