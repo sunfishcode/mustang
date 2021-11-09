@@ -2126,7 +2126,7 @@ unsafe extern "C" fn sched_yield() -> c_int {
     0
 }
 
-pub fn set_cpu(cpu: usize, cpuset: &mut data::CpuSet) {
+fn set_cpu(cpu: usize, cpuset: &mut data::CpuSet) {
     let size_in_bits = 8 * std::mem::size_of_val(&cpuset.bits[0]); // 32, 64 etc
     let (idx, offset) = (cpu / size_in_bits, cpu % size_in_bits);
     cpuset.bits[idx] |= 1 << offset;
