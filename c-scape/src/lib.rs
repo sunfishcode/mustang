@@ -2126,10 +2126,30 @@ unsafe extern "C" fn sched_yield() -> c_int {
     0
 }
 
+fn set_cpu(cpu: usize, cpuset: &mut data::CpuSet) {
+    let size_in_bits = 8 * std::mem::size_of_val(&cpuset.bits[0]); // 32, 64 etc
+    let (idx, offset) = (cpu / size_in_bits, cpu % size_in_bits);
+    cpuset.bits[idx] |= 1 << offset;
+}
+
 #[no_mangle]
-unsafe extern "C" fn sched_getaffinity() {
-    //libc!(sched_getaffinity());
-    unimplemented!("sched_getaffinity")
+unsafe extern "C" fn sched_getaffinity(
+    pid: c_int,
+    cpu_set_size: usize,
+    mask: *mut data::CpuSet,
+) -> c_int {
+    libc!(sched_getaffinity(pid, cpu_set_size, mask.cast::<_>()));
+    let pid = rustix::process::Pid::from_raw(pid as _);
+    match set_errno(rustix::process::sched_getaffinity(pid)) {
+        Some(cpu_set) => {
+            let mask = &mut *mask;
+            (0..cpu_set_size)
+                .filter(|&i| cpu_set.is_set(i))
+                .for_each(|i| set_cpu(i, mask));
+            0
+        }
+        None => -1,
+    }
 }
 
 #[no_mangle]

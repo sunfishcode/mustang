@@ -423,3 +423,10 @@ pub(crate) struct Elf_Phdr {
     pub(crate) p_memsz: u64,
     pub(crate) p_align: u64,
 }
+
+pub struct CpuSet {
+    #[cfg(all(target_pointer_width = "32", not(target_arch = "x86_64")))]
+    pub(crate) bits: [u32; 32],
+    #[cfg(not(all(target_pointer_width = "32", not(target_arch = "x86_64"))))]
+    pub(crate) bits: [u64; 16],
+}

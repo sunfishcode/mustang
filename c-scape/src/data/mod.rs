@@ -328,6 +328,7 @@ type_!(Ipv6Mreq, ipv6_mreq);
 struct_!(EpollEvent, epoll_event, events, u64);
 struct_!(OldTimeval, timeval, tv_sec, tv_usec);
 struct_!(OldTimespec, timespec, tv_sec, tv_nsec);
+struct_!(CpuSet, cpu_set_t, bits);
 type_!(OldTime, time_t);
 type_!(Suseconds, suseconds_t);
 // This differs from libc, as we don't yet implement the optional fields
