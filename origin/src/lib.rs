@@ -51,47 +51,48 @@ pub use threads::{
 unsafe extern "C" fn _start() -> ! {
     use program::entry;
 
-    // Jump to `program`, passing it the initial stack pointer value as an
+    // Jump to `entry`, passing it the initial stack pointer value as an
     // argument, a NULL return address, a NULL frame pointer, and an aligned
-    // stack pointer.
+    // stack pointer. On many architectures, the incoming frame pointer is
+    // already NULL.
 
     #[cfg(target_arch = "x86_64")]
-    asm!("mov rdi, rsp",
-         "push rbp",
-         "jmp {entry}",
+    asm!("mov rdi, rsp",   // Pass the incoming `rsp` as the arg to `entry`.
+         "push rbp",       // Set the return address to zero.
+         "jmp {entry}",    // Jump to `entry`.
          entry = sym entry,
          options(noreturn));
 
     #[cfg(target_arch = "aarch64")]
-    asm!("mov x0, sp",
-         "mov x30, xzr",
-         "b {entry}",
+    asm!("mov x0, sp",     // Pass the incoming `sp` as the arg to `entry`.
+         "mov x30, xzr",   // Set the return address to zero.
+         "b {entry}",      // Jump to `entry`.
          entry = sym entry,
          options(noreturn));
 
     #[cfg(target_arch = "arm")]
-    asm!("mov r0, sp\n",
-         "mov lr, #0",
-         "b {entry}",
+    asm!("mov r0, sp\n",   // Pass the incoming `sp` as the arg to `entry`.
+         "mov lr, #0",     // Set the return address to zero.
+         "b {entry}",      // Jump to `entry`.
          entry = sym entry,
          options(noreturn));
 
     #[cfg(target_arch = "riscv64")]
-    asm!("mv a0, sp",
-         "mv ra, zero",
-         "mv fp, zero",
-         "tail {entry}",
+    asm!("mv a0, sp",      // Pass the incoming `sp` as the arg to `entry`.
+         "mv ra, zero",    // Set the return address to zero.
+         "mv fp, zero",    // Set the frame address to zero.
+         "tail {entry}",   // Jump to `entry`.
          entry = sym entry,
          options(noreturn));
 
     #[cfg(target_arch = "x86")]
-    asm!("mov eax, esp",
-         "push ebp",
-         "push ebp",
-         "push ebp",
-         "push eax",
-         "push ebp",
-         "jmp {entry}",
+    asm!("mov eax, esp",   // Save the incoming `esp` value.
+         "push ebp",       // Pad for alignment.
+         "push ebp",       // Pad for alignment.
+         "push ebp",       // Pad for alignment.
+         "push eax",       // Pass saved the incoming `esp` as the arg to `entry`.
+         "push ebp",       // Set the return address to zero.
+         "jmp {entry}",    // Jump to `entry`.
          entry = sym entry,
          options(noreturn));
 }
