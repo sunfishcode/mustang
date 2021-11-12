@@ -3,6 +3,7 @@
 #![no_builtins] // don't let LLVM optimize our `memcpy` into a `memcpy` call
 #![feature(thread_local)] // for `__errno_location`
 #![feature(c_variadic)] // for `ioctl` etc.
+#![feature(const_fn_fn_ptr_basics)] // for creating an empty `Vec::new` of function pointers in a const fn
 #![feature(rustc_private)] // for compiler-builtins
 #![feature(untagged_unions)] // for `PthreadMutexT`
 #![feature(atomic_mut_ptr)] // for `RawMutex`
@@ -15,6 +16,8 @@ mod use_libc;
 
 mod error_str;
 // Unwinding isn't supported on 32-bit arm yet.
+#[cfg(not(target_os = "wasi"))]
+mod at_fork;
 #[cfg(target_arch = "arm")]
 mod unwind;
 
@@ -29,7 +32,7 @@ mod unwind;
 // the `rustix` APIs directly, which are safer, more ergonomic, and skip this
 // whole layer.
 
-use alloc::borrow::{Cow, ToOwned};
+use alloc::borrow::ToOwned;
 use alloc::boxed::Box;
 use alloc::format;
 #[cfg(feature = "sync-resolve")]
@@ -59,7 +62,7 @@ use parking_lot::lock_api::{RawMutex as _, RawRwLock};
 #[cfg(feature = "threads")]
 use parking_lot::RawMutex;
 use rustix::fd::{AsFd, AsRawFd, BorrowedFd, FromRawFd, IntoRawFd};
-use rustix::ffi::{ZStr, ZString};
+use rustix::ffi::ZStr;
 use rustix::fs::{cwd, openat, AtFlags, FdFlags, Mode, OFlags};
 #[cfg(any(target_os = "android", target_os = "linux"))]
 use rustix::io::EventfdFlags;
@@ -2321,14 +2324,14 @@ unsafe extern "C" fn setuid() {
 #[no_mangle]
 unsafe extern "C" fn getpid() -> c_int {
     libc!(libc::getpid());
-    rustix::process::getpid().as_raw() as _
+    rustix::process::getpid().as_raw_nonzero().get() as _
 }
 
 #[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn getppid() -> c_int {
     libc!(libc::getppid());
-    rustix::process::getppid().as_raw() as _
+    rustix::process::Pid::as_raw(rustix::process::getppid()) as _
 }
 
 #[cfg(not(target_os = "wasi"))]
@@ -2625,80 +2628,74 @@ unsafe extern "C" fn nanosleep(req: *const libc::timespec, rem: *mut libc::times
 
 // exec
 
-#[cfg(not(target_os = "wasi"))]
-unsafe fn null_terminated_array<'a>(list: *const *const c_char) -> Vec<&'a ZStr> {
-    let mut len = 0;
-    while !(*list.wrapping_add(len)).is_null() {
-        len += 1;
-    }
-    let list = core::slice::from_raw_parts(list, len);
-    list.into_iter()
-        .copied()
-        .map(|ptr| ZStr::from_ptr(ptr.cast()))
-        .collect()
-}
-
-#[cfg(not(target_os = "wasi"))]
-fn file_exists(cwd: &rustix::fd::BorrowedFd<'_>, path: &ZStr) -> bool {
-    rustix::fs::accessat(
-        cwd,
-        path,
-        rustix::fs::Access::EXISTS | rustix::fs::Access::EXEC_OK,
-        rustix::fs::AtFlags::empty(),
-    )
-    .is_ok()
-}
-
-#[cfg(not(target_os = "wasi"))]
-fn resolve_binary<'a>(file: &'a ZStr, envs: &[&ZStr]) -> rustix::io::Result<Cow<'a, ZStr>> {
-    let file_bytes = file.to_bytes();
-    if file_bytes.contains(&b'/') {
-        Ok(Cow::Borrowed(file))
-    } else {
-        let cwd = rustix::fs::cwd();
-        match envs
-            .into_iter()
-            .copied()
-            .map(ZStr::to_bytes)
-            .find(|env| env.starts_with(b"PATH="))
-            .map(|env| env.split_at(b"PATH=".len()).1)
-            .unwrap_or(b"/bin:/usr/bin")
-            .split(|&byte| byte == b':')
-            .filter_map(|path_bytes| {
-                let mut full_path = path_bytes.to_vec();
-                full_path.push(b'/');
-                full_path.extend_from_slice(file_bytes);
-                ZString::new(full_path).ok()
-            })
-            .find(|path| file_exists(&cwd, &path))
-        {
-            Some(path) => Ok(Cow::Owned(path)),
-            None => Err(rustix::io::Error::ACCES),
-        }
-    }
-}
-
-#[cfg(not(target_os = "wasi"))]
+#[cfg(any(target_os = "android", target_os = "linux"))]
 #[no_mangle]
 unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> c_int {
     libc!(libc::execvp(file, args));
-    let args = null_terminated_array(args);
-    let envs = null_terminated_array(environ.cast::<_>());
-    match convert_res(
-        resolve_binary(ZStr::from_ptr(file.cast()), &envs)
-            .and_then(|path| rustix::runtime::execve(path, &args, &envs)),
-    ) {
-        Some(_) => 0,
-        None => -1,
+
+    let cwd = rustix::fs::cwd();
+
+    let file = ZStr::from_ptr(file);
+    if file.to_bytes().contains(&b'/') {
+        let err =
+            rustix::runtime::execveat(&cwd, file, args.cast(), environ.cast(), AtFlags::empty());
+        set_errno(Errno(err.raw_os_error()));
+        return -1;
     }
+
+    let path = _getenv(rustix::zstr!("PATH"));
+    let path = if path.is_null() {
+        rustix::zstr!("/bin:/usr/bin")
+    } else {
+        ZStr::from_ptr(path)
+    };
+
+    let mut access_error = false;
+    for dir in path.to_bytes().split(|byte| *byte == b':') {
+        // Open the directory and use `execveat` to avoid needing to
+        // dynamically allocate a combined path string ourselves.
+        match openat(
+            &cwd,
+            dir,
+            OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC | OFlags::NOCTTY,
+            Mode::empty(),
+        )
+        .and_then::<(), _>(|dirfd| {
+            Err(rustix::runtime::execveat(
+                &dirfd,
+                file,
+                args.cast(),
+                environ.cast(),
+                AtFlags::empty(),
+            ))
+        }) {
+            Ok(()) => (),
+            Err(rustix::io::Error::ACCES) => access_error = true,
+            Err(rustix::io::Error::NOENT) | Err(rustix::io::Error::NOTDIR) => {}
+            Err(rustix::io::Error::NOSYS) => {
+                todo!("emulate execveat on older Linux kernels using /proc/self/fd and execve")
+            }
+            Err(err) => {
+                set_errno(Errno(err.raw_os_error()));
+                return -1;
+            }
+        }
+    }
+
+    set_errno(Errno(if access_error {
+        libc::EACCES
+    } else {
+        libc::ENOENT
+    }));
+    -1
 }
 
 #[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn fork() -> c_int {
     libc!(libc::fork());
-    match convert_res(origin::fork()) {
-        Some(Some(pid)) => pid.as_raw() as c_int,
+    match convert_res(at_fork::fork()) {
+        Some(Some(pid)) => pid.as_raw_nonzero().get() as c_int,
         Some(None) => 0,
         None => -1,
     }
@@ -2714,7 +2711,7 @@ unsafe extern "C" fn __register_atfork(
     _dso_handle: *mut c_void,
 ) -> c_int {
     //libc!(libc::__register_atfork(prepare, parent, child, _dso_handle));
-    origin::at_fork(prepare, parent, child);
+    at_fork::at_fork(prepare, parent, child);
     0
 }
 
@@ -2734,7 +2731,7 @@ unsafe extern "C" fn waitpid(pid: c_int, status: *mut c_int, options: c_int) -> 
     match pid {
         -1 => match convert_res(rustix::process::wait(options)) {
             Some(Some((new_pid, new_status))) => {
-                ret_pid = new_pid.as_raw() as c_int;
+                ret_pid = new_pid.as_raw_nonzero().get() as c_int;
                 ret_status = new_status.as_raw() as c_int;
             }
             Some(None) => return 0,
@@ -2746,7 +2743,7 @@ unsafe extern "C" fn waitpid(pid: c_int, status: *mut c_int, options: c_int) -> 
         )) {
             Some(Some(new_status)) => {
                 ret_pid = if pid == 0 {
-                    rustix::process::getpid().as_raw() as c_int
+                    rustix::process::getpid().as_raw_nonzero().get() as c_int
                 } else {
                     pid
                 };
@@ -3354,6 +3351,10 @@ unsafe extern "C" fn ynf(x: i32, y: f32) -> f32 {
 unsafe extern "C" fn getenv(key: *const c_char) -> *mut c_char {
     libc!(libc::getenv(key));
     let key = ZStr::from_ptr(key.cast());
+    _getenv(key)
+}
+
+unsafe fn _getenv(key: &ZStr) -> *mut c_char {
     let mut ptr = environ;
     loop {
         let env = *ptr;
@@ -3440,7 +3441,8 @@ unsafe impl parking_lot::lock_api::GetThreadId for GetThreadId {
     const INIT: Self = Self;
 
     fn nonzero_thread_id(&self) -> core::num::NonZeroUsize {
-        (origin::current_thread_id().as_raw() as usize)
+        origin::current_thread_id()
+            .as_raw_nonzero()
             .try_into()
             .unwrap()
     }
@@ -4154,7 +4156,7 @@ unsafe extern "C" fn pthread_atfork(
     child: Option<unsafe extern "C" fn()>,
 ) -> c_int {
     libc!(libc::pthread_atfork(prepare, parent, child));
-    origin::at_fork(prepare, parent, child);
+    at_fork::at_fork(prepare, parent, child);
     0
 }
 
@@ -4166,8 +4168,7 @@ unsafe extern "C" fn __cxa_thread_atexit_impl(
     _dso_symbol: *mut c_void,
 ) -> c_int {
     // TODO: libc!(libc::__cxa_thread_atexit_impl(func, obj, _dso_symbol));
-    let obj = obj as usize;
-    origin::at_thread_exit(Box::new(move || func(obj as *mut c_void)));
+    origin::at_thread_exit_raw(func, obj);
     0
 }
 

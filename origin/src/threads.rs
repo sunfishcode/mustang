@@ -17,9 +17,11 @@ use memoffset::offset_of;
 use rustix::io;
 #[cfg(target_vendor = "mustang")]
 use rustix::process::{getrlimit, linux_execfn, Resource};
-use rustix::process::{page_size, Pid};
+use rustix::process::{page_size, Pid, RawNonZeroPid};
 use rustix::runtime::{set_tid_address, StartupTlsInfo};
 use rustix::thread::gettid;
+#[cfg(feature = "raw_dtors")]
+use tinyvec::ArrayVec;
 
 /// The entrypoint where Rust code is first executed on a new thread.
 ///
@@ -125,6 +127,8 @@ pub struct Thread {
     guard_size: usize,
     map_size: usize,
     dtors: Vec<Box<dyn FnOnce()>>,
+    #[cfg(feature = "raw_dtors")]
+    raw_dtors: ArrayVec<[Option<(unsafe extern "C" fn(*mut c_void), *mut c_void)>; 4]>,
 }
 
 // Values for `Thread::detached`.
@@ -135,20 +139,22 @@ const ABANDONED: u8 = 2;
 impl Thread {
     #[inline]
     fn new(
-        tid: Pid,
+        tid: Option<Pid>,
         stack_addr: *mut c_void,
         stack_size: usize,
         guard_size: usize,
         map_size: usize,
     ) -> Self {
         Self {
-            thread_id: AtomicU32::new(tid.as_raw()),
+            thread_id: AtomicU32::new(Pid::as_raw(tid)),
             detached: AtomicU8::new(INITIAL),
             stack_addr,
             stack_size,
             guard_size,
             map_size,
             dtors: Vec::new(),
+            #[cfg(feature = "raw_dtors")]
+            raw_dtors: ArrayVec::new(),
         }
     }
 }
@@ -173,16 +179,38 @@ pub fn current_thread() -> *mut Thread {
 /// field in the runtime rather than making a system call.
 #[inline]
 pub fn current_thread_id() -> Pid {
-    let tid = unsafe { Pid::from_raw((*current_thread()).thread_id.load(SeqCst)) };
+    let raw = unsafe { (*current_thread()).thread_id.load(SeqCst) };
+    debug_assert_ne!(raw, 0);
+    let tid = unsafe { Pid::from_raw_nonzero(RawNonZeroPid::new_unchecked(raw)) };
     debug_assert_eq!(tid, gettid(), "`current_thread_id` disagrees with `gettid`");
     tid
 }
-/// Change the current thread id.
-#[cfg(target_vendor = "mustang")]
+
+/// Set the current thread id, after a `fork`.
+///
+/// The only valid use for this is in the implementation of libc-like `fork`
+/// wrappers such as the one in c-scape. `posix_spawn`-like uses of `fork`
+/// don't need to do this because they shouldn't do anything that cares about
+/// the thread id before doing their `execve`.
+///
+/// # Safety
+///
+/// This must only be called immediately after a `fork` before any other
+/// threads are created. `tid` must be the same value as what [`gettid`] would
+/// return.
+#[cfg(feature = "set_thread_id")]
+#[doc(hidden)]
 #[inline]
-pub(crate) fn set_current_thread_id(tid: Pid) {
-    unsafe { (*current_thread()).thread_id.store(tid.as_raw(), SeqCst) };
-    debug_assert_eq!(tid, gettid(), "`current_thread_id` disagrees with `gettid`");
+pub unsafe fn set_current_thread_id_after_a_fork(tid: Pid) {
+    assert_ne!(
+        tid.as_raw_nonzero().get(),
+        (*current_thread()).thread_id.load(SeqCst),
+        "current thread ID already matches new thread ID"
+    );
+    assert_eq!(tid, gettid(), "new thread ID disagrees with `gettid`");
+    (*current_thread())
+        .thread_id
+        .store(tid.as_raw_nonzero().get(), SeqCst);
 }
 
 /// Return the TLS entry for the current thread.
@@ -224,11 +252,6 @@ pub unsafe fn thread_stack(thread: *mut Thread) -> (*mut c_void, usize, usize) {
 }
 
 /// Registers a function to call when the current thread exits.
-///
-/// # Safety
-///
-/// This arranges for `func` to be called, and passed `obj`, when the thread
-/// exits.
 pub fn at_thread_exit(func: Box<dyn FnOnce()>) {
     // Safety: `current_thread()` points to thread-local data which is valid
     // as long as the thread is alive.
@@ -237,8 +260,45 @@ pub fn at_thread_exit(func: Box<dyn FnOnce()>) {
     }
 }
 
+/// Registers a raw `unsafe extern "C"` function to call when the current
+/// thread exits.
+///
+/// This function does not perform dynamic allocations. It only supports
+/// a fixed number of destructors. And it can only be called before any
+/// destructors are registered with `at_thread_exit`.
+///
+/// # Safety
+///
+/// This arranges for `func` to be called, and passed `obj`, when the thread
+/// exits.
+#[cfg(feature = "raw_dtors")]
+#[doc(hidden)]
+pub unsafe fn at_thread_exit_raw(func: unsafe extern "C" fn(*mut c_void), obj: *mut c_void) {
+    assert!((*current_thread()).dtors.is_empty());
+    (*current_thread()).raw_dtors.push(Some((func, obj)));
+}
+
 /// Call the destructors registered with `at_thread_exit`.
 fn call_thread_dtors(current: *mut Thread) {
+    #[cfg(feature = "raw_dtors")]
+    while let Some(func_obj) = unsafe { (*current).raw_dtors.pop() } {
+        let (func, obj) = func_obj.unwrap();
+
+        #[cfg(feature = "log")]
+        if log::log_enabled!(log::Level::Trace) {
+            log::trace!(
+                "Thread[{:?}] calling `at_thread_exit_raw`-registered function",
+                unsafe { (*current).thread_id.load(SeqCst) },
+            );
+        }
+
+        // # Safety
+        //
+        // The caller of `at_thread_exit_raw` guarnateed that the function
+        // is safe to call, with the given argument.
+        unsafe { func(obj) }
+    }
+
     // Run the `dtors`, in reverse order of registration. Note that destructors
     // may register new destructors.
     //
@@ -395,7 +455,7 @@ pub(super) unsafe fn initialize_main_thread(mem: *mut c_void) {
                 pad: [0_usize; 1],
             },
             thread: Thread::new(
-                gettid(),
+                Some(gettid()),
                 stack_least.cast(),
                 stack_size,
                 guard_size,
@@ -436,6 +496,14 @@ pub fn create_thread(
     guard_size: usize,
 ) -> io::Result<*mut Thread> {
     use io::{mmap_anonymous, mprotect, MapFlags, MprotectFlags, ProtFlags};
+
+    // Notify parking_lot_core that we're about to create a new thread. This
+    // allows it perform memory allocation within the parent thread rather than
+    // within the newly created thread, since allocation may require taking
+    // locks, which requires the newly created thread to have memory allocated
+    // for it.
+    #[cfg(feature = "parking_lot_core")]
+    parking_lot_core::reserve(1);
 
     // Safety: `STARGUP_TLS_INFO` is initialized at program startup before
     // we come here creating new threads.
@@ -529,7 +597,7 @@ pub fn create_thread(
                     pad: [0_usize; 1],
                 },
                 thread: Thread::new(
-                    Pid::NONE, // the real tid will be written by `clone`.
+                    None, // the real tid will be written by `clone`.
                     stack_least.cast(),
                     stack_size,
                     guard_size,
@@ -662,7 +730,7 @@ unsafe fn wait_for_thread_exit(thread: *mut Thread) {
     let thread = &mut *thread;
     let thread_id = &mut thread.thread_id;
     let id_value = thread_id.load(SeqCst);
-    if Pid::from_raw(id_value) != Pid::NONE {
+    if Pid::from_raw(id_value).is_some() {
         // This doesn't use any shared memory, but we can't use
         // `FutexFlags::PRIVATE` because the wake comes from Linux
         // as arranged by the `CloneFlags::CHILD_CLEARTID` flag,

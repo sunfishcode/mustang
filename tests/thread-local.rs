@@ -2,7 +2,7 @@
 //! library/std/src/thread/local/tests.rs at revision
 //! 497ee321af3b8496eaccd7af7b437f18bab81abf.
 
-#![feature(thread_local_const_init)]
+#![cfg_attr(thread_local_const_init, feature(thread_local_const_init))]
 #![cfg(feature = "threads")]
 
 mustang::can_run_this!();

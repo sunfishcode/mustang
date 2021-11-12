@@ -16,18 +16,6 @@ use rustix::thread::{futex, FutexFlags, FutexOperation};
 // 2 => locked with waiters waiting
 struct FutexMutex(AtomicU32);
 
-/// A safe wrapper around `FutexMutex`, ensuring that it won't be moved while
-/// locked.
-pub(crate) struct Mutex<T> {
-    inner: FutexMutex,
-    value: UnsafeCell<T>,
-}
-
-/// # Safety
-///
-/// Access to the data is protected by the mutex.
-unsafe impl<T> Sync for Mutex<T> {}
-
 /// This implements the same API as `lock_api::RawMutex`, except it doesn't
 /// have `INIT`, so that constructing a `RawMutex` can be `unsafe`.
 impl FutexMutex {
@@ -123,7 +111,20 @@ impl FutexMutex {
     }
 }
 
+/// A safe wrapper around `FutexMutex`, ensuring that it won't be moved while
+/// locked.
+pub(crate) struct Mutex<T> {
+    inner: FutexMutex,
+    value: UnsafeCell<T>,
+}
+
+/// # Safety
+///
+/// Access to the data is protected by the mutex.
+unsafe impl<T> Sync for Mutex<T> {}
+
 impl<T> Mutex<T> {
+    /// Constructs a new mutex with the given value.
     pub const fn new(value: T) -> Self {
         Mutex {
             inner: unsafe { FutexMutex::new() },
@@ -131,6 +132,9 @@ impl<T> Mutex<T> {
         }
     }
 
+    /// Call `fun` with the lock held.
+    ///
+    /// This ensures that the lock isn't moved while locked.
     pub fn lock<R, F: FnOnce(&mut T) -> R>(&self, fun: F) -> R {
         // Since the futex is guarenteed to be unlocked by the end of the
         // function, the mutex can be moved freely outside of it.

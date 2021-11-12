@@ -2,7 +2,7 @@
 use crate::mutex::Mutex;
 #[cfg(target_vendor = "mustang")]
 #[cfg(feature = "threads")]
-use crate::threads::{initialize_main_thread, set_current_thread_id};
+use crate::threads::initialize_main_thread;
 use alloc::boxed::Box;
 #[cfg(target_vendor = "mustang")]
 use alloc::vec::Vec;
@@ -218,113 +218,4 @@ pub fn exit_immediately(status: c_int) -> ! {
     log::trace!("Program exiting");
 
     rustix::runtime::exit_group(status)
-}
-
-#[cfg(target_vendor = "mustang")]
-#[derive(Default)]
-struct RegisteredForkFuncs {
-    pub(crate) prepare: Vec<unsafe extern "C" fn()>,
-    pub(crate) parent: Vec<unsafe extern "C" fn()>,
-    pub(crate) child: Vec<unsafe extern "C" fn()>,
-}
-
-#[cfg(target_vendor = "mustang")]
-impl RegisteredForkFuncs {
-    pub(crate) const fn new() -> Self {
-        Self {
-            prepare: Vec::new(),
-            parent: Vec::new(),
-            child: Vec::new(),
-        }
-    }
-}
-
-/// Functions registered with `at_fork`.
-#[cfg(target_vendor = "mustang")]
-static FORK_FUNCS: Mutex<RegisteredForkFuncs> = Mutex::new(RegisteredForkFuncs::new());
-
-/// Register functions to be called when `fork` is called.
-///
-/// The handlers for each phase are called in the following order:
-/// the prepare handlers are called in reverse order of registration;
-/// the parent and child handlers are called in the order of registration.
-#[cfg(not(target_os = "wasi"))]
-pub fn at_fork(
-    prepare_func: Option<unsafe extern "C" fn()>,
-    parent_func: Option<unsafe extern "C" fn()>,
-    child_func: Option<unsafe extern "C" fn()>,
-) {
-    #[cfg(target_vendor = "mustang")]
-    {
-        FORK_FUNCS.lock(|funcs| {
-            if let Some(func) = prepare_func {
-                funcs.prepare.push(func);
-            }
-            if let Some(func) = parent_func {
-                funcs.parent.push(func);
-            }
-            if let Some(func) = child_func {
-                funcs.child.push(func);
-            }
-        });
-    }
-
-    #[cfg(not(target_vendor = "mustang"))]
-    {
-        extern "C" {
-            fn __register_atfork(
-                prepare: Option<unsafe extern "C" fn()>,
-                parent: Option<unsafe extern "C" fn()>,
-                child: Option<unsafe extern "C" fn()>,
-                dso_handle: *mut c_void,
-            ) -> c_int;
-        }
-        let r = unsafe { __register_atfork(prepare_func, parent_func, child_func, null_mut()) };
-        assert_eq!(r, 0);
-    }
-}
-
-/// Creates a new process by duplicating the calling process.
-///
-/// # Safety
-///
-/// After a fork in a multithreaded process returns in the child,
-/// data structures such as mutexes might be in an unusable state.
-/// code should use `at_fork` to either protect them,
-/// from being used by other threads during the fork,
-/// or reinitialize them in child process.
-#[cfg(not(target_os = "wasi"))]
-pub unsafe fn fork() -> rustix::io::Result<Option<rustix::process::Pid>> {
-    #[cfg(target_vendor = "mustang")]
-    {
-        FORK_FUNCS.lock(|funcs| {
-            funcs.prepare.iter().rev().for_each(|func| func());
-            // Protect the allocator lock while the fork is in progress, to
-            // avoid deadlocks in the child process from allocations.
-            match crate::allocator::INNER_ALLOC.lock(|_| rustix::runtime::fork())? {
-                rustix::process::Pid::NONE => {
-                    #[cfg(feature = "threads")]
-                    set_current_thread_id(rustix::thread::gettid());
-                    funcs.child.iter().for_each(|func| func());
-                    Ok(None)
-                }
-                pid => {
-                    funcs.parent.iter().for_each(|func| func());
-                    Ok(Some(pid))
-                }
-            }
-        })
-    }
-
-    #[cfg(not(target_vendor = "mustang"))]
-    {
-        match libc::fork() {
-            -1 => {
-                let raw = *libc::__errno_location();
-                Err(rustix::io::Error::from_raw_os_error(raw))
-            }
-            0 => Ok(None),
-            pid => Ok(Some(rustix::process::Pid::from_raw(pid as _))),
-        }
-    }
 }
