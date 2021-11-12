@@ -6,13 +6,12 @@
 #![feature(naked_functions)]
 #![feature(link_llvm_intrinsics)]
 #![feature(atomic_mut_ptr)]
-#![feature(const_fn_fn_ptr_basics)]
 #![no_std]
 
 #[cfg(not(feature = "rustc-dep-of-std"))]
 extern crate alloc;
 
-mod allocator;
+#[cfg(target_vendor = "mustang")]
 mod mutex;
 mod program;
 #[cfg(feature = "threads")]
@@ -35,8 +34,11 @@ mod arch;
 mod arch;
 
 pub use program::{at_exit, exit, exit_immediately};
-#[cfg(not(target_os = "wasi"))]
-pub use program::{at_fork, fork};
+#[cfg(feature = "raw_dtors")]
+pub use threads::at_thread_exit_raw;
+#[cfg(feature = "threads")]
+#[cfg(feature = "set_thread_id")]
+pub use threads::set_current_thread_id_after_a_fork;
 #[cfg(feature = "threads")]
 pub use threads::{
     at_thread_exit, create_thread, current_thread, current_thread_id, current_thread_tls_addr,
@@ -145,8 +147,3 @@ static INIT_ARRAY: unsafe extern "C" fn() = {
     }
     function
 };
-
-/// Create and declare the Rust global allocator.
-#[cfg(target_vendor = "mustang")]
-#[global_allocator]
-static GLOBAL_ALLOCATOR: allocator::GlobalAllocator = allocator::GlobalAllocator;

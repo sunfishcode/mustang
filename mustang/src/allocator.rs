@@ -4,7 +4,7 @@ use dlmalloc::Dlmalloc;
 
 pub(crate) static INNER_ALLOC: Mutex<Dlmalloc> = Mutex::new(Dlmalloc::new());
 
-/// the global allocator that should be used when targeting mustang
+/// The global allocator that should be used when targeting mustang.
 pub struct GlobalAllocator;
 
 unsafe impl GlobalAlloc for GlobalAllocator {
