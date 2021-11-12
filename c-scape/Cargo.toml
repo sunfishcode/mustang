@@ -19,7 +19,7 @@ realpath-ext = "0.1.0"
 compiler_builtins = { version = "0.1.50", features = ["mem", "mangled-names"] }
 memchr = "2.4.1"
 sync-resolve = "0.3.0"
-origin = { path = "../origin", default-features = false, version = "^0.2.0"}
+origin = { path = "../origin", default-features = false, version = "^0.2.1-alpha.0"}
 parking_lot = "0.11.2"
 log = "0.4.14"
 
