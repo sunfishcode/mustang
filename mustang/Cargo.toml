@@ -20,8 +20,8 @@ cc = { version = "1.0.68", optional = true }
 # TODO: Eventually, we should propose a `fde-phdr-rustix` backend option to
 # upstream `unwinding` so that it doesn't need to go through `dl_iterate_phdr`,
 # but `fde-phdr-dl` works for now.
-[target.'cfg(not(any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64")))'.dependencies.unwinding]
-version = "0.1.1"
+[target.'cfg(not(target_arch = "arm"))'.dependencies.unwinding]
+version = "0.1.3"
 default-features = false
 features = [
     "unwinder",

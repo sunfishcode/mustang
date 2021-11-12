@@ -43,13 +43,7 @@ fn lazy_default() {
 }
 
 #[test]
-#[cfg_attr(
-    all(
-        any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"),
-        not(feature = "unwinding")
-    ),
-    ignore
-)]
+#[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
 fn lazy_poisoning() {
     let x: Lazy<String> = Lazy::new(|| panic!("kaboom"));
     for _ in 0..2 {
@@ -136,13 +130,7 @@ fn clone() {
 }
 
 #[test]
-#[cfg_attr(
-    all(
-        any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"),
-        not(feature = "unwinding")
-    ),
-    ignore
-)]
+#[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
 fn get_or_try_init() {
     let cell: SyncOnceCell<String> = SyncOnceCell::new();
     assert!(cell.get().is_none());
@@ -267,13 +255,7 @@ fn static_sync_lazy_via_fn() {
 }
 
 #[test]
-#[cfg_attr(
-    all(
-        any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"),
-        not(feature = "unwinding")
-    ),
-    ignore
-)]
+#[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
 fn sync_lazy_poisoning() {
     let x: SyncLazy<String> = SyncLazy::new(|| panic!("kaboom"));
     for _ in 0..2 {

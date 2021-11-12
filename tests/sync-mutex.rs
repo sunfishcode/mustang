@@ -89,13 +89,7 @@ fn test_into_inner_drop() {
 }
 
 #[test]
-#[cfg_attr(
-    all(
-        any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"),
-        not(feature = "unwinding")
-    ),
-    ignore
-)]
+#[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
 fn test_into_inner_poison() {
     let m = Arc::new(Mutex::new(NonCopy(10)));
     let m2 = m.clone();
@@ -120,13 +114,7 @@ fn test_get_mut() {
 }
 
 #[test]
-#[cfg_attr(
-    all(
-        any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"),
-        not(feature = "unwinding")
-    ),
-    ignore
-)]
+#[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
 fn test_get_mut_poison() {
     let m = Arc::new(Mutex::new(NonCopy(10)));
     let m2 = m.clone();
@@ -198,13 +186,7 @@ fn test_arc_condvar_poison() {
 }
 
 #[test]
-#[cfg_attr(
-    all(
-        any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"),
-        not(feature = "unwinding")
-    ),
-    ignore
-)]
+#[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
 fn test_mutex_arc_poison() {
     let arc = Arc::new(Mutex::new(1));
     assert!(!arc.is_poisoned());
@@ -235,13 +217,7 @@ fn test_mutex_arc_nested() {
 }
 
 #[test]
-#[cfg_attr(
-    all(
-        any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"),
-        not(feature = "unwinding")
-    ),
-    ignore
-)]
+#[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
 fn test_mutex_arc_access_in_unwind() {
     let arc = Arc::new(Mutex::new(1));
     let arc2 = arc.clone();

@@ -27,7 +27,8 @@
   "pre-link-args": {
     "gcc": [
       "-nostartfiles",
-      "-Wl,--undefined=__aarch64_swp4_rel"
+      "-Wl,--undefined=__aarch64_swp4_rel",
+      "-Wl,--undefined=_Unwind_Backtrace"
     ]
   },
   "vendor": "mustang"

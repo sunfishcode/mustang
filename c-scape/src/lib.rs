@@ -12,8 +12,7 @@ mod use_libc;
 mod data;
 mod error_str;
 // Unwinding isn't supported on 32-bit arm yet.
-// On aarch64 and riscg64 unwinding currently depends on a pre-release gimli.
-#[cfg(any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"))]
+#[cfg(target_arch = "arm")]
 mod unwind;
 
 // Selected libc-compatible interfaces.

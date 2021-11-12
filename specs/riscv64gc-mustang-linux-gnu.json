@@ -22,7 +22,8 @@
   "target-pointer-width": "64",
   "pre-link-args": {
     "gcc": [
-      "-nostartfiles"
+      "-nostartfiles",
+      "-Wl,--undefined=_Unwind_Backtrace"
     ]
   },
   "vendor": "mustang"
