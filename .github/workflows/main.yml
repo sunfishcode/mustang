@@ -85,7 +85,6 @@ jobs:
 
     - name: Configure Cargo target
       run: |
-        echo CARGO_BUILD_TARGET=${{ matrix.target }} >> $GITHUB_ENV
         rustup target add ${{ matrix.target }}
       if: matrix.target != ''
 
@@ -138,27 +137,22 @@ jobs:
     - name: cargo check non-mustang
       run: |
         # Check that the code compiles on non-mustang targets.
-        cargo +nightly check
+        cargo +nightly check --all -Z build-std --target=${{ matrix.host_target }}
 
     - name: cargo test
       run: |
-        cargo +nightly test --verbose --target=specs/x86_64-mustang-linux-gnu.json -Z build-std
-        # Run the tests using the host target rather than the mustang target,
-        # as mustang doesn't yet support everything needed by the test harness.
-        # The test uses a mustang target as needed for the actual test cases.
-        cargo +nightly test --verbose
+        cargo +nightly test --verbose -Z build-std --target=specs/${{ matrix.mustang_target }}.json
       env:
         RUST_BACKTRACE: 1
 
     - name: cargo test --release
       run: |
-        cargo +nightly test --verbose --release --target=specs/x86_64-mustang-linux-gnu.json -Z build-std
-        cargo +nightly test --verbose --release
+        cargo +nightly test --verbose --release -Z build-std --target=specs/${{ matrix.mustang_target }}.json
       env:
         RUST_BACKTRACE: 1
 
     - name: test mustang_use_libc
       run: |
-        RUSTFLAGS=--cfg=mustang_use_libc cargo +nightly check --workspace
+        RUSTFLAGS=--cfg=mustang_use_libc cargo +nightly check --workspace -Z build-std --target=specs/${{ matrix.mustang_target }}.json
       env:
         RUST_BACKTRACE: 1
