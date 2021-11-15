@@ -28,6 +28,7 @@ fn smoke() {
 }
 
 // NOTE(mustang): fails in the CI for a reason unreleated to mustang
+// see https://github.com/rust-lang/rust/issues/90825 for details
 #[test]
 #[cfg_attr(any(target_os = "android", not(target_vendor = "mustang")), ignore)]
 fn smoke_failure() {
@@ -161,6 +162,7 @@ fn test_process_status() {
 }
 
 // NOTE(mustang): fails in the CI for a reason unreleated to mustang
+// see https://github.com/rust-lang/rust/issues/90825 for details
 #[test]
 #[cfg_attr(not(target_vendor = "mustang"), ignore)]
 fn test_process_output_fail_to_start() {
