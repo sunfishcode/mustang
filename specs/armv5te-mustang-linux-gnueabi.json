@@ -23,7 +23,8 @@
   "target-pointer-width": "32",
   "pre-link-args": {
     "gcc": [
-      "-nostartfiles"
+      "-nostartfiles",
+      "-Wl,--undefined=memset"
     ]
   },
   "vendor": "mustang"
