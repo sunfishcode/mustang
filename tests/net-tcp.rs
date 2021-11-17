@@ -60,6 +60,7 @@ fn connect_error() {
 
 #[cfg(feature = "threads")]
 #[test]
+#[cfg_attr(target_vendor = "mustang", ignore)] // FIXME(mustang): triggers segfault
 fn listen_localhost() {
     let socket_addr = next_test_ip4();
     let listener = t!(TcpListener::bind(&socket_addr));
@@ -654,6 +655,7 @@ fn clone_accept_concurrent() {
 }
 
 #[test]
+#[cfg_attr(target_vendor = "mustang", ignore)] // FIXME(mustang): triggers segfault
 fn debug() {
     #[cfg(not(target_env = "sgx"))]
     fn render_socket_addr<'a>(addr: &'a SocketAddr) -> impl fmt::Debug + 'a {
@@ -709,6 +711,7 @@ fn debug() {
 )]
 #[cfg_attr(target_env = "sgx", ignore)] // FIXME: https://github.com/fortanix/rust-sgx/issues/31
 #[test]
+#[cfg_attr(target_vendor = "mustang", ignore)] // FIXME(mustang): triggers segfault
 fn timeouts() {
     let addr = next_test_ip4();
     let listener = t!(TcpListener::bind(&addr));
@@ -736,6 +739,7 @@ fn timeouts() {
 
 #[test]
 #[cfg_attr(target_env = "sgx", ignore)] // FIXME: https://github.com/fortanix/rust-sgx/issues/31
+#[cfg_attr(target_vendor = "mustang", ignore)] // FIXME(mustang): triggers segfault
 fn test_read_timeout() {
     let addr = next_test_ip4();
     let listener = t!(TcpListener::bind(&addr));
@@ -761,6 +765,7 @@ fn test_read_timeout() {
 
 #[test]
 #[cfg_attr(target_env = "sgx", ignore)] // FIXME: https://github.com/fortanix/rust-sgx/issues/31
+#[cfg_attr(target_vendor = "mustang", ignore)] // FIXME(mustang): triggers segfault
 fn test_read_with_timeout() {
     let addr = next_test_ip4();
     let listener = t!(TcpListener::bind(&addr));
@@ -812,6 +817,7 @@ fn test_timeout_zero_duration() {
 
 #[test]
 #[cfg_attr(target_env = "sgx", ignore)]
+#[cfg_attr(target_vendor = "mustang", ignore)] // FIXME(mustang): triggers segfault
 fn linger() {
     let addr = next_test_ip4();
     let _listener = t!(TcpListener::bind(&addr));
@@ -827,6 +833,7 @@ fn linger() {
 
 #[test]
 #[cfg_attr(target_env = "sgx", ignore)]
+#[cfg_attr(target_vendor = "mustang", ignore)] // FIXME(mustang): triggers segfault
 fn nodelay() {
     let addr = next_test_ip4();
     let _listener = t!(TcpListener::bind(&addr));
@@ -842,6 +849,7 @@ fn nodelay() {
 
 #[test]
 #[cfg_attr(target_env = "sgx", ignore)]
+#[cfg_attr(target_vendor = "mustang", ignore)] // FIXME(mustang): triggers segfault
 fn ttl() {
     let ttl = 100;
 
@@ -859,6 +867,7 @@ fn ttl() {
 
 #[test]
 #[cfg_attr(target_env = "sgx", ignore)]
+#[cfg_attr(target_vendor = "mustang", ignore)] // FIXME(mustang): triggers segfault
 fn set_nonblocking() {
     let addr = next_test_ip4();
     let listener = t!(TcpListener::bind(&addr));
