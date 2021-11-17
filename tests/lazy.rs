@@ -131,6 +131,7 @@ fn clone() {
 
 #[test]
 #[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
+#[cfg_attr(target_vendor = "mustang", ignore)] // FIXME(mustang): triggers segfault
 fn get_or_try_init() {
     let cell: SyncOnceCell<String> = SyncOnceCell::new();
     assert!(cell.get().is_none());
@@ -256,6 +257,7 @@ fn static_sync_lazy_via_fn() {
 
 #[test]
 #[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
+#[cfg_attr(target_vendor = "mustang", ignore)] // FIXME(mustang): triggers segfault
 fn sync_lazy_poisoning() {
     let x: SyncLazy<String> = SyncLazy::new(|| panic!("kaboom"));
     for _ in 0..2 {

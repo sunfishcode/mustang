@@ -118,6 +118,7 @@ fn instant_math_is_associative() {
     ),
     ignore
 )]
+#[cfg_attr(target_vendor = "mustang", ignore)] // FIXME(mustang): triggers segfault
 #[should_panic]
 fn instant_duration_since_panic() {
     let a = Instant::now();
