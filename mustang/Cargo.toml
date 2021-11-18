@@ -34,7 +34,7 @@ features = [
 
 [target.'cfg(target_vendor = "mustang")'.dependencies]
 origin = { path = "../origin", default-features = false, version = "^0.3.0"}
-c-scape = { path = "../c-scape", version = "^0.2.1-alpha.0"}
+c-scape = { path = "../c-scape", version = "^0.3.0"}
 
 [features]
 default = ["threads"]
