@@ -2075,8 +2075,7 @@ unsafe extern "C" fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c
             return null_mut();
         }
         if CStr::from_ptr(symbol).to_bytes() == b"gnu_get_libc_version" {
-            // Let's just say we don't support this for now.
-            return null_mut();
+            return gnu_get_libc_version as *mut c_void;
         }
     }
     unimplemented!("dlsym({:?})", CStr::from_ptr(symbol))
@@ -4013,6 +4012,18 @@ unsafe extern "C" fn exit(status: c_int) -> ! {
 unsafe extern "C" fn _exit(status: c_int) -> ! {
     libc!(_exit(status));
     origin::exit_immediately(status)
+}
+
+// glibc versioning
+
+#[no_mangle]
+unsafe extern "C" fn gnu_get_libc_version() -> *const c_char {
+    // We're implementing the glibc ABI, but we aren't actually glibc. This
+    // is used by `std` to test for certain behaviors. For now, return 2.23
+    // which is a glibc version where `posix_spawn` doesn't handle `ENOENT`
+    // as std wants, so it uses `fork`+`exec` instead, since we don't yet
+    // implement `posix_spawn`.
+    b"2.23\0".as_ptr().cast::<_>()
 }
 
 // compiler-builtins
