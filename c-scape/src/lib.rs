@@ -2357,9 +2357,14 @@ unsafe extern "C" fn posix_spawnp() {
 }
 
 #[no_mangle]
-unsafe extern "C" fn posix_spawnattr_destroy() {
-    //libc!(posix_spawnattr_destroy());
-    unimplemented!("posix_spawnattr_destroy")
+unsafe extern "C" fn posix_spawnattr_destroy(ptr: *const c_void) -> c_int {
+    //libc!(posix_spawn_spawnattr_destroy(ptr));
+    rustix::io::write(
+        &rustix::io::stderr(),
+        b"unimplemented: posix_spawn_spawnattr_destroy\n",
+    )
+    .ok();
+    0
 }
 
 #[no_mangle]
@@ -2398,9 +2403,14 @@ unsafe extern "C" fn posix_spawn_file_actions_adddup2() {
 }
 
 #[no_mangle]
-unsafe extern "C" fn posix_spawn_file_actions_destroy() {
-    //libc!(posix_spawn_file_actions_destroy());
-    unimplemented!("posix_spawn_file_actions_destroy")
+unsafe extern "C" fn posix_spawn_file_actions_destroy(ptr: *const c_void) -> c_int {
+    //libc!(posix_spawn_file_actions_destroy(ptr));
+    rustix::io::write(
+        &rustix::io::stderr(),
+        b"unimplemented: posix_spawn_file_actions_destroy\n",
+    )
+    .ok();
+    0
 }
 
 #[no_mangle]
