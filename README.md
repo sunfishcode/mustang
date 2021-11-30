@@ -112,8 +112,7 @@ Known limitations in `mustang` include:
 
  - No support for dynamic linking yet.
  - No support for `std::sync::Condvar` yet.
-
-[#34]: https://github.com/sunfishcode/mustang/issues/34
+ - Many missing features needed for libraries written in C.
 
 ## Background
 
