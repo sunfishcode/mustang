@@ -2363,9 +2363,14 @@ unsafe extern "C" fn posix_spawnattr_destroy() {
 }
 
 #[no_mangle]
-unsafe extern "C" fn posix_spawnattr_init() {
-    //libc!(posix_spawnattr_init());
-    unimplemented!("posix_spawnattr_init")
+unsafe extern "C" fn posix_spawnattr_init(ptr: *const c_void) -> c_int {
+    //libc!(posix_spawnattr_init(ptr));
+    rustix::io::write(
+        &rustix::io::stderr(),
+        b"unimplemented: posix_spawnattr_init\n",
+    )
+    .ok();
+    0
 }
 
 #[no_mangle]
