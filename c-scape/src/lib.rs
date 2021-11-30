@@ -2404,9 +2404,14 @@ unsafe extern "C" fn posix_spawn_file_actions_destroy() {
 }
 
 #[no_mangle]
-unsafe extern "C" fn posix_spawn_file_actions_init() {
-    //libc!(posix_spawn_file_actions_init());
-    unimplemented!("posix_spawn_file_actions_init")
+unsafe extern "C" fn posix_spawn_file_actions_init(ptr: *const c_void) -> c_int {
+    //libc!(posix_spawn_file_actions_init(ptr));
+    rustix::io::write(
+        &rustix::io::stderr(),
+        b"unimplemented: posix_spawn_file_actions_init\n",
+    )
+    .ok();
+    0
 }
 
 // time
