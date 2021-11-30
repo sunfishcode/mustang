@@ -1347,8 +1347,7 @@ unsafe extern "C" fn socketpair(
 #[no_mangle]
 unsafe extern "C" fn __res_init() -> c_int {
     libc!(res_init());
-
-    unimplemented!("__res_init")
+    0
 }
 
 // io
