@@ -6,6 +6,8 @@
 #![feature(untagged_unions)] // for `PthreadMutexT`
 #![feature(atomic_mut_ptr)] // for `RawMutex`
 
+extern crate alloc;
+
 #[macro_use]
 mod use_libc;
 
@@ -26,6 +28,7 @@ mod unwind;
 // the `rustix` APIs directly, which are safer, more ergonomic, and skip this
 // whole layer.
 
+use alloc::borrow::Cow;
 use core::convert::TryInto;
 use core::ffi::c_void;
 use core::mem::{size_of, zeroed};
@@ -53,7 +56,6 @@ use rustix::net::{
     SocketType,
 };
 use rustix::process::WaitOptions;
-use std::borrow::Cow;
 use std::ffi::{CStr, CString, OsStr};
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd};
@@ -1088,27 +1090,27 @@ unsafe extern "C" fn getaddrinfo(
         }
     };
 
-    let layout = std::alloc::Layout::new::<data::Addrinfo>();
-    let addr_layout = std::alloc::Layout::new::<SocketAddrStorage>();
+    let layout = alloc::alloc::Layout::new::<data::Addrinfo>();
+    let addr_layout = alloc::alloc::Layout::new::<SocketAddrStorage>();
     let mut first: *mut data::Addrinfo = null_mut();
     let mut prev: *mut data::Addrinfo = null_mut();
     match resolve_host(host) {
         Ok(addrs) => {
             for addr in addrs {
-                let ptr = std::alloc::alloc(layout).cast::<data::Addrinfo>();
+                let ptr = alloc::alloc::alloc(layout).cast::<data::Addrinfo>();
                 ptr.write(zeroed());
                 let info = &mut *ptr;
                 match addr {
                     IpAddr::V4(v4) => {
                         // TODO: Create and write to `SocketAddrV4Storage`?
-                        let storage = std::alloc::alloc(addr_layout).cast::<SocketAddrStorage>();
+                        let storage = alloc::alloc::alloc(addr_layout).cast::<SocketAddrStorage>();
                         let len = SocketAddrAny::V4(SocketAddrV4::new(v4, 0)).write(storage);
                         info.ai_addr = storage;
                         info.ai_addrlen = len.try_into().unwrap();
                     }
                     IpAddr::V6(v6) => {
                         // TODO: Create and write to `SocketAddrV6Storage`?
-                        let storage = std::alloc::alloc(addr_layout).cast::<SocketAddrStorage>();
+                        let storage = alloc::alloc::alloc(addr_layout).cast::<SocketAddrStorage>();
                         let len = SocketAddrAny::V6(SocketAddrV6::new(v6, 0, 0, 0)).write(storage);
                         info.ai_addr = storage;
                         info.ai_addrlen = len.try_into().unwrap();
@@ -1149,17 +1151,17 @@ unsafe extern "C" fn getaddrinfo(
 unsafe extern "C" fn freeaddrinfo(mut res: *mut data::Addrinfo) {
     libc!(freeaddrinfo(same_ptr_mut(res)));
 
-    let layout = std::alloc::Layout::new::<data::Addrinfo>();
-    let addr_layout = std::alloc::Layout::new::<SocketAddrStorage>();
+    let layout = alloc::alloc::Layout::new::<data::Addrinfo>();
+    let addr_layout = alloc::alloc::Layout::new::<SocketAddrStorage>();
 
     while !res.is_null() {
         let addr = (*res).ai_addr;
         if !addr.is_null() {
-            std::alloc::dealloc(addr.cast::<_>(), addr_layout);
+            alloc::alloc::dealloc(addr.cast::<_>(), addr_layout);
         }
         let old = res;
         res = (*res).ai_next;
-        std::alloc::dealloc(old.cast::<_>(), layout);
+        alloc::alloc::dealloc(old.cast::<_>(), layout);
     }
 }
 
@@ -1620,18 +1622,18 @@ struct Tag {
 /// allocates for a given layout, with a tag prepended to the allocation,
 /// to keep track of said layout.
 /// returns null if the allocation failed
-fn tagged_alloc(type_layout: std::alloc::Layout) -> *mut u8 {
+fn tagged_alloc(type_layout: alloc::alloc::Layout) -> *mut u8 {
     if type_layout.size() == 0 {
         return core::ptr::null_mut();
     }
 
-    let tag_layout = std::alloc::Layout::new::<Tag>();
+    let tag_layout = alloc::alloc::Layout::new::<Tag>();
     let tag = Tag {
         size: type_layout.size(),
         align: type_layout.align(),
     };
     if let Ok((total_layout, offset)) = tag_layout.extend(type_layout) {
-        let total_ptr = unsafe { std::alloc::alloc(total_layout) };
+        let total_ptr = unsafe { alloc::alloc::alloc(total_layout) };
         if total_ptr.is_null() {
             return total_ptr;
         }
@@ -1651,12 +1653,12 @@ fn tagged_alloc(type_layout: std::alloc::Layout) -> *mut u8 {
 /// #Safety
 /// the given pointer must be a non-null pointer,
 /// gotten from calling `tagged_alloc`
-unsafe fn get_layout(ptr: *mut u8) -> std::alloc::Layout {
+unsafe fn get_layout(ptr: *mut u8) -> alloc::alloc::Layout {
     let tag = ptr
         .wrapping_sub(core::mem::size_of::<Tag>())
         .cast::<Tag>()
         .read();
-    std::alloc::Layout::from_size_align_unchecked(tag.size, tag.align)
+    alloc::alloc::Layout::from_size_align_unchecked(tag.size, tag.align)
 }
 
 /// get the layout out of a tagged allocation
@@ -1665,11 +1667,11 @@ unsafe fn get_layout(ptr: *mut u8) -> std::alloc::Layout {
 /// the given pointer must be a non-null pointer,
 /// gotten from calling `tagged_alloc`
 unsafe fn tagged_dealloc(ptr: *mut u8) {
-    let tag_layout = std::alloc::Layout::new::<Tag>();
+    let tag_layout = alloc::alloc::Layout::new::<Tag>();
     let type_layout = get_layout(ptr);
     if let Ok((total_layout, offset)) = tag_layout.extend(type_layout) {
         let total_ptr = ptr.wrapping_sub(offset);
-        std::alloc::dealloc(total_ptr, total_layout);
+        alloc::alloc::dealloc(total_ptr, total_layout);
     }
 }
 
@@ -1677,7 +1679,7 @@ unsafe fn tagged_dealloc(ptr: *mut u8) {
 unsafe extern "C" fn malloc(size: usize) -> *mut c_void {
     libc!(malloc(size));
 
-    let layout = std::alloc::Layout::from_size_align(size, data::ALIGNOF_MAXALIGN_T).unwrap();
+    let layout = alloc::alloc::Layout::from_size_align(size, data::ALIGNOF_MAXALIGN_T).unwrap();
     tagged_alloc(layout).cast::<_>()
 }
 
@@ -1727,7 +1729,7 @@ unsafe extern "C" fn posix_memalign(
         return rustix::io::Error::INVAL.raw_os_error();
     }
 
-    let layout = std::alloc::Layout::from_size_align(size, alignment).unwrap();
+    let layout = alloc::alloc::Layout::from_size_align(size, alignment).unwrap();
     let ptr = tagged_alloc(layout).cast::<_>();
 
     *memptr = ptr;
