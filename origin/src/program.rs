@@ -4,9 +4,9 @@ use crate::threads::{initialize_main_thread, set_current_thread_id};
 use core::ffi::c_void;
 #[cfg(not(target_vendor = "mustang"))]
 use core::ptr::null_mut;
+use linux_raw_sys::ctypes::c_int;
 #[cfg(target_vendor = "mustang")]
 use once_cell::sync::OnceCell;
-use std::os::raw::c_int;
 #[cfg(target_vendor = "mustang")]
 use std::sync::Mutex;
 

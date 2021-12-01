@@ -35,6 +35,7 @@ use core::slice;
 use core::sync::atomic::Ordering::SeqCst;
 #[cfg(feature = "threads")]
 use core::sync::atomic::{AtomicBool, AtomicU32};
+use data::{c_char, c_int, c_long, c_uint, c_ulong};
 use error_str::error_str;
 use memoffset::offset_of;
 #[cfg(feature = "threads")]
@@ -54,7 +55,6 @@ use rustix::net::{
 use rustix::process::WaitOptions;
 use std::borrow::Cow;
 use std::ffi::{CStr, CString, OsStr};
-use std::os::raw::{c_char, c_int, c_long, c_uint, c_ulong};
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd};
 use sync_resolve::resolve_host;
@@ -95,7 +95,7 @@ unsafe extern "C" fn open64(pathname: *const c_char, flags: c_int, mode: c_int) 
 
     let flags = OFlags::from_bits(flags as _).unwrap();
     let mode = Mode::from_bits(mode as _).unwrap();
-    match set_errno(openat(&cwd(), CStr::from_ptr(pathname), flags, mode)) {
+    match set_errno(openat(&cwd(), CStr::from_ptr(pathname.cast()), flags, mode)) {
         Some(fd) => fd.into_raw_fd(),
         None => -1,
     }
@@ -113,7 +113,7 @@ unsafe extern "C" fn readlink(pathname: *const c_char, buf: *mut c_char, bufsiz:
 
     let path = match set_errno(rustix::fs::readlinkat(
         &cwd(),
-        CStr::from_ptr(pathname),
+        CStr::from_ptr(pathname.cast()),
         Vec::new(),
     )) {
         Some(path) => path,
@@ -137,7 +137,7 @@ unsafe extern "C" fn stat64(pathname: *const c_char, stat_: *mut rustix::fs::Sta
 
     match set_errno(rustix::fs::statat(
         &cwd(),
-        CStr::from_ptr(pathname),
+        CStr::from_ptr(pathname.cast()),
         AtFlags::empty(),
     )) {
         Some(r) => {
@@ -186,7 +186,7 @@ unsafe extern "C" fn statx(
     let mask = rustix::fs::StatxFlags::from_bits(mask).unwrap();
     match set_errno(rustix::fs::statx(
         &BorrowedFd::borrow_raw_fd(dirfd_),
-        CStr::from_ptr(path),
+        CStr::from_ptr(path.cast()),
         flags,
         mask,
     )) {
@@ -203,7 +203,7 @@ unsafe extern "C" fn realpath(path: *const c_char, resolved_path: *mut c_char) -
     libc!(realpath(path, resolved_path));
 
     match realpath_ext::realpath(
-        OsStr::from_bytes(CStr::from_ptr(path).to_bytes()),
+        OsStr::from_bytes(CStr::from_ptr(path.cast()).to_bytes()),
         realpath_ext::RealpathFlags::empty(),
     ) {
         Ok(path) => {
@@ -275,7 +275,11 @@ unsafe extern "C" fn mkdir(pathname: *const c_char, mode: c_uint) -> c_int {
     libc!(mkdir(pathname, mode));
 
     let mode = Mode::from_bits(mode as _).unwrap();
-    match set_errno(rustix::fs::mkdirat(&cwd(), CStr::from_ptr(pathname), mode)) {
+    match set_errno(rustix::fs::mkdirat(
+        &cwd(),
+        CStr::from_ptr(pathname.cast()),
+        mode,
+    )) {
         Some(()) => 0,
         None => -1,
     }
@@ -303,7 +307,7 @@ unsafe extern "C" fn fstatat64(
     let flags = AtFlags::from_bits(flags as _).unwrap();
     match set_errno(rustix::fs::statat(
         &BorrowedFd::borrow_raw_fd(fd),
-        CStr::from_ptr(pathname),
+        CStr::from_ptr(pathname.cast()),
         flags,
     )) {
         Some(r) => {
@@ -343,9 +347,9 @@ unsafe extern "C" fn rename(old: *const c_char, new: *const c_char) -> c_int {
 
     match set_errno(rustix::fs::renameat(
         &cwd(),
-        CStr::from_ptr(old),
+        CStr::from_ptr(old.cast()),
         &cwd(),
-        CStr::from_ptr(new),
+        CStr::from_ptr(new.cast()),
     )) {
         Some(()) => 0,
         None => -1,
@@ -358,7 +362,7 @@ unsafe extern "C" fn rmdir(pathname: *const c_char) -> c_int {
 
     match set_errno(rustix::fs::unlinkat(
         &cwd(),
-        CStr::from_ptr(pathname),
+        CStr::from_ptr(pathname.cast()),
         AtFlags::REMOVEDIR,
     )) {
         Some(()) => 0,
@@ -372,7 +376,7 @@ unsafe extern "C" fn unlink(pathname: *const c_char) -> c_int {
 
     match set_errno(rustix::fs::unlinkat(
         &cwd(),
-        CStr::from_ptr(pathname),
+        CStr::from_ptr(pathname.cast()),
         AtFlags::empty(),
     )) {
         Some(()) => 0,
@@ -402,7 +406,7 @@ unsafe extern "C" fn lstat64(pathname: *const c_char, stat_: *mut rustix::fs::St
 
     match set_errno(rustix::fs::statat(
         &cwd(),
-        CStr::from_ptr(pathname),
+        CStr::from_ptr(pathname.cast()),
         AtFlags::SYMLINK_NOFOLLOW,
     )) {
         Some(r) => {
@@ -419,7 +423,7 @@ unsafe extern "C" fn opendir(pathname: *const c_char) -> *mut c_void {
 
     match set_errno(rustix::fs::openat(
         &cwd(),
-        CStr::from_ptr(pathname),
+        CStr::from_ptr(pathname.cast()),
         OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC,
         Mode::empty(),
     )) {
@@ -574,7 +578,11 @@ unsafe extern "C" fn chmod(pathname: *const c_char, mode: c_uint) -> c_int {
     libc!(chmod(pathname, mode));
 
     let mode = Mode::from_bits(mode as _).unwrap();
-    match set_errno(rustix::fs::chmodat(&cwd(), CStr::from_ptr(pathname), mode)) {
+    match set_errno(rustix::fs::chmodat(
+        &cwd(),
+        CStr::from_ptr(pathname.cast()),
+        mode,
+    )) {
         Some(()) => 0,
         None => -1,
     }
@@ -604,9 +612,9 @@ unsafe extern "C" fn linkat(
     let flags = AtFlags::from_bits(flags as _).unwrap();
     match set_errno(rustix::fs::linkat(
         &BorrowedFd::borrow_raw_fd(olddirfd),
-        CStr::from_ptr(oldpath),
+        CStr::from_ptr(oldpath.cast()),
         &BorrowedFd::borrow_raw_fd(newdirfd),
-        CStr::from_ptr(newpath),
+        CStr::from_ptr(newpath.cast()),
         flags,
     )) {
         Some(()) => 0,
@@ -619,9 +627,9 @@ unsafe extern "C" fn symlink(target: *const c_char, linkpath: *const c_char) -> 
     libc!(symlink(target, linkpath));
 
     match set_errno(rustix::fs::symlinkat(
-        CStr::from_ptr(target),
+        CStr::from_ptr(target.cast()),
         &cwd(),
-        CStr::from_ptr(linkpath),
+        CStr::from_ptr(linkpath.cast()),
     )) {
         Some(()) => 0,
         None => -1,
@@ -1072,7 +1080,7 @@ unsafe extern "C" fn getaddrinfo(
         assert!(hints.ai_next.is_null(), "GAI next hint not supported yet");
     }
 
-    let host = match CStr::from_ptr(node).to_str() {
+    let host = match CStr::from_ptr(node.cast()).to_str() {
         Ok(host) => host,
         Err(_) => {
             *__errno_location() = rustix::io::Error::ILSEQ.raw_os_error();
@@ -2014,7 +2022,7 @@ unsafe extern "C" fn getcwd(buf: *mut c_char, len: usize) -> *mut c_char {
 unsafe extern "C" fn chdir(path: *const c_char) -> c_int {
     libc!(chdir(path));
 
-    let path = CStr::from_ptr(path);
+    let path = CStr::from_ptr(path.cast());
     match set_errno(rustix::process::chdir(path)) {
         Some(()) => 0,
         None => -1,
@@ -2068,28 +2076,28 @@ unsafe extern "C" fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c
     if handle.is_null() {
         // `std` uses `dlsym` to dynamically detect feature availability; recognize
         // functions it asks for.
-        if CStr::from_ptr(symbol).to_bytes() == b"statx" {
+        if CStr::from_ptr(symbol.cast()).to_bytes() == b"statx" {
             return statx as *mut c_void;
         }
-        if CStr::from_ptr(symbol).to_bytes() == b"getrandom" {
+        if CStr::from_ptr(symbol.cast()).to_bytes() == b"getrandom" {
             return getrandom as *mut c_void;
         }
-        if CStr::from_ptr(symbol).to_bytes() == b"copy_file_range" {
+        if CStr::from_ptr(symbol.cast()).to_bytes() == b"copy_file_range" {
             return copy_file_range as *mut c_void;
         }
-        if CStr::from_ptr(symbol).to_bytes() == b"clone3" {
+        if CStr::from_ptr(symbol.cast()).to_bytes() == b"clone3" {
             // Let's just say we don't support this for now.
             return null_mut();
         }
-        if CStr::from_ptr(symbol).to_bytes() == b"__pthread_get_minstack" {
+        if CStr::from_ptr(symbol.cast()).to_bytes() == b"__pthread_get_minstack" {
             // Let's just say we don't support this for now.
             return null_mut();
         }
-        if CStr::from_ptr(symbol).to_bytes() == b"gnu_get_libc_version" {
+        if CStr::from_ptr(symbol.cast()).to_bytes() == b"gnu_get_libc_version" {
             return gnu_get_libc_version as *mut c_void;
         }
     }
-    unimplemented!("dlsym({:?})", CStr::from_ptr(symbol))
+    unimplemented!("dlsym({:?})", CStr::from_ptr(symbol.cast()))
 }
 
 #[no_mangle]
@@ -2173,7 +2181,7 @@ unsafe extern "C" fn prctl(
     match option {
         data::PR_SET_NAME => {
             match set_errno(rustix::runtime::set_thread_name(CStr::from_ptr(
-                arg2 as *const c_char,
+                arg2 as *const _,
             ))) {
                 Some(()) => 0,
                 None => -1,
@@ -2488,7 +2496,7 @@ unsafe fn null_terminated_array<'a>(list: *const *const c_char) -> Vec<&'a CStr>
     let list = core::slice::from_raw_parts(list, len);
     list.into_iter()
         .copied()
-        .map(|ptr| CStr::from_ptr(ptr))
+        .map(|ptr| CStr::from_ptr(ptr.cast()))
         .collect()
 }
 
@@ -2536,7 +2544,7 @@ unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> 
     let args = null_terminated_array(args);
     let envs = null_terminated_array(environ.cast::<_>());
     match set_errno(
-        resolve_binary(CStr::from_ptr(file), &envs)
+        resolve_binary(CStr::from_ptr(file.cast()), &envs)
             .and_then(|path| rustix::runtime::execve(path, &args, &envs)),
     ) {
         Some(_) => 0,
@@ -3201,7 +3209,7 @@ unsafe extern "C" fn ynf(x: i32, y: f32) -> f32 {
 #[no_mangle]
 unsafe extern "C" fn getenv(key: *const c_char) -> *mut c_char {
     libc!(getenv(key));
-    let key = CStr::from_ptr(key);
+    let key = CStr::from_ptr(key.cast());
     let mut ptr = environ;
     loop {
         let env = *ptr;
