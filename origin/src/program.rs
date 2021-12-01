@@ -1,4 +1,6 @@
 #[cfg(target_vendor = "mustang")]
+use crate::mutex::Mutex;
+#[cfg(target_vendor = "mustang")]
 #[cfg(feature = "threads")]
 use crate::threads::{initialize_main_thread, set_current_thread_id};
 use core::ffi::c_void;
@@ -7,8 +9,6 @@ use core::ptr::null_mut;
 use linux_raw_sys::ctypes::c_int;
 #[cfg(target_vendor = "mustang")]
 use once_cell::sync::OnceCell;
-#[cfg(target_vendor = "mustang")]
-use std::sync::Mutex;
 
 /// The entrypoint where Rust code is first executed when the program starts.
 ///
@@ -134,8 +134,7 @@ pub fn at_exit(func: Box<dyn FnOnce() + Send>) {
     #[cfg(target_vendor = "mustang")]
     {
         let dtors = DTORS.get_or_init(|| Mutex::new(Vec::new()));
-        let mut funcs = dtors.lock().unwrap();
-        funcs.push(func);
+        dtors.lock(|funcs| funcs.push(func));
     }
 
     #[cfg(not(target_vendor = "mustang"))]
@@ -164,7 +163,7 @@ pub fn exit(status: c_int) -> ! {
     // to the end of the list.
     #[cfg(target_vendor = "mustang")]
     if let Some(dtors) = DTORS.get() {
-        while let Some(dtor) = dtors.lock().unwrap().pop() {
+        while let Some(dtor) = dtors.lock(|dtors| dtors.pop()) {
             log::trace!("Calling `at_exit`-registered function",);
 
             dtor();
@@ -239,16 +238,17 @@ pub fn at_fork(
     #[cfg(target_vendor = "mustang")]
     {
         let fork_funcs = FORK_FUNCS.get_or_init(|| Mutex::new(RegisteredForkFuncs::default()));
-        let mut funcs = fork_funcs.lock().unwrap();
-        if let Some(func) = prepare_func {
-            funcs.prepare.push(func);
-        }
-        if let Some(func) = parent_func {
-            funcs.parent.push(func);
-        }
-        if let Some(func) = child_func {
-            funcs.child.push(func);
-        }
+        fork_funcs.lock(|funcs| {
+            if let Some(func) = prepare_func {
+                funcs.prepare.push(func);
+            }
+            if let Some(func) = parent_func {
+                funcs.parent.push(func);
+            }
+            if let Some(func) = child_func {
+                funcs.child.push(func);
+            }
+        });
     }
 
     #[cfg(not(target_vendor = "mustang"))]
@@ -279,22 +279,23 @@ pub unsafe fn fork() -> rustix::io::Result<Option<rustix::process::Pid>> {
     #[cfg(target_vendor = "mustang")]
     {
         let fork_funcs = FORK_FUNCS.get_or_init(|| Mutex::new(RegisteredForkFuncs::default()));
-        let funcs = fork_funcs.lock().unwrap();
-        funcs.prepare.iter().rev().for_each(|func| func());
-        // protect the allocator lock while the fork is in progress,
-        // to avoid deadlocks in the child process from allocations.
-        match crate::allocator::INNER_ALLOC.lock(|_| rustix::runtime::fork())? {
-            rustix::process::Pid::NONE => {
-                #[cfg(feature = "threads")]
-                set_current_thread_id(rustix::thread::gettid());
-                funcs.child.iter().for_each(|func| func());
-                return Ok(None);
+        fork_funcs.lock(|funcs| {
+            funcs.prepare.iter().rev().for_each(|func| func());
+            // Protect the allocator lock while the fork is in progress, to
+            // avoid deadlocks in the child process from allocations.
+            match crate::allocator::INNER_ALLOC.lock(|_| rustix::runtime::fork())? {
+                rustix::process::Pid::NONE => {
+                    #[cfg(feature = "threads")]
+                    set_current_thread_id(rustix::thread::gettid());
+                    funcs.child.iter().for_each(|func| func());
+                    Ok(None)
+                }
+                pid => {
+                    funcs.parent.iter().for_each(|func| func());
+                    Ok(Some(pid))
+                }
             }
-            pid => {
-                funcs.parent.iter().for_each(|func| func());
-                return Ok(Some(pid));
-            }
-        }
+        })
     }
 
     #[cfg(not(target_vendor = "mustang"))]
@@ -302,13 +303,13 @@ pub unsafe fn fork() -> rustix::io::Result<Option<rustix::process::Pid>> {
         extern "C" {
             fn fork() -> c_int;
         }
-        return match fork() {
+        match fork() {
             -1 => {
                 let raw = unsafe { *libc::__errno_location() };
                 Err(rustix::io::Error::from_raw_os_error(raw))
             }
             0 => Ok(None),
             pid => Ok(Some(unsafe { rustix::process::Pid::from_raw(pid as _) })),
-        };
+        }
     }
 }
