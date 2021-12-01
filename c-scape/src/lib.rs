@@ -47,19 +47,25 @@ use origin::Thread;
 use parking_lot::lock_api::{RawMutex as _, RawRwLock};
 #[cfg(feature = "threads")]
 use parking_lot::RawMutex;
+use rustix::fd::{AsFd, BorrowedFd};
+use rustix::fd::{AsRawFd, FromRawFd, IntoRawFd};
+use rustix::ffi::{ZStr, ZString};
 use rustix::fs::{cwd, openat, AtFlags, FdFlags, Mode, OFlags};
-use rustix::io::{EventfdFlags, MapFlags, MprotectFlags, MremapFlags, PipeFlags, ProtFlags};
-use rustix::io_lifetimes::{AsFd, BorrowedFd, OwnedFd};
+use rustix::io::{
+    EventfdFlags, MapFlags, MprotectFlags, MremapFlags, OwnedFd, PipeFlags, ProtFlags,
+};
 use rustix::net::{
-    AcceptFlags, AddressFamily, IpAddr, Ipv4Addr, Ipv6Addr, Protocol, RecvFlags, SendFlags,
-    Shutdown, SocketAddrAny, SocketAddrStorage, SocketAddrV4, SocketAddrV6, SocketFlags,
-    SocketType,
+    AcceptFlags, AddressFamily, Ipv4Addr, Ipv6Addr, Protocol, RecvFlags, SendFlags, Shutdown,
+    SocketAddrAny, SocketAddrStorage, SocketFlags, SocketType,
 };
 use rustix::process::WaitOptions;
-use std::ffi::{CStr, CString, OsStr};
-use std::os::unix::ffi::OsStrExt;
-use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd};
-use sync_resolve::resolve_host;
+#[cfg(feature = "realpath-ext")]
+use std::{ffi::OsStr, os::unix::ffi::OsStrExt};
+#[cfg(feature = "sync-resolve")]
+use {
+    rustix::net::{IpAddr, SocketAddrV4, SocketAddrV6},
+    sync_resolve::resolve_host,
+};
 
 // errno
 
@@ -97,7 +103,7 @@ unsafe extern "C" fn open64(pathname: *const c_char, flags: c_int, mode: c_int) 
 
     let flags = OFlags::from_bits(flags as _).unwrap();
     let mode = Mode::from_bits(mode as _).unwrap();
-    match set_errno(openat(&cwd(), CStr::from_ptr(pathname.cast()), flags, mode)) {
+    match set_errno(openat(&cwd(), ZStr::from_ptr(pathname.cast()), flags, mode)) {
         Some(fd) => fd.into_raw_fd(),
         None => -1,
     }
@@ -115,7 +121,7 @@ unsafe extern "C" fn readlink(pathname: *const c_char, buf: *mut c_char, bufsiz:
 
     let path = match set_errno(rustix::fs::readlinkat(
         &cwd(),
-        CStr::from_ptr(pathname.cast()),
+        ZStr::from_ptr(pathname.cast()),
         Vec::new(),
     )) {
         Some(path) => path,
@@ -139,7 +145,7 @@ unsafe extern "C" fn stat64(pathname: *const c_char, stat_: *mut rustix::fs::Sta
 
     match set_errno(rustix::fs::statat(
         &cwd(),
-        CStr::from_ptr(pathname.cast()),
+        ZStr::from_ptr(pathname.cast()),
         AtFlags::empty(),
     )) {
         Some(r) => {
@@ -188,7 +194,7 @@ unsafe extern "C" fn statx(
     let mask = rustix::fs::StatxFlags::from_bits(mask).unwrap();
     match set_errno(rustix::fs::statx(
         &BorrowedFd::borrow_raw_fd(dirfd_),
-        CStr::from_ptr(path.cast()),
+        ZStr::from_ptr(path.cast()),
         flags,
         mask,
     )) {
@@ -200,12 +206,13 @@ unsafe extern "C" fn statx(
     }
 }
 
+#[cfg(feature = "realpath-ext")]
 #[no_mangle]
 unsafe extern "C" fn realpath(path: *const c_char, resolved_path: *mut c_char) -> *mut c_char {
     libc!(realpath(path, resolved_path));
 
     match realpath_ext::realpath(
-        OsStr::from_bytes(CStr::from_ptr(path.cast()).to_bytes()),
+        OsStr::from_bytes(ZStr::from_ptr(path.cast()).to_bytes()),
         realpath_ext::RealpathFlags::empty(),
     ) {
         Ok(path) => {
@@ -279,7 +286,7 @@ unsafe extern "C" fn mkdir(pathname: *const c_char, mode: c_uint) -> c_int {
     let mode = Mode::from_bits(mode as _).unwrap();
     match set_errno(rustix::fs::mkdirat(
         &cwd(),
-        CStr::from_ptr(pathname.cast()),
+        ZStr::from_ptr(pathname.cast()),
         mode,
     )) {
         Some(()) => 0,
@@ -309,7 +316,7 @@ unsafe extern "C" fn fstatat64(
     let flags = AtFlags::from_bits(flags as _).unwrap();
     match set_errno(rustix::fs::statat(
         &BorrowedFd::borrow_raw_fd(fd),
-        CStr::from_ptr(pathname.cast()),
+        ZStr::from_ptr(pathname.cast()),
         flags,
     )) {
         Some(r) => {
@@ -349,9 +356,9 @@ unsafe extern "C" fn rename(old: *const c_char, new: *const c_char) -> c_int {
 
     match set_errno(rustix::fs::renameat(
         &cwd(),
-        CStr::from_ptr(old.cast()),
+        ZStr::from_ptr(old.cast()),
         &cwd(),
-        CStr::from_ptr(new.cast()),
+        ZStr::from_ptr(new.cast()),
     )) {
         Some(()) => 0,
         None => -1,
@@ -364,7 +371,7 @@ unsafe extern "C" fn rmdir(pathname: *const c_char) -> c_int {
 
     match set_errno(rustix::fs::unlinkat(
         &cwd(),
-        CStr::from_ptr(pathname.cast()),
+        ZStr::from_ptr(pathname.cast()),
         AtFlags::REMOVEDIR,
     )) {
         Some(()) => 0,
@@ -378,7 +385,7 @@ unsafe extern "C" fn unlink(pathname: *const c_char) -> c_int {
 
     match set_errno(rustix::fs::unlinkat(
         &cwd(),
-        CStr::from_ptr(pathname.cast()),
+        ZStr::from_ptr(pathname.cast()),
         AtFlags::empty(),
     )) {
         Some(()) => 0,
@@ -391,9 +398,9 @@ unsafe extern "C" fn lseek64(fd: c_int, offset: i64, whence: c_int) -> i64 {
     libc!(lseek64(fd, offset, whence));
 
     let seek_from = match whence {
-        data::SEEK_SET => std::io::SeekFrom::Start(offset as u64),
-        data::SEEK_CUR => std::io::SeekFrom::Current(offset),
-        data::SEEK_END => std::io::SeekFrom::End(offset),
+        data::SEEK_SET => rustix::io::SeekFrom::Start(offset as u64),
+        data::SEEK_CUR => rustix::io::SeekFrom::Current(offset),
+        data::SEEK_END => rustix::io::SeekFrom::End(offset),
         _ => panic!("unrecognized whence({})", whence),
     };
     match set_errno(rustix::fs::seek(&BorrowedFd::borrow_raw_fd(fd), seek_from)) {
@@ -408,7 +415,7 @@ unsafe extern "C" fn lstat64(pathname: *const c_char, stat_: *mut rustix::fs::St
 
     match set_errno(rustix::fs::statat(
         &cwd(),
-        CStr::from_ptr(pathname.cast()),
+        ZStr::from_ptr(pathname.cast()),
         AtFlags::SYMLINK_NOFOLLOW,
     )) {
         Some(r) => {
@@ -425,7 +432,7 @@ unsafe extern "C" fn opendir(pathname: *const c_char) -> *mut c_void {
 
     match set_errno(rustix::fs::openat(
         &cwd(),
-        CStr::from_ptr(pathname.cast()),
+        ZStr::from_ptr(pathname.cast()),
         OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC,
         Mode::empty(),
     )) {
@@ -582,7 +589,7 @@ unsafe extern "C" fn chmod(pathname: *const c_char, mode: c_uint) -> c_int {
     let mode = Mode::from_bits(mode as _).unwrap();
     match set_errno(rustix::fs::chmodat(
         &cwd(),
-        CStr::from_ptr(pathname.cast()),
+        ZStr::from_ptr(pathname.cast()),
         mode,
     )) {
         Some(()) => 0,
@@ -614,9 +621,9 @@ unsafe extern "C" fn linkat(
     let flags = AtFlags::from_bits(flags as _).unwrap();
     match set_errno(rustix::fs::linkat(
         &BorrowedFd::borrow_raw_fd(olddirfd),
-        CStr::from_ptr(oldpath.cast()),
+        ZStr::from_ptr(oldpath.cast()),
         &BorrowedFd::borrow_raw_fd(newdirfd),
-        CStr::from_ptr(newpath.cast()),
+        ZStr::from_ptr(newpath.cast()),
         flags,
     )) {
         Some(()) => 0,
@@ -629,9 +636,9 @@ unsafe extern "C" fn symlink(target: *const c_char, linkpath: *const c_char) -> 
     libc!(symlink(target, linkpath));
 
     match set_errno(rustix::fs::symlinkat(
-        CStr::from_ptr(target.cast()),
+        ZStr::from_ptr(target.cast()),
         &cwd(),
-        CStr::from_ptr(linkpath.cast()),
+        ZStr::from_ptr(linkpath.cast()),
     )) {
         Some(()) => 0,
         None => -1,
@@ -1046,6 +1053,7 @@ unsafe extern "C" fn setsockopt(
     }
 }
 
+#[cfg(feature = "sync-resolve")]
 #[no_mangle]
 unsafe extern "C" fn getaddrinfo(
     node: *const c_char,
@@ -1082,7 +1090,7 @@ unsafe extern "C" fn getaddrinfo(
         assert!(hints.ai_next.is_null(), "GAI next hint not supported yet");
     }
 
-    let host = match CStr::from_ptr(node.cast()).to_str() {
+    let host = match ZStr::from_ptr(node.cast()).to_str() {
         Ok(host) => host,
         Err(_) => {
             *__errno_location() = rustix::io::Error::ILSEQ.raw_os_error();
@@ -1147,6 +1155,7 @@ unsafe extern "C" fn getaddrinfo(
     }
 }
 
+#[cfg(feature = "sync-resolve")]
 #[no_mangle]
 unsafe extern "C" fn freeaddrinfo(mut res: *mut data::Addrinfo) {
     libc!(freeaddrinfo(same_ptr_mut(res)));
@@ -1165,6 +1174,7 @@ unsafe extern "C" fn freeaddrinfo(mut res: *mut data::Addrinfo) {
     }
 }
 
+#[cfg(feature = "sync-resolve")]
 #[no_mangle]
 unsafe extern "C" fn gai_strerror(errcode: c_int) -> *const c_char {
     libc!(gai_strerror(errcode));
@@ -1377,7 +1387,7 @@ unsafe extern "C" fn write(fd: c_int, ptr: *const c_void, len: usize) -> isize {
 }
 
 #[no_mangle]
-unsafe extern "C" fn writev(fd: c_int, iov: *const std::io::IoSlice, iovcnt: c_int) -> isize {
+unsafe extern "C" fn writev(fd: c_int, iov: *const rustix::io::IoSlice, iovcnt: c_int) -> isize {
     libc!(writev(fd, same_ptr(iov), iovcnt));
 
     if iovcnt < 0 {
@@ -1408,7 +1418,7 @@ unsafe extern "C" fn read(fd: c_int, ptr: *mut c_void, len: usize) -> isize {
 }
 
 #[no_mangle]
-unsafe extern "C" fn readv(fd: c_int, iov: *const std::io::IoSliceMut, iovcnt: c_int) -> isize {
+unsafe extern "C" fn readv(fd: c_int, iov: *const rustix::io::IoSliceMut, iovcnt: c_int) -> isize {
     libc!(readv(fd, same_ptr(iov), iovcnt));
 
     if iovcnt < 0 {
@@ -2024,7 +2034,7 @@ unsafe extern "C" fn getcwd(buf: *mut c_char, len: usize) -> *mut c_char {
 unsafe extern "C" fn chdir(path: *const c_char) -> c_int {
     libc!(chdir(path));
 
-    let path = CStr::from_ptr(path.cast());
+    let path = ZStr::from_ptr(path.cast());
     match set_errno(rustix::process::chdir(path)) {
         Some(()) => 0,
         None => -1,
@@ -2078,28 +2088,28 @@ unsafe extern "C" fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c
     if handle.is_null() {
         // `std` uses `dlsym` to dynamically detect feature availability; recognize
         // functions it asks for.
-        if CStr::from_ptr(symbol.cast()).to_bytes() == b"statx" {
+        if ZStr::from_ptr(symbol.cast()).to_bytes() == b"statx" {
             return statx as *mut c_void;
         }
-        if CStr::from_ptr(symbol.cast()).to_bytes() == b"getrandom" {
+        if ZStr::from_ptr(symbol.cast()).to_bytes() == b"getrandom" {
             return getrandom as *mut c_void;
         }
-        if CStr::from_ptr(symbol.cast()).to_bytes() == b"copy_file_range" {
+        if ZStr::from_ptr(symbol.cast()).to_bytes() == b"copy_file_range" {
             return copy_file_range as *mut c_void;
         }
-        if CStr::from_ptr(symbol.cast()).to_bytes() == b"clone3" {
+        if ZStr::from_ptr(symbol.cast()).to_bytes() == b"clone3" {
             // Let's just say we don't support this for now.
             return null_mut();
         }
-        if CStr::from_ptr(symbol.cast()).to_bytes() == b"__pthread_get_minstack" {
+        if ZStr::from_ptr(symbol.cast()).to_bytes() == b"__pthread_get_minstack" {
             // Let's just say we don't support this for now.
             return null_mut();
         }
-        if CStr::from_ptr(symbol.cast()).to_bytes() == b"gnu_get_libc_version" {
+        if ZStr::from_ptr(symbol.cast()).to_bytes() == b"gnu_get_libc_version" {
             return gnu_get_libc_version as *mut c_void;
         }
     }
-    unimplemented!("dlsym({:?})", CStr::from_ptr(symbol.cast()))
+    unimplemented!("dlsym({:?})", ZStr::from_ptr(symbol.cast()))
 }
 
 #[no_mangle]
@@ -2182,7 +2192,7 @@ unsafe extern "C" fn prctl(
     libc!(prctl(option, arg2, _arg3, _arg4, _arg5));
     match option {
         data::PR_SET_NAME => {
-            match set_errno(rustix::runtime::set_thread_name(CStr::from_ptr(
+            match set_errno(rustix::runtime::set_thread_name(ZStr::from_ptr(
                 arg2 as *const _,
             ))) {
                 Some(()) => 0,
@@ -2471,9 +2481,9 @@ unsafe extern "C" fn nanosleep(
         tv_sec: (*req).tv_sec.into(),
         tv_nsec: (*req).tv_nsec as _,
     };
-    match rustix::time::nanosleep(&req) {
-        rustix::time::NanosleepRelativeResult::Ok => 0,
-        rustix::time::NanosleepRelativeResult::Interrupted(remaining) => {
+    match rustix::thread::nanosleep(&req) {
+        rustix::thread::NanosleepRelativeResult::Ok => 0,
+        rustix::thread::NanosleepRelativeResult::Interrupted(remaining) => {
             *rem = data::OldTimespec {
                 tv_sec: remaining.tv_sec.try_into().unwrap(),
                 tv_nsec: remaining.tv_nsec as _,
@@ -2481,7 +2491,7 @@ unsafe extern "C" fn nanosleep(
             *__errno_location() = rustix::io::Error::INTR.raw_os_error();
             -1
         }
-        rustix::time::NanosleepRelativeResult::Err(err) => {
+        rustix::thread::NanosleepRelativeResult::Err(err) => {
             *__errno_location() = err.raw_os_error();
             -1
         }
@@ -2490,7 +2500,7 @@ unsafe extern "C" fn nanosleep(
 
 // exec
 
-unsafe fn null_terminated_array<'a>(list: *const *const c_char) -> Vec<&'a CStr> {
+unsafe fn null_terminated_array<'a>(list: *const *const c_char) -> Vec<&'a ZStr> {
     let mut len = 0;
     while !(*list.wrapping_add(len)).is_null() {
         len += 1;
@@ -2498,11 +2508,11 @@ unsafe fn null_terminated_array<'a>(list: *const *const c_char) -> Vec<&'a CStr>
     let list = core::slice::from_raw_parts(list, len);
     list.into_iter()
         .copied()
-        .map(|ptr| CStr::from_ptr(ptr.cast()))
+        .map(|ptr| ZStr::from_ptr(ptr.cast()))
         .collect()
 }
 
-fn file_exists(cwd: &rustix::io_lifetimes::BorrowedFd<'_>, path: &CStr) -> bool {
+fn file_exists(cwd: &rustix::fd::BorrowedFd<'_>, path: &ZStr) -> bool {
     rustix::fs::accessat(
         cwd,
         path,
@@ -2512,7 +2522,7 @@ fn file_exists(cwd: &rustix::io_lifetimes::BorrowedFd<'_>, path: &CStr) -> bool 
     .is_ok()
 }
 
-fn resolve_binary<'a>(file: &'a CStr, envs: &[&CStr]) -> rustix::io::Result<Cow<'a, CStr>> {
+fn resolve_binary<'a>(file: &'a ZStr, envs: &[&ZStr]) -> rustix::io::Result<Cow<'a, ZStr>> {
     let file_bytes = file.to_bytes();
     if file_bytes.contains(&b'/') {
         Ok(Cow::Borrowed(file))
@@ -2521,7 +2531,7 @@ fn resolve_binary<'a>(file: &'a CStr, envs: &[&CStr]) -> rustix::io::Result<Cow<
         match envs
             .into_iter()
             .copied()
-            .map(CStr::to_bytes)
+            .map(ZStr::to_bytes)
             .find(|env| env.starts_with(b"PATH="))
             .map(|env| env.split_at(b"PATH=".len()).1)
             .unwrap_or(b"/bin:/usr/bin")
@@ -2530,7 +2540,7 @@ fn resolve_binary<'a>(file: &'a CStr, envs: &[&CStr]) -> rustix::io::Result<Cow<
                 let mut full_path = path_bytes.to_vec();
                 full_path.push(b'/');
                 full_path.extend_from_slice(file_bytes);
-                CString::new(full_path).ok()
+                ZString::new(full_path).ok()
             })
             .find(|path| file_exists(&cwd, &path))
         {
@@ -2546,7 +2556,7 @@ unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> 
     let args = null_terminated_array(args);
     let envs = null_terminated_array(environ.cast::<_>());
     match set_errno(
-        resolve_binary(CStr::from_ptr(file.cast()), &envs)
+        resolve_binary(ZStr::from_ptr(file.cast()), &envs)
             .and_then(|path| rustix::runtime::execve(path, &args, &envs)),
     ) {
         Some(_) => 0,
@@ -3211,7 +3221,7 @@ unsafe extern "C" fn ynf(x: i32, y: f32) -> f32 {
 #[no_mangle]
 unsafe extern "C" fn getenv(key: *const c_char) -> *mut c_char {
     libc!(getenv(key));
-    let key = CStr::from_ptr(key.cast());
+    let key = ZStr::from_ptr(key.cast());
     let mut ptr = environ;
     loop {
         let env = *ptr;
