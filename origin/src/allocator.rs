@@ -1,6 +1,6 @@
 use crate::mutex::Mutex;
+use alloc::alloc::{GlobalAlloc, Layout};
 use dlmalloc::Dlmalloc;
-use std::alloc::{GlobalAlloc, Layout};
 
 pub(crate) static INNER_ALLOC: Mutex<Dlmalloc> = Mutex::new(Dlmalloc::new());
 
