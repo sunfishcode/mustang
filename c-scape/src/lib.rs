@@ -1493,7 +1493,7 @@ unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
             let fd = BorrowedFd::borrow_raw_fd(fd);
             match set_errno(rustix::io::ioctl_tcgets(&fd)) {
                 Some(x) => {
-                    *args.arg::<*mut rustix::io::Termios>() = x;
+                    args.arg::<*mut rustix::io::Termios>().write(x);
                     0
                 }
                 None => -1,
@@ -1506,6 +1506,17 @@ unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
             let value = *ptr != 0;
             match set_errno(rustix::io::ioctl_fionbio(&fd, value)) {
                 Some(()) => 0,
+                None => -1,
+            }
+        }
+        data::TIOCGWINSZ => {
+            libc!(ioctl(fd, TIOCGWINSZ));
+            let fd = BorrowedFd::borrow_raw_fd(fd);
+            match set_errno(rustix::io::ioctl_tiocgwinsz(&fd)) {
+                Some(x) => {
+                    args.arg::<*mut rustix::io::Winsize>().write(x);
+                    0
+                }
                 None => -1,
             }
         }

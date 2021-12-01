@@ -89,6 +89,7 @@ constant!(DT_REG);
 constant!(DT_LNK);
 constant!(DT_SOCK);
 constant!(TCGETS);
+constant!(TIOCGWINSZ);
 constant!(FIONBIO);
 #[cfg(not(target_arch = "riscv64"))] // libc for riscv64 doesn't have max_align_t yet
 constant_same_as!(

@@ -24,6 +24,7 @@ pub(crate) const DT_LNK: u8 = 10;
 pub(crate) const DT_SOCK: u8 = 12;
 
 pub(crate) const TCGETS: c_long = 0x5401;
+pub(crate) const TIOCGWINSZ: c_long = 0x5413;
 pub(crate) const FIONBIO: c_long = 0x5421;
 
 pub(crate) const ALIGNOF_MAXALIGN_T: usize = 16;
