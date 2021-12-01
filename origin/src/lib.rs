@@ -6,6 +6,9 @@
 #![feature(naked_functions)]
 #![feature(link_llvm_intrinsics)]
 #![feature(atomic_mut_ptr)]
+#![no_std]
+
+extern crate alloc;
 
 mod allocator;
 mod mutex;

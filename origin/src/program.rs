@@ -3,6 +3,8 @@ use crate::mutex::Mutex;
 #[cfg(target_vendor = "mustang")]
 #[cfg(feature = "threads")]
 use crate::threads::{initialize_main_thread, set_current_thread_id};
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use core::ffi::c_void;
 #[cfg(not(target_vendor = "mustang"))]
 use core::ptr::null_mut;

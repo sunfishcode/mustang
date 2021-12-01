@@ -3,6 +3,8 @@
 #[cfg(target_vendor = "mustang")]
 use crate::arch::set_thread_pointer;
 use crate::arch::{clone, get_thread_pointer, munmap_and_exit_thread, TLS_OFFSET};
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use core::any::Any;
 use core::cmp::max;
 use core::ffi::c_void;
@@ -367,10 +369,10 @@ pub(super) unsafe fn initialize_main_thread(mem: *mut c_void) {
         alloc_size += round_up(STARTUP_TLS_INFO.mem_size, tls_data_align);
     }
 
-    let layout = std::alloc::Layout::from_size_align(alloc_size, metadata_align).unwrap();
+    let layout = alloc::alloc::Layout::from_size_align(alloc_size, metadata_align).unwrap();
 
     // Allocate the thread data.
-    let new = std::alloc::alloc(layout);
+    let new = alloc::alloc::alloc(layout);
 
     let tls_data = new.add(tls_data_bottom);
     let metadata: *mut Metadata = new.add(header).cast();
