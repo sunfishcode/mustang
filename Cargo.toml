@@ -13,9 +13,9 @@ exclude = ["/.github"]
 publish = false
 
 [dev-dependencies]
-origin = { path = "origin", default-features = false, version = "^0.3.1-alpha.0"}
-mustang = { path = "mustang", default-features = false, version = "^0.3.1-alpha.0"}
-c-scape = { path = "c-scape", default-features = false, version = "^0.3.1-alpha.0"}
+origin = { path = "origin", version = "^0.3.1-alpha.0"}
+mustang = { path = "mustang", version = "^0.3.1-alpha.0"}
+c-scape = { path = "c-scape", version = "^0.3.1-alpha.0"}
 similar-asserts = "1.1.0"
 rand = "0.8.4"
 
