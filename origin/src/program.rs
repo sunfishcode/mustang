@@ -1,12 +1,12 @@
 #[cfg(target_vendor = "mustang")]
 #[cfg(feature = "threads")]
 use crate::threads::{initialize_main_thread, set_current_thread_id};
+use core::ffi::c_void;
+#[cfg(not(target_vendor = "mustang"))]
+use core::ptr::null_mut;
 #[cfg(target_vendor = "mustang")]
 use once_cell::sync::OnceCell;
-use std::ffi::c_void;
 use std::os::raw::c_int;
-#[cfg(not(target_vendor = "mustang"))]
-use std::ptr::null_mut;
 #[cfg(target_vendor = "mustang")]
 use std::sync::Mutex;
 
@@ -38,22 +38,22 @@ pub(super) unsafe extern "C" fn entry(mem: *mut usize) -> ! {
         }
 
         // Check that `mem` is where we expect it to be.
-        debug_assert_ne!(mem, std::ptr::null_mut());
+        debug_assert_ne!(mem, core::ptr::null_mut());
         debug_assert_eq!(mem as usize & 0xf, 0);
         debug_assert!((builtin_frame_address(0) as usize) <= mem as usize);
 
         // Check that the incoming stack pointer is where we expect it to be.
-        debug_assert_eq!(builtin_return_address(0), std::ptr::null());
-        debug_assert_ne!(builtin_frame_address(0), std::ptr::null());
+        debug_assert_eq!(builtin_return_address(0), core::ptr::null());
+        debug_assert_ne!(builtin_frame_address(0), core::ptr::null());
         #[cfg(not(any(target_arch = "arm", target_arch = "x86")))]
         debug_assert_eq!(builtin_frame_address(0) as usize & 0xf, 0);
         #[cfg(target_arch = "arm")]
         debug_assert_eq!(builtin_frame_address(0) as usize & 0x7, 0);
         #[cfg(target_arch = "x86")]
         debug_assert_eq!(builtin_frame_address(0) as usize & 0xf, 8);
-        debug_assert_eq!(builtin_frame_address(1), std::ptr::null());
+        debug_assert_eq!(builtin_frame_address(1), core::ptr::null());
         #[cfg(target_arch = "aarch64")]
-        debug_assert_ne!(builtin_sponentry(), std::ptr::null());
+        debug_assert_ne!(builtin_sponentry(), core::ptr::null());
         #[cfg(target_arch = "aarch64")]
         debug_assert_eq!(builtin_sponentry() as usize & 0xf, 0);
     }
@@ -66,7 +66,7 @@ pub(super) unsafe extern "C" fn entry(mem: *mut usize) -> ! {
     // Do a few more precondition checks on `argc` and `argv`.
     debug_assert!(argc >= 0);
     debug_assert_eq!(*mem, argc as _);
-    debug_assert_eq!(*argv.add(argc as usize), std::ptr::null_mut());
+    debug_assert_eq!(*argv.add(argc as usize), core::ptr::null_mut());
 
     // Explicitly initialize `rustix`. On non-mustang platforms it uses a
     // .init_array hook to initialize itself automatically, but for mustang, we

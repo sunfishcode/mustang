@@ -3,7 +3,7 @@
 
 #![allow(dead_code)]
 
-use std::ffi::c_void;
+use core::ffi::c_void;
 use std::os::raw::{c_char, c_int, c_long, c_ulong, c_ulonglong};
 
 pub(crate) const F_SETFD: c_int = 2;

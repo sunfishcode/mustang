@@ -29,7 +29,7 @@ mod arch;
 #[path = "arch-arm.rs"]
 mod arch;
 
-use std::ffi::c_void;
+use core::ffi::c_void;
 
 pub use program::{at_exit, at_fork, exit, exit_immediately, fork};
 #[cfg(feature = "threads")]

@@ -3,6 +3,14 @@
 #[cfg(target_vendor = "mustang")]
 use crate::arch::set_thread_pointer;
 use crate::arch::{clone, get_thread_pointer, munmap_and_exit_thread, TLS_OFFSET};
+use core::any::Any;
+use core::cmp::max;
+use core::ffi::c_void;
+use core::mem::{align_of, size_of};
+use core::ptr::{self, drop_in_place, null, null_mut};
+use core::slice;
+use core::sync::atomic::Ordering::SeqCst;
+use core::sync::atomic::{AtomicU32, AtomicU8};
 use memoffset::offset_of;
 use rustix::io;
 #[cfg(target_vendor = "mustang")]
@@ -10,14 +18,6 @@ use rustix::process::{getrlimit, linux_execfn, Resource};
 use rustix::process::{page_size, Pid};
 use rustix::runtime::{set_tid_address, StartupTlsInfo};
 use rustix::thread::gettid;
-use std::any::Any;
-use std::cmp::max;
-use std::ffi::c_void;
-use std::mem::{align_of, size_of};
-use std::ptr::{self, drop_in_place, null, null_mut};
-use std::slice;
-use std::sync::atomic::Ordering::SeqCst;
-use std::sync::atomic::{AtomicU32, AtomicU8};
 
 /// The entrypoint where Rust code is first executed on a new thread.
 ///
@@ -50,17 +50,17 @@ pub(super) unsafe extern "C" fn entry(fn_: *mut Box<dyn FnOnce() -> Option<Box<d
         }
 
         // Check that the incoming stack pointer is where we expect it to be.
-        debug_assert_eq!(builtin_return_address(0), std::ptr::null());
-        debug_assert_ne!(builtin_frame_address(0), std::ptr::null());
+        debug_assert_eq!(builtin_return_address(0), core::ptr::null());
+        debug_assert_ne!(builtin_frame_address(0), core::ptr::null());
         #[cfg(not(any(target_arch = "x86", target_arch = "arm")))]
         debug_assert_eq!(builtin_frame_address(0) as usize & 0xf, 0);
         #[cfg(target_arch = "arm")]
         debug_assert_eq!(builtin_frame_address(0) as usize & 0x3, 0);
         #[cfg(target_arch = "x86")]
         debug_assert_eq!(builtin_frame_address(0) as usize & 0xf, 8);
-        debug_assert_eq!(builtin_frame_address(1), std::ptr::null());
+        debug_assert_eq!(builtin_frame_address(1), core::ptr::null());
         #[cfg(target_arch = "aarch64")]
-        debug_assert_ne!(builtin_sponentry(), std::ptr::null());
+        debug_assert_ne!(builtin_sponentry(), core::ptr::null());
         #[cfg(target_arch = "aarch64")]
         debug_assert_eq!(builtin_sponentry() as usize & 0xf, 0);
 

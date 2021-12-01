@@ -1,8 +1,8 @@
+use core::cell::UnsafeCell;
+use core::ptr::{null, null_mut};
+use core::sync::atomic::AtomicU32;
+use core::sync::atomic::Ordering::SeqCst;
 use rustix::thread::{futex, FutexFlags, FutexOperation};
-use std::cell::UnsafeCell;
-use std::ptr::{null, null_mut};
-use std::sync::atomic::AtomicU32;
-use std::sync::atomic::Ordering::SeqCst;
 
 /// Raw mutex type backed by atomic operations and Linux `futex` calls.
 ///

@@ -41,9 +41,9 @@ static INIT_ARRAY: unsafe extern "C" fn(c_int, *mut *mut c_char, *mut *mut c_cha
                 .collect::<Vec<OsString>>(),
             std::env::args_os().collect::<Vec<OsString>>()
         );
-        assert_eq!(*argv.add(argc as usize), std::ptr::null_mut());
+        assert_eq!(*argv.add(argc as usize), core::ptr::null_mut());
 
-        assert_ne!(envp, std::ptr::null_mut());
+        assert_ne!(envp, core::ptr::null_mut());
 
         let mut ptr = envp;
         let mut num_env = 0;
