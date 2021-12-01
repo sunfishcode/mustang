@@ -1,5 +1,5 @@
-use std::sync::atomic::Ordering::{AcqRel, Acquire, Relaxed, Release};
-use std::sync::atomic::{AtomicU32, AtomicU64, AtomicU8};
+use core::sync::atomic::Ordering::{AcqRel, Acquire, Relaxed, Release};
+use core::sync::atomic::{AtomicU32, AtomicU64, AtomicU8};
 
 #[no_mangle]
 unsafe extern "C" fn __aarch64_ldadd1_acq(x: u8, p: *mut AtomicU8) -> u8 {

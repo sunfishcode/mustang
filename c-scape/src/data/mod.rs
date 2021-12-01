@@ -40,13 +40,13 @@ macro_rules! type_ {
 
         #[cfg(test)]
         static_assertions::const_assert_eq!(
-            std::mem::size_of::<$name>(),
-            std::mem::size_of::<libc::$libc>()
+            core::mem::size_of::<$name>(),
+            core::mem::size_of::<libc::$libc>()
         );
         #[cfg(test)]
         static_assertions::const_assert_eq!(
-            std::mem::align_of::<$name>(),
-            std::mem::align_of::<libc::$libc>()
+            core::mem::align_of::<$name>(),
+            core::mem::align_of::<libc::$libc>()
         );
     };
 }
@@ -94,7 +94,7 @@ constant!(FIONBIO);
 #[cfg(not(target_arch = "riscv64"))] // libc for riscv64 doesn't have max_align_t yet
 constant_same_as!(
     ALIGNOF_MAXALIGN_T,
-    std::mem::align_of::<libc::max_align_t>()
+    core::mem::align_of::<libc::max_align_t>()
 );
 #[cfg(target_arch = "riscv64")]
 constant_same_as!(ALIGNOF_MAXALIGN_T, 16);

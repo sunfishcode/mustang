@@ -26,6 +26,15 @@ mod unwind;
 // the `rustix` APIs directly, which are safer, more ergonomic, and skip this
 // whole layer.
 
+use core::convert::TryInto;
+use core::ffi::c_void;
+use core::mem::{size_of, zeroed};
+use core::ptr::{self, null, null_mut};
+use core::slice;
+#[cfg(feature = "threads")]
+use core::sync::atomic::Ordering::SeqCst;
+#[cfg(feature = "threads")]
+use core::sync::atomic::{AtomicBool, AtomicU32};
 use error_str::error_str;
 use memoffset::offset_of;
 #[cfg(feature = "threads")]
@@ -44,18 +53,10 @@ use rustix::net::{
 };
 use rustix::process::WaitOptions;
 use std::borrow::Cow;
-use std::convert::TryInto;
-use std::ffi::{c_void, CStr, CString, OsStr};
-use std::mem::{size_of, zeroed};
+use std::ffi::{CStr, CString, OsStr};
 use std::os::raw::{c_char, c_int, c_long, c_uint, c_ulong};
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd};
-use std::ptr::{self, null, null_mut};
-use std::slice;
-#[cfg(feature = "threads")]
-use std::sync::atomic::Ordering::SeqCst;
-#[cfg(feature = "threads")]
-use std::sync::atomic::{AtomicBool, AtomicU32};
 use sync_resolve::resolve_host;
 
 // errno
@@ -79,7 +80,7 @@ unsafe extern "C" fn __xpg_strerror_r(errnum: c_int, buf: *mut c_char, buflen: u
         Some(s) => s.to_owned(),
         None => format!("Unknown error {}", errnum),
     };
-    let min = std::cmp::min(buflen, message.len());
+    let min = core::cmp::min(buflen, message.len());
     let out = slice::from_raw_parts_mut(buf.cast::<u8>(), min);
     out.copy_from_slice(message.as_bytes());
     out[out.len() - 1] = b'\0';
@@ -119,7 +120,7 @@ unsafe extern "C" fn readlink(pathname: *const c_char, buf: *mut c_char, bufsiz:
         None => return -1,
     };
     let bytes = path.as_bytes();
-    let min = std::cmp::min(bytes.len(), bufsiz);
+    let min = core::cmp::min(bytes.len(), bufsiz);
     slice::from_raw_parts_mut(buf.cast::<_>(), min).copy_from_slice(bytes);
     min as isize
 }
@@ -475,7 +476,7 @@ unsafe extern "C" fn readdir64_r(
                 d_type: file_type,
                 d_name: [0; 256],
             };
-            let len = std::cmp::min(256, e.file_name().to_bytes().len());
+            let len = core::cmp::min(256, e.file_name().to_bytes().len());
             (*entry).d_name[..len].copy_from_slice(e.file_name().to_bytes());
             *ptr = entry;
             0
@@ -782,8 +783,8 @@ unsafe extern "C" fn getsockopt(
     optval: *mut c_void,
     optlen: *mut data::SockLen,
 ) -> c_int {
+    use core::time::Duration;
     use rustix::net::sockopt::{self, Timeout};
-    use std::time::Duration;
 
     unsafe fn write_bool(
         value: rustix::io::Result<bool>,
@@ -902,8 +903,8 @@ unsafe extern "C" fn setsockopt(
     optval: *const c_void,
     optlen: data::SockLen,
 ) -> c_int {
+    use core::time::Duration;
     use rustix::net::sockopt::{self, Timeout};
-    use std::time::Duration;
 
     unsafe fn read_bool(optval: *const c_void, optlen: data::SockLen) -> bool {
         read(optval.cast::<c_int>(), optlen) != 0
@@ -1613,7 +1614,7 @@ struct Tag {
 /// returns null if the allocation failed
 fn tagged_alloc(type_layout: std::alloc::Layout) -> *mut u8 {
     if type_layout.size() == 0 {
-        return std::ptr::null_mut();
+        return core::ptr::null_mut();
     }
 
     let tag_layout = std::alloc::Layout::new::<Tag>();
@@ -1633,7 +1634,7 @@ fn tagged_alloc(type_layout: std::alloc::Layout) -> *mut u8 {
             total_ptr.wrapping_add(offset).cast::<_>()
         }
     } else {
-        std::ptr::null_mut()
+        core::ptr::null_mut()
     }
 }
 
@@ -1644,7 +1645,7 @@ fn tagged_alloc(type_layout: std::alloc::Layout) -> *mut u8 {
 /// gotten from calling `tagged_alloc`
 unsafe fn get_layout(ptr: *mut u8) -> std::alloc::Layout {
     let tag = ptr
-        .wrapping_sub(std::mem::size_of::<Tag>())
+        .wrapping_sub(core::mem::size_of::<Tag>())
         .cast::<Tag>()
         .read();
     std::alloc::Layout::from_size_align_unchecked(tag.size, tag.align)
@@ -1685,7 +1686,7 @@ unsafe extern "C" fn realloc(old: *mut c_void, size: usize) -> *mut c_void {
         }
 
         let new = malloc(size);
-        memcpy(new, old, std::cmp::min(size, old_layout.size()));
+        memcpy(new, old, core::cmp::min(size, old_layout.size()));
         tagged_dealloc(old.cast::<_>());
         new
     }
@@ -1714,7 +1715,7 @@ unsafe extern "C" fn posix_memalign(
     size: usize,
 ) -> c_int {
     libc!(posix_memalign(memptr, alignment, size));
-    if !(alignment.is_power_of_two() && alignment % std::mem::size_of::<*const c_void>() == 0) {
+    if !(alignment.is_power_of_two() && alignment % core::mem::size_of::<*const c_void>() == 0) {
         return rustix::io::Error::INVAL.raw_os_error();
     }
 
@@ -2135,7 +2136,7 @@ unsafe extern "C" fn sched_yield() -> c_int {
 }
 
 fn set_cpu(cpu: usize, cpuset: &mut data::CpuSet) {
-    let size_in_bits = 8 * std::mem::size_of_val(&cpuset.bits[0]); // 32, 64 etc
+    let size_in_bits = 8 * core::mem::size_of_val(&cpuset.bits[0]); // 32, 64 etc
     let (idx, offset) = (cpu / size_in_bits, cpu % size_in_bits);
     cpuset.bits[idx] |= 1 << offset;
 }
@@ -2484,7 +2485,7 @@ unsafe fn null_terminated_array<'a>(list: *const *const c_char) -> Vec<&'a CStr>
     while !(*list.wrapping_add(len)).is_null() {
         len += 1;
     }
-    let list = std::slice::from_raw_parts(list, len);
+    let list = core::slice::from_raw_parts(list, len);
     list.into_iter()
         .copied()
         .map(|ptr| CStr::from_ptr(ptr))
@@ -3284,7 +3285,7 @@ struct GetThreadId;
 unsafe impl parking_lot::lock_api::GetThreadId for GetThreadId {
     const INIT: Self = Self;
 
-    fn nonzero_thread_id(&self) -> std::num::NonZeroUsize {
+    fn nonzero_thread_id(&self) -> core::num::NonZeroUsize {
         (origin::current_thread_id().as_raw() as usize)
             .try_into()
             .unwrap()
@@ -3672,7 +3673,7 @@ const SIZEOF_PTHREAD_COND_T: usize = 48;
 #[cfg_attr(not(target_arch = "x86"), repr(C, align(8)))]
 struct PthreadCondT {
     inner: parking_lot::Condvar,
-    pad: [u8; SIZEOF_PTHREAD_COND_T - std::mem::size_of::<parking_lot::Condvar>()],
+    pad: [u8; SIZEOF_PTHREAD_COND_T - core::mem::size_of::<parking_lot::Condvar>()],
 }
 
 #[cfg(feature = "threads")]
