@@ -46,6 +46,8 @@ pub(crate) const SEEK_SET: c_int = 0;
 pub(crate) const SEEK_CUR: c_int = 1;
 pub(crate) const SEEK_END: c_int = 2;
 
+pub(crate) const PATH_MAX: usize = 4096;
+
 pub(crate) const DT_UNKNOWN: u8 = 0;
 pub(crate) const DT_FIFO: u8 = 1;
 pub(crate) const DT_CHR: u8 = 2;

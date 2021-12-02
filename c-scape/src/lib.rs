@@ -59,8 +59,6 @@ use rustix::net::{
     SocketAddrAny, SocketAddrStorage, SocketFlags, SocketType,
 };
 use rustix::process::WaitOptions;
-#[cfg(feature = "realpath-ext")]
-use std::{ffi::OsStr, os::unix::ffi::OsStrExt};
 #[cfg(feature = "sync-resolve")]
 use {
     rustix::net::{IpAddr, SocketAddrV4, SocketAddrV6},
@@ -206,38 +204,38 @@ unsafe extern "C" fn statx(
     }
 }
 
-#[cfg(feature = "realpath-ext")]
 #[no_mangle]
 unsafe extern "C" fn realpath(path: *const c_char, resolved_path: *mut c_char) -> *mut c_char {
     libc!(realpath(path, resolved_path));
 
-    match realpath_ext::realpath(
-        OsStr::from_bytes(ZStr::from_ptr(path.cast()).to_bytes()),
+    let mut buf = [0; data::PATH_MAX];
+    match realpath_ext::realpath_raw(
+        ZStr::from_ptr(path.cast()).to_bytes(),
+        &mut buf,
         realpath_ext::RealpathFlags::empty(),
     ) {
-        Ok(path) => {
+        Ok(len) => {
             if resolved_path.is_null() {
-                let ptr = malloc(path.as_os_str().len() + 1).cast::<u8>();
+                let ptr = malloc(len + 1).cast::<u8>();
                 if ptr.is_null() {
                     *__errno_location() = rustix::io::Error::NOMEM.raw_os_error();
                     return null_mut();
                 }
-                slice::from_raw_parts_mut(ptr, path.as_os_str().len())
-                    .copy_from_slice(path.as_os_str().as_bytes());
-                *ptr.add(path.as_os_str().len()) = b'\0';
+                slice::from_raw_parts_mut(ptr, len).copy_from_slice(&buf[..len]);
+                *ptr.add(len) = b'\0';
                 ptr.cast::<c_char>()
             } else {
                 memcpy(
                     resolved_path.cast::<c_void>(),
-                    path.as_os_str().as_bytes().as_ptr().cast::<c_void>(),
-                    path.as_os_str().len(),
+                    buf[..len].as_ptr().cast::<c_void>(),
+                    len,
                 );
-                *resolved_path.add(path.as_os_str().len()) = b'\0' as _;
+                *resolved_path.add(len) = b'\0' as _;
                 resolved_path
             }
         }
         Err(err) => {
-            *__errno_location() = err.raw_os_error().unwrap();
+            *__errno_location() = err;
             null_mut()
         }
     }

@@ -80,6 +80,7 @@ constant!(F_DUPFD_CLOEXEC);
 constant!(SEEK_SET);
 constant!(SEEK_CUR);
 constant!(SEEK_END);
+constant!(PATH_MAX);
 constant!(DT_UNKNOWN);
 constant!(DT_FIFO);
 constant!(DT_CHR);
