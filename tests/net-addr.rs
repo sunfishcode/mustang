@@ -18,7 +18,7 @@ fn to_socket_addr_ipaddr_u16() {
 }
 
 #[test]
-#[cfg_attr(target_vendor = "mustang", ignore)] // FIXME(mustang): triggers segfault
+#[cfg_attr(all(target_vendor = "mustang", not(target_arch = "x86-64")), ignore)] // FIXME(mustang): triggers segfault
 fn to_socket_addr_str_u16() {
     let a = sa4(Ipv4Addr::new(77, 88, 21, 11), 24352);
     assert_eq!(Ok(vec![a]), tsa(("77.88.21.11", 24352)));
@@ -34,7 +34,7 @@ fn to_socket_addr_str_u16() {
 }
 
 #[test]
-#[cfg_attr(target_vendor = "mustang", ignore)] // FIXME(mustang): triggers segfault
+#[cfg_attr(all(target_vendor = "mustang", not(target_arch = "x86-64")), ignore)] // FIXME(mustang): triggers segfault
 fn to_socket_addr_str() {
     let a = sa4(Ipv4Addr::new(77, 88, 21, 11), 24352);
     assert_eq!(Ok(vec![a]), tsa("77.88.21.11:24352"));
@@ -62,7 +62,7 @@ fn to_socket_addr_string() {
 }
 
 #[test]
-#[cfg_attr(target_vendor = "mustang", ignore)] // FIXME(mustang): triggers segfault
+#[cfg_attr(all(target_vendor = "mustang", not(target_arch = "x86-64")), ignore)] // FIXME(mustang): triggers segfault
 fn bind_udp_socket_bad() {
     // rust-lang/rust#53957: This is a regression test for a parsing problem
     // discovered as part of issue rust-lang/rust#23076, where we were
