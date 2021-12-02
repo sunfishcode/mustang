@@ -9,8 +9,6 @@ use core::ffi::c_void;
 #[cfg(not(target_vendor = "mustang"))]
 use core::ptr::null_mut;
 use linux_raw_sys::ctypes::c_int;
-#[cfg(target_vendor = "mustang")]
-use once_cell::sync::OnceCell;
 
 /// The entrypoint where Rust code is first executed when the program starts.
 ///
@@ -124,7 +122,7 @@ pub(super) unsafe fn call_ctors(argc: c_int, argv: *mut *mut u8, envp: *mut *mut
 
 /// Functions registered with `at_exit`.
 #[cfg(target_vendor = "mustang")]
-static DTORS: OnceCell<Mutex<Vec<Box<dyn FnOnce() + Send>>>> = OnceCell::new();
+static DTORS: Mutex<Vec<Box<dyn FnOnce() + Send>>> = Mutex::new(Vec::new());
 
 /// Register a function to be called when `exit` is called.
 ///
@@ -135,8 +133,7 @@ static DTORS: OnceCell<Mutex<Vec<Box<dyn FnOnce() + Send>>>> = OnceCell::new();
 pub fn at_exit(func: Box<dyn FnOnce() + Send>) {
     #[cfg(target_vendor = "mustang")]
     {
-        let dtors = DTORS.get_or_init(|| Mutex::new(Vec::new()));
-        dtors.lock(|funcs| funcs.push(func));
+        DTORS.lock(|funcs| funcs.push(func));
     }
 
     #[cfg(not(target_vendor = "mustang"))]
@@ -164,12 +161,10 @@ pub fn exit(status: c_int) -> ! {
     // unlocked while making the call so that functions can add more functions
     // to the end of the list.
     #[cfg(target_vendor = "mustang")]
-    if let Some(dtors) = DTORS.get() {
-        while let Some(dtor) = dtors.lock(|dtors| dtors.pop()) {
-            log::trace!("Calling `at_exit`-registered function",);
+    while let Some(dtor) = DTORS.lock(|dtors| dtors.pop()) {
+        log::trace!("Calling `at_exit`-registered function",);
 
-            dtor();
-        }
+        dtor();
     }
 
     // Call the `.fini_array` functions, in reverse order.
@@ -223,9 +218,19 @@ struct RegisteredForkFuncs {
     pub(crate) child: Vec<unsafe extern "C" fn()>,
 }
 
+impl RegisteredForkFuncs {
+    pub(crate) const fn new() -> Self {
+        Self {
+            prepare: Vec::new(),
+            parent: Vec::new(),
+            child: Vec::new(),
+        }
+    }
+}
+
 /// Functions registered with `at_fork`.
 #[cfg(target_vendor = "mustang")]
-static FORK_FUNCS: OnceCell<Mutex<RegisteredForkFuncs>> = OnceCell::new();
+static FORK_FUNCS: Mutex<RegisteredForkFuncs> = Mutex::new(RegisteredForkFuncs::new());
 
 /// Register functions to be called when `fork` is called.
 ///
@@ -239,8 +244,7 @@ pub fn at_fork(
 ) {
     #[cfg(target_vendor = "mustang")]
     {
-        let fork_funcs = FORK_FUNCS.get_or_init(|| Mutex::new(RegisteredForkFuncs::default()));
-        fork_funcs.lock(|funcs| {
+        FORK_FUNCS.lock(|funcs| {
             if let Some(func) = prepare_func {
                 funcs.prepare.push(func);
             }
@@ -280,8 +284,7 @@ pub fn at_fork(
 pub unsafe fn fork() -> rustix::io::Result<Option<rustix::process::Pid>> {
     #[cfg(target_vendor = "mustang")]
     {
-        let fork_funcs = FORK_FUNCS.get_or_init(|| Mutex::new(RegisteredForkFuncs::default()));
-        fork_funcs.lock(|funcs| {
+        FORK_FUNCS.lock(|funcs| {
             funcs.prepare.iter().rev().for_each(|func| func());
             // Protect the allocator lock while the fork is in progress, to
             // avoid deadlocks in the child process from allocations.
