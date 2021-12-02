@@ -6,6 +6,7 @@
 #![feature(naked_functions)]
 #![feature(link_llvm_intrinsics)]
 #![feature(atomic_mut_ptr)]
+#![feature(const_fn_fn_ptr_basics)]
 #![no_std]
 
 extern crate alloc;
