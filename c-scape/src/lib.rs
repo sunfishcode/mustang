@@ -1024,12 +1024,12 @@ unsafe extern "C" fn setsockopt(
             data::IPV6_MULTICAST_LOOP => {
                 sockopt::set_ipv6_multicast_loop(fd, read_bool(optval, optlen))
             }
-            data::IPV6_ADD_MEMBERSHIP => sockopt::set_ipv6_join_group(
+            data::IPV6_ADD_MEMBERSHIP => sockopt::set_ipv6_add_membership(
                 fd,
                 &read_ipv6_multiaddr(optval, optlen),
                 read_ipv6_interface(optval, optlen),
             ),
-            data::IPV6_DROP_MEMBERSHIP => sockopt::set_ipv6_leave_group(
+            data::IPV6_DROP_MEMBERSHIP => sockopt::set_ipv6_drop_membership(
                 fd,
                 &read_ipv6_multiaddr(optval, optlen),
                 read_ipv6_interface(optval, optlen),

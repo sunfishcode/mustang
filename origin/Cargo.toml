@@ -12,7 +12,7 @@ edition = "2018"
 
 [dependencies]
 linux-raw-sys = { version = "0.0.36", default-features = false, features = ["v5_4", "v5_11", "no_std"] }
-rustix = { version = "0.28.0", default-features = false }
+rustix = { version = "0.29.1", default-features = false }
 bitflags = "1.3.0"
 log = { version = "0.4.14", default-features = false }
 memoffset = "0.6.4"
