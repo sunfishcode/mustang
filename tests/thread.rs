@@ -42,7 +42,7 @@ fn test_named_thread() {
 
 #[test]
 #[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
-#[cfg_attr(target_vendor = "mustang", ignore)] // FIXME(mustang): triggers segfault
+#[cfg_attr(all(target_vendor = "mustang", not(target_arch = "x86-64")), ignore)] // FIXME(mustang): triggers segfault
 #[should_panic]
 fn test_invalid_named_thread() {
     let _ = Builder::new()
@@ -181,7 +181,7 @@ fn test_try_panic_message_static_str() {
 
 #[test]
 #[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
-#[cfg_attr(target_vendor = "mustang", ignore)] // FIXME(mustang): panics inside a panic
+#[cfg_attr(all(target_vendor = "mustang", not(target_arch = "x86-64")), ignore)] // FIXME(mustang): panics inside a panic
 fn test_try_panic_message_owned_str() {
     match thread::spawn(move || {
         panic!("owned string".to_string());
@@ -199,7 +199,7 @@ fn test_try_panic_message_owned_str() {
 
 #[test]
 #[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
-#[cfg_attr(target_vendor = "mustang", ignore)] // FIXME(mustang): panics inside a panic
+#[cfg_attr(all(target_vendor = "mustang", not(target_arch = "x86-64")), ignore)] // FIXME(mustang): panics inside a panic
 fn test_try_panic_message_any() {
     match thread::spawn(move || {
         panic!(box 413u16 as Box<dyn Any + Send>);

@@ -57,7 +57,7 @@ fn stampede_once() {
 
 #[test]
 #[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
-#[cfg_attr(target_vendor = "mustang", ignore)] // FIXME(mustang): triggers segfault
+#[cfg_attr(all(target_vendor = "mustang", not(target_arch = "x86-64")), ignore)] // FIXME(mustang): triggers segfault
 fn poison_bad() {
     static O: Once = Once::new();
 
@@ -87,7 +87,7 @@ fn poison_bad() {
 
 #[test]
 #[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
-#[cfg_attr(target_vendor = "mustang", ignore)] // FIXME(mustang): triggers segfault
+#[cfg_attr(all(target_vendor = "mustang", not(target_arch = "x86-64")), ignore)] // FIXME(mustang): triggers segfault
 fn wait_for_force_to_finish() {
     static O: Once = Once::new();
 
