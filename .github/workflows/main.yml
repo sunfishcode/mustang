@@ -75,6 +75,8 @@ jobs:
             qemu_target: arm-linux-user
             host_target: armv5te-unknown-linux-gnueabi
             mustang_target: armv5te-mustang-linux-gnueabi
+            # when testing on armv5te, using more than 1 thread triggers a segfault
+            test_args: --test-threads 1
     steps:
     - uses: actions/checkout@v2
       with:
@@ -141,13 +143,13 @@ jobs:
 
     - name: cargo test
       run: |
-        cargo +nightly test --verbose -Z build-std --target=specs/${{ matrix.mustang_target }}.json
+        cargo +nightly test --verbose -Z build-std --target=specs/${{ matrix.mustang_target }}.json -- ${{ matrix.test_args }}
       env:
         RUST_BACKTRACE: 1
 
     - name: cargo test --release
       run: |
-        cargo +nightly test --verbose --release -Z build-std --target=specs/${{ matrix.mustang_target }}.json
+        cargo +nightly test --verbose --release -Z build-std --target=specs/${{ matrix.mustang_target }}.json  -- ${{ matrix.test_args }}
       env:
         RUST_BACKTRACE: 1
 
