@@ -211,6 +211,7 @@ pub fn exit_immediately(status: c_int) -> ! {
     rustix::process::exit_group(status)
 }
 
+#[cfg(target_vendor = "mustang")]
 #[derive(Default)]
 struct RegisteredForkFuncs {
     pub(crate) prepare: Vec<unsafe extern "C" fn()>,
@@ -218,6 +219,7 @@ struct RegisteredForkFuncs {
     pub(crate) child: Vec<unsafe extern "C" fn()>,
 }
 
+#[cfg(target_vendor = "mustang")]
 impl RegisteredForkFuncs {
     pub(crate) const fn new() -> Self {
         Self {
@@ -310,11 +312,11 @@ pub unsafe fn fork() -> rustix::io::Result<Option<rustix::process::Pid>> {
         }
         match fork() {
             -1 => {
-                let raw = unsafe { *libc::__errno_location() };
+                let raw = *libc::__errno_location();
                 Err(rustix::io::Error::from_raw_os_error(raw))
             }
             0 => Ok(None),
-            pid => Ok(Some(unsafe { rustix::process::Pid::from_raw(pid as _) })),
+            pid => Ok(Some(rustix::process::Pid::from_raw(pid as _))),
         }
     }
 }
