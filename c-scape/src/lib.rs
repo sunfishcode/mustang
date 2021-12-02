@@ -28,7 +28,12 @@ mod unwind;
 // the `rustix` APIs directly, which are safer, more ergonomic, and skip this
 // whole layer.
 
-use alloc::borrow::Cow;
+use alloc::borrow::{Cow, ToOwned};
+use alloc::boxed::Box;
+use alloc::format;
+#[cfg(feature = "sync-resolve")]
+use alloc::string::ToString;
+use alloc::vec::Vec;
 use core::convert::TryInto;
 use core::ffi::c_void;
 use core::mem::{size_of, zeroed};
@@ -722,7 +727,7 @@ unsafe extern "C" fn bind(
         SocketAddrAny::Unix(unix) => {
             rustix::net::bind_unix(&BorrowedFd::borrow_raw_fd(sockfd), &unix)
         }
-        _ => panic!("unrecognized SocketAddrAny {:?}", addr),
+        _ => panic!("unrecognized SocketAddrAny kind"),
     }) {
         Some(()) => 0,
         None => -1,
@@ -747,7 +752,7 @@ unsafe extern "C" fn connect(
         SocketAddrAny::Unix(unix) => {
             rustix::net::connect_unix(&BorrowedFd::borrow_raw_fd(sockfd), &unix)
         }
-        _ => panic!("unrecognized SocketAddrAny {:?}", addr),
+        _ => panic!("unrecognized SocketAddrAny kind"),
     }) {
         Some(()) => 0,
         None => -1,
@@ -1304,7 +1309,7 @@ unsafe extern "C" fn sendto(
             flags,
             &unix,
         ),
-        _ => panic!("unrecognized SocketAddrAny {:?}", addr),
+        _ => panic!("unrecognized SocketAddrAny kind"),
     }) {
         Some(nwritten) => nwritten as isize,
         None => -1,
@@ -2128,6 +2133,7 @@ unsafe extern "C" fn dlopen() {
     unimplemented!("dlopen")
 }
 
+#[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn __tls_get_addr(p: &[usize; 2]) -> *mut c_void {
     //libc!(__tls_get_addr(p));
@@ -3313,6 +3319,7 @@ unsafe impl parking_lot::lock_api::GetThreadId for GetThreadId {
 #[cfg(feature = "threads")]
 #[allow(non_camel_case_types)]
 type PthreadT = c_ulong;
+#[cfg(feature = "threads")]
 libc_type!(PthreadT, pthread_t);
 
 #[cfg(feature = "threads")]
@@ -3684,6 +3691,7 @@ unsafe extern "C" fn pthread_attr_setguardsize(attr: *mut PthreadAttrT, guardsiz
     0
 }
 
+#[cfg(feature = "threads")]
 const SIZEOF_PTHREAD_COND_T: usize = 48;
 
 #[cfg(feature = "threads")]
@@ -3697,6 +3705,7 @@ struct PthreadCondT {
 #[cfg(feature = "threads")]
 libc_type!(PthreadCondT, pthread_cond_t);
 
+#[cfg(feature = "threads")]
 #[cfg(any(
     target_arch = "x86",
     target_arch = "x86_64",
