@@ -37,7 +37,9 @@ use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::convert::TryInto;
 use core::ffi::c_void;
-use core::mem::{align_of, size_of, transmute, zeroed};
+#[cfg(not(target_arch = "riscv64"))]
+use core::mem::align_of;
+use core::mem::{size_of, transmute, zeroed};
 use core::ptr::{self, null, null_mut};
 use core::slice;
 #[cfg(feature = "threads")]
@@ -1707,6 +1709,10 @@ unsafe fn tagged_dealloc(ptr: *mut u8) {
 unsafe extern "C" fn malloc(size: usize) -> *mut c_void {
     libc!(malloc(size));
 
+    // TODO: Add `max_align_t` for riscv64 to upstream libc.
+    #[cfg(target_arch = "riscv64")]
+    let layout = alloc::alloc::Layout::from_size_align(size, 16).unwrap();
+    #[cfg(not(target_arch = "riscv64"))]
     let layout =
         alloc::alloc::Layout::from_size_align(size, align_of::<libc::max_align_t>()).unwrap();
     tagged_alloc(layout).cast::<_>()
