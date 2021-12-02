@@ -13,7 +13,6 @@ extern crate compiler_builtins;
 #[macro_use]
 mod use_libc;
 
-mod data;
 mod error_str;
 // Unwinding isn't supported on 32-bit arm yet.
 #[cfg(target_arch = "arm")]
@@ -38,15 +37,15 @@ use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::convert::TryInto;
 use core::ffi::c_void;
-use core::mem::{size_of, zeroed};
+use core::mem::{align_of, size_of, transmute, zeroed};
 use core::ptr::{self, null, null_mut};
 use core::slice;
 #[cfg(feature = "threads")]
 use core::sync::atomic::Ordering::SeqCst;
 #[cfg(feature = "threads")]
 use core::sync::atomic::{AtomicBool, AtomicU32};
-use data::{c_char, c_int, c_long, c_uint, c_ulong};
 use error_str::error_str;
+use libc::{c_char, c_int, c_long, c_uint, c_ulong};
 use memoffset::offset_of;
 #[cfg(feature = "threads")]
 use origin::Thread;
@@ -60,11 +59,9 @@ use rustix::ffi::{ZStr, ZString};
 use rustix::fs::{cwd, openat, AtFlags, FdFlags, Mode, OFlags};
 #[cfg(any(target_os = "android", target_os = "linux"))]
 use rustix::io::EventfdFlags;
-#[cfg(not(target_os = "wasi"))]
-use rustix::io::{
-    MapFlags, MprotectFlags, MremapFlags, PipeFlags, ProtFlags,
-};
 use rustix::io::OwnedFd;
+#[cfg(not(target_os = "wasi"))]
+use rustix::io::{MapFlags, MprotectFlags, MremapFlags, PipeFlags, ProtFlags};
 #[cfg(feature = "net")]
 use rustix::net::{
     AcceptFlags, AddressFamily, Ipv4Addr, Ipv6Addr, Protocol, RecvFlags, SendFlags, Shutdown,
@@ -221,7 +218,7 @@ unsafe extern "C" fn statx(
 unsafe extern "C" fn realpath(path: *const c_char, resolved_path: *mut c_char) -> *mut c_char {
     libc!(realpath(path, resolved_path));
 
-    let mut buf = [0; data::PATH_MAX];
+    let mut buf = [0; libc::PATH_MAX as usize];
     match realpath_ext::realpath_raw(
         ZStr::from_ptr(path.cast()).to_bytes(),
         &mut buf,
@@ -257,7 +254,7 @@ unsafe extern "C" fn realpath(path: *const c_char, resolved_path: *mut c_char) -
 #[no_mangle]
 unsafe extern "C" fn fcntl(fd: c_int, cmd: c_int, mut args: ...) -> c_int {
     match cmd {
-        data::F_GETFL => {
+        libc::F_GETFL => {
             libc!(fcntl(fd, F_GETFL));
             let fd = BorrowedFd::borrow_raw_fd(fd);
             match set_errno(rustix::fs::fcntl_getfl(&fd)) {
@@ -265,7 +262,7 @@ unsafe extern "C" fn fcntl(fd: c_int, cmd: c_int, mut args: ...) -> c_int {
                 None => -1,
             }
         }
-        data::F_SETFD => {
+        libc::F_SETFD => {
             let flags = args.arg::<c_int>();
             libc!(fcntl(fd, F_SETFD, flags));
             let fd = BorrowedFd::borrow_raw_fd(fd);
@@ -277,7 +274,7 @@ unsafe extern "C" fn fcntl(fd: c_int, cmd: c_int, mut args: ...) -> c_int {
                 None => -1,
             }
         }
-        data::F_DUPFD_CLOEXEC => {
+        libc::F_DUPFD_CLOEXEC => {
             let arg = args.arg::<c_int>();
             libc!(fcntl(fd, F_DUPFD_CLOEXEC, arg));
             let fd = BorrowedFd::borrow_raw_fd(fd);
@@ -409,9 +406,9 @@ unsafe extern "C" fn lseek64(fd: c_int, offset: i64, whence: c_int) -> i64 {
     libc!(lseek64(fd, offset, whence));
 
     let seek_from = match whence {
-        data::SEEK_SET => rustix::io::SeekFrom::Start(offset as u64),
-        data::SEEK_CUR => rustix::io::SeekFrom::Current(offset),
-        data::SEEK_END => rustix::io::SeekFrom::End(offset),
+        libc::SEEK_SET => rustix::io::SeekFrom::Start(offset as u64),
+        libc::SEEK_CUR => rustix::io::SeekFrom::Current(offset),
+        libc::SEEK_END => rustix::io::SeekFrom::End(offset),
         _ => panic!("unrecognized whence({})", whence),
     };
     match set_errno(rustix::fs::seek(&BorrowedFd::borrow_raw_fd(fd), seek_from)) {
@@ -465,8 +462,8 @@ unsafe extern "C" fn fdopendir(fd: c_int) -> *mut c_void {
 #[no_mangle]
 unsafe extern "C" fn readdir64_r(
     dir: *mut c_void,
-    entry: *mut data::Dirent64,
-    ptr: *mut *mut data::Dirent64,
+    entry: *mut libc::dirent64,
+    ptr: *mut *mut libc::dirent64,
 ) -> c_int {
     libc!(readdir64_r(
         dir.cast::<_>(),
@@ -482,26 +479,26 @@ unsafe extern "C" fn readdir64_r(
         }
         Some(Ok(e)) => {
             let file_type = match e.file_type() {
-                rustix::fs::FileType::RegularFile => data::DT_REG,
-                rustix::fs::FileType::Directory => data::DT_DIR,
-                rustix::fs::FileType::Symlink => data::DT_LNK,
-                rustix::fs::FileType::Fifo => data::DT_FIFO,
-                rustix::fs::FileType::Socket => data::DT_SOCK,
-                rustix::fs::FileType::CharacterDevice => data::DT_CHR,
-                rustix::fs::FileType::BlockDevice => data::DT_BLK,
-                rustix::fs::FileType::Unknown => data::DT_UNKNOWN,
+                rustix::fs::FileType::RegularFile => libc::DT_REG,
+                rustix::fs::FileType::Directory => libc::DT_DIR,
+                rustix::fs::FileType::Symlink => libc::DT_LNK,
+                rustix::fs::FileType::Fifo => libc::DT_FIFO,
+                rustix::fs::FileType::Socket => libc::DT_SOCK,
+                rustix::fs::FileType::CharacterDevice => libc::DT_CHR,
+                rustix::fs::FileType::BlockDevice => libc::DT_BLK,
+                rustix::fs::FileType::Unknown => libc::DT_UNKNOWN,
             };
-            *entry = data::Dirent64 {
+            *entry = libc::dirent64 {
                 d_ino: e.ino(),
                 d_off: 0, // We don't implement `seekdir` yet anyway.
-                d_reclen: (offset_of!(data::Dirent64, d_name) + e.file_name().to_bytes().len() + 1)
+                d_reclen: (offset_of!(libc::dirent64, d_name) + e.file_name().to_bytes().len() + 1)
                     .try_into()
                     .unwrap(),
                 d_type: file_type,
                 d_name: [0; 256],
             };
             let len = core::cmp::min(256, e.file_name().to_bytes().len());
-            (*entry).d_name[..len].copy_from_slice(e.file_name().to_bytes());
+            (*entry).d_name[..len].copy_from_slice(transmute(e.file_name().to_bytes()));
             *ptr = entry;
             0
         }
@@ -681,7 +678,7 @@ unsafe extern "C" fn fchown() {
 unsafe extern "C" fn accept(
     fd: c_int,
     addr: *mut SocketAddrStorage,
-    len: *mut data::SockLen,
+    len: *mut libc::socklen_t,
 ) -> c_int {
     libc!(accept(fd, same_ptr_mut(addr), len));
 
@@ -700,7 +697,7 @@ unsafe extern "C" fn accept(
 unsafe extern "C" fn accept4(
     fd: c_int,
     addr: *mut SocketAddrStorage,
-    len: *mut data::SockLen,
+    len: *mut libc::socklen_t,
     flags: c_int,
 ) -> c_int {
     libc!(accept4(fd, same_ptr_mut(addr), len, flags));
@@ -724,7 +721,7 @@ unsafe extern "C" fn accept4(
 unsafe extern "C" fn bind(
     sockfd: c_int,
     addr: *const SocketAddrStorage,
-    len: data::SockLen,
+    len: libc::socklen_t,
 ) -> c_int {
     libc!(bind(sockfd, same_ptr(addr), len));
 
@@ -750,7 +747,7 @@ unsafe extern "C" fn bind(
 unsafe extern "C" fn connect(
     sockfd: c_int,
     addr: *const SocketAddrStorage,
-    len: data::SockLen,
+    len: libc::socklen_t,
 ) -> c_int {
     libc!(connect(sockfd, same_ptr(addr), len));
 
@@ -776,7 +773,7 @@ unsafe extern "C" fn connect(
 unsafe extern "C" fn getpeername(
     fd: c_int,
     addr: *mut SocketAddrStorage,
-    len: *mut data::SockLen,
+    len: *mut libc::socklen_t,
 ) -> c_int {
     libc!(getpeername(fd, same_ptr_mut(addr), len));
 
@@ -795,7 +792,7 @@ unsafe extern "C" fn getpeername(
 unsafe extern "C" fn getsockname(
     fd: c_int,
     addr: *mut SocketAddrStorage,
-    len: *mut data::SockLen,
+    len: *mut libc::socklen_t,
 ) -> c_int {
     libc!(getsockname(fd, same_ptr_mut(addr), len));
 
@@ -816,7 +813,7 @@ unsafe extern "C" fn getsockopt(
     level: c_int,
     optname: c_int,
     optval: *mut c_void,
-    optlen: *mut data::SockLen,
+    optlen: *mut libc::socklen_t,
 ) -> c_int {
     use core::time::Duration;
     use rustix::net::sockopt::{self, Timeout};
@@ -824,7 +821,7 @@ unsafe extern "C" fn getsockopt(
     unsafe fn write_bool(
         value: rustix::io::Result<bool>,
         optval: *mut c_void,
-        optlen: *mut data::SockLen,
+        optlen: *mut libc::socklen_t,
     ) -> rustix::io::Result<()> {
         Ok(write(value? as c_uint, optval.cast::<c_uint>(), optlen))
     }
@@ -832,7 +829,7 @@ unsafe extern "C" fn getsockopt(
     unsafe fn write_u32(
         value: rustix::io::Result<u32>,
         optval: *mut c_void,
-        optlen: *mut data::SockLen,
+        optlen: *mut libc::socklen_t,
     ) -> rustix::io::Result<()> {
         Ok(write(value?, optval.cast::<u32>(), optlen))
     }
@@ -840,27 +837,27 @@ unsafe extern "C" fn getsockopt(
     unsafe fn write_linger(
         linger: rustix::io::Result<Option<Duration>>,
         optval: *mut c_void,
-        optlen: *mut data::SockLen,
+        optlen: *mut libc::socklen_t,
     ) -> rustix::io::Result<()> {
         let linger = linger?;
-        let linger = data::Linger {
+        let linger = libc::linger {
             l_onoff: linger.is_some() as c_int,
             l_linger: linger.unwrap_or_default().as_secs() as c_int,
         };
-        Ok(write(linger, optval.cast::<data::Linger>(), optlen))
+        Ok(write(linger, optval.cast::<libc::linger>(), optlen))
     }
 
     unsafe fn write_timeval(
         value: rustix::io::Result<Option<Duration>>,
         optval: *mut c_void,
-        optlen: *mut data::SockLen,
+        optlen: *mut libc::socklen_t,
     ) -> rustix::io::Result<()> {
         let timeval = match value? {
-            None => data::OldTimeval {
+            None => libc::timeval {
                 tv_sec: 0,
                 tv_usec: 0,
             },
-            Some(duration) => data::OldTimeval {
+            Some(duration) => libc::timeval {
                 tv_sec: duration
                     .as_secs()
                     .try_into()
@@ -868,10 +865,10 @@ unsafe extern "C" fn getsockopt(
                 tv_usec: duration.subsec_micros() as _,
             },
         };
-        Ok(write(timeval, optval.cast::<data::OldTimeval>(), optlen))
+        Ok(write(timeval, optval.cast::<libc::timeval>(), optlen))
     }
 
-    unsafe fn write<T>(value: T, optval: *mut T, optlen: *mut data::SockLen) {
+    unsafe fn write<T>(value: T, optval: *mut T, optlen: *mut libc::socklen_t) {
         *optlen = size_of::<T>().try_into().unwrap();
         optval.write(value)
     }
@@ -880,42 +877,42 @@ unsafe extern "C" fn getsockopt(
 
     let fd = &BorrowedFd::borrow_raw_fd(fd);
     let result = match level {
-        data::SOL_SOCKET => match optname {
-            data::SO_BROADCAST => write_bool(sockopt::get_socket_broadcast(fd), optval, optlen),
-            data::SO_LINGER => write_linger(sockopt::get_socket_linger(fd), optval, optlen),
-            data::SO_PASSCRED => write_bool(sockopt::get_socket_passcred(fd), optval, optlen),
-            data::SO_SNDTIMEO => write_timeval(
+        libc::SOL_SOCKET => match optname {
+            libc::SO_BROADCAST => write_bool(sockopt::get_socket_broadcast(fd), optval, optlen),
+            libc::SO_LINGER => write_linger(sockopt::get_socket_linger(fd), optval, optlen),
+            libc::SO_PASSCRED => write_bool(sockopt::get_socket_passcred(fd), optval, optlen),
+            libc::SO_SNDTIMEO => write_timeval(
                 sockopt::get_socket_timeout(fd, Timeout::Send),
                 optval,
                 optlen,
             ),
-            data::SO_RCVTIMEO => write_timeval(
+            libc::SO_RCVTIMEO => write_timeval(
                 sockopt::get_socket_timeout(fd, Timeout::Recv),
                 optval,
                 optlen,
             ),
             _ => unimplemented!("unimplemented getsockopt SOL_SOCKET optname {:?}", optname),
         },
-        data::IPPROTO_IP => match optname {
-            data::IP_TTL => write_u32(sockopt::get_ip_ttl(fd), optval, optlen),
-            data::IP_MULTICAST_LOOP => {
+        libc::IPPROTO_IP => match optname {
+            libc::IP_TTL => write_u32(sockopt::get_ip_ttl(fd), optval, optlen),
+            libc::IP_MULTICAST_LOOP => {
                 write_bool(sockopt::get_ip_multicast_loop(fd), optval, optlen)
             }
-            data::IP_MULTICAST_TTL => write_u32(sockopt::get_ip_multicast_ttl(fd), optval, optlen),
+            libc::IP_MULTICAST_TTL => write_u32(sockopt::get_ip_multicast_ttl(fd), optval, optlen),
             _ => unimplemented!("unimplemented getsockopt IPPROTO_IP optname {:?}", optname),
         },
-        data::IPPROTO_IPV6 => match optname {
-            data::IPV6_MULTICAST_LOOP => {
+        libc::IPPROTO_IPV6 => match optname {
+            libc::IPV6_MULTICAST_LOOP => {
                 write_bool(sockopt::get_ipv6_multicast_loop(fd), optval, optlen)
             }
-            data::IPV6_V6ONLY => write_bool(sockopt::get_ipv6_v6only(fd), optval, optlen),
+            libc::IPV6_V6ONLY => write_bool(sockopt::get_ipv6_v6only(fd), optval, optlen),
             _ => unimplemented!(
                 "unimplemented getsockopt IPPROTO_IPV6 optname {:?}",
                 optname
             ),
         },
-        data::IPPROTO_TCP => match optname {
-            data::TCP_NODELAY => write_bool(sockopt::get_tcp_nodelay(fd), optval, optlen),
+        libc::IPPROTO_TCP => match optname {
+            libc::TCP_NODELAY => write_bool(sockopt::get_tcp_nodelay(fd), optval, optlen),
             _ => unimplemented!("unimplemented getsockopt IPPROTO_TCP optname {:?}", optname),
         },
         _ => unimplemented!(
@@ -937,26 +934,26 @@ unsafe extern "C" fn setsockopt(
     level: c_int,
     optname: c_int,
     optval: *const c_void,
-    optlen: data::SockLen,
+    optlen: libc::socklen_t,
 ) -> c_int {
     use core::time::Duration;
     use rustix::net::sockopt::{self, Timeout};
 
-    unsafe fn read_bool(optval: *const c_void, optlen: data::SockLen) -> bool {
+    unsafe fn read_bool(optval: *const c_void, optlen: libc::socklen_t) -> bool {
         read(optval.cast::<c_int>(), optlen) != 0
     }
 
-    unsafe fn read_u32(optval: *const c_void, optlen: data::SockLen) -> u32 {
+    unsafe fn read_u32(optval: *const c_void, optlen: libc::socklen_t) -> u32 {
         read(optval.cast::<u32>(), optlen)
     }
 
-    unsafe fn read_linger(optval: *const c_void, optlen: data::SockLen) -> Option<Duration> {
-        let linger = read(optval.cast::<data::Linger>(), optlen);
+    unsafe fn read_linger(optval: *const c_void, optlen: libc::socklen_t) -> Option<Duration> {
+        let linger = read(optval.cast::<libc::linger>(), optlen);
         (linger.l_onoff != 0).then(|| Duration::from_secs(linger.l_linger as u64))
     }
 
-    unsafe fn read_timeval(optval: *const c_void, optlen: data::SockLen) -> Option<Duration> {
-        let timeval = read(optval.cast::<data::OldTimeval>(), optlen);
+    unsafe fn read_timeval(optval: *const c_void, optlen: libc::socklen_t) -> Option<Duration> {
+        let timeval = read(optval.cast::<libc::timeval>(), optlen);
         if timeval.tv_sec == 0 && timeval.tv_usec == 0 {
             None
         } else {
@@ -967,36 +964,35 @@ unsafe extern "C" fn setsockopt(
         }
     }
 
-    unsafe fn read_ip_multiaddr(optval: *const c_void, optlen: data::SockLen) -> Ipv4Addr {
+    unsafe fn read_ip_multiaddr(optval: *const c_void, optlen: libc::socklen_t) -> Ipv4Addr {
         Ipv4Addr::from(
-            read(optval.cast::<data::Ipv4Mreq>(), optlen)
+            read(optval.cast::<libc::ip_mreq>(), optlen)
                 .imr_multiaddr
                 .s_addr,
         )
     }
 
-    unsafe fn read_ip_interface(optval: *const c_void, optlen: data::SockLen) -> Ipv4Addr {
+    unsafe fn read_ip_interface(optval: *const c_void, optlen: libc::socklen_t) -> Ipv4Addr {
         Ipv4Addr::from(
-            read(optval.cast::<data::Ipv4Mreq>(), optlen)
+            read(optval.cast::<libc::ip_mreq>(), optlen)
                 .imr_interface
                 .s_addr,
         )
     }
 
-    unsafe fn read_ipv6_multiaddr(optval: *const c_void, optlen: data::SockLen) -> Ipv6Addr {
+    unsafe fn read_ipv6_multiaddr(optval: *const c_void, optlen: libc::socklen_t) -> Ipv6Addr {
         Ipv6Addr::from(
-            read(optval.cast::<data::Ipv6Mreq>(), optlen)
+            read(optval.cast::<libc::ipv6_mreq>(), optlen)
                 .ipv6mr_multiaddr
-                .u6_addr8,
+                .s6_addr,
         )
     }
 
-    unsafe fn read_ipv6_interface(optval: *const c_void, optlen: data::SockLen) -> u32 {
-        let t: i32 = read(optval.cast::<data::Ipv6Mreq>(), optlen).ipv6mr_interface;
-        t as u32
+    unsafe fn read_ipv6_interface(optval: *const c_void, optlen: libc::socklen_t) -> u32 {
+        read(optval.cast::<libc::ipv6_mreq>(), optlen).ipv6mr_interface
     }
 
-    unsafe fn read<T>(optval: *const T, optlen: data::SockLen) -> T {
+    unsafe fn read<T>(optval: *const T, optlen: libc::socklen_t) -> T {
         assert_eq!(optlen, size_of::<T>().try_into().unwrap());
         optval.read()
     }
@@ -1005,59 +1001,59 @@ unsafe extern "C" fn setsockopt(
 
     let fd = &BorrowedFd::borrow_raw_fd(fd);
     let result = match level {
-        data::SOL_SOCKET => match optname {
-            data::SO_REUSEADDR => sockopt::set_socket_reuseaddr(fd, read_bool(optval, optlen)),
-            data::SO_BROADCAST => sockopt::set_socket_broadcast(fd, read_bool(optval, optlen)),
-            data::SO_LINGER => sockopt::set_socket_linger(fd, read_linger(optval, optlen)),
-            data::SO_PASSCRED => sockopt::set_socket_passcred(fd, read_bool(optval, optlen)),
-            data::SO_SNDTIMEO => {
+        libc::SOL_SOCKET => match optname {
+            libc::SO_REUSEADDR => sockopt::set_socket_reuseaddr(fd, read_bool(optval, optlen)),
+            libc::SO_BROADCAST => sockopt::set_socket_broadcast(fd, read_bool(optval, optlen)),
+            libc::SO_LINGER => sockopt::set_socket_linger(fd, read_linger(optval, optlen)),
+            libc::SO_PASSCRED => sockopt::set_socket_passcred(fd, read_bool(optval, optlen)),
+            libc::SO_SNDTIMEO => {
                 sockopt::set_socket_timeout(fd, Timeout::Send, read_timeval(optval, optlen))
             }
-            data::SO_RCVTIMEO => {
+            libc::SO_RCVTIMEO => {
                 sockopt::set_socket_timeout(fd, Timeout::Recv, read_timeval(optval, optlen))
             }
             _ => unimplemented!("unimplemented setsockopt SOL_SOCKET optname {:?}", optname),
         },
-        data::IPPROTO_IP => match optname {
-            data::IP_TTL => sockopt::set_ip_ttl(fd, read_u32(optval, optlen)),
-            data::IP_MULTICAST_LOOP => {
+        libc::IPPROTO_IP => match optname {
+            libc::IP_TTL => sockopt::set_ip_ttl(fd, read_u32(optval, optlen)),
+            libc::IP_MULTICAST_LOOP => {
                 sockopt::set_ip_multicast_loop(fd, read_bool(optval, optlen))
             }
-            data::IP_MULTICAST_TTL => sockopt::set_ip_multicast_ttl(fd, read_u32(optval, optlen)),
-            data::IP_ADD_MEMBERSHIP => sockopt::set_ip_add_membership(
+            libc::IP_MULTICAST_TTL => sockopt::set_ip_multicast_ttl(fd, read_u32(optval, optlen)),
+            libc::IP_ADD_MEMBERSHIP => sockopt::set_ip_add_membership(
                 fd,
                 &read_ip_multiaddr(optval, optlen),
                 &read_ip_interface(optval, optlen),
             ),
-            data::IP_DROP_MEMBERSHIP => sockopt::set_ip_add_membership(
+            libc::IP_DROP_MEMBERSHIP => sockopt::set_ip_add_membership(
                 fd,
                 &read_ip_multiaddr(optval, optlen),
                 &read_ip_interface(optval, optlen),
             ),
             _ => unimplemented!("unimplemented setsockopt IPPROTO_IP optname {:?}", optname),
         },
-        data::IPPROTO_IPV6 => match optname {
-            data::IPV6_MULTICAST_LOOP => {
+        libc::IPPROTO_IPV6 => match optname {
+            libc::IPV6_MULTICAST_LOOP => {
                 sockopt::set_ipv6_multicast_loop(fd, read_bool(optval, optlen))
             }
-            data::IPV6_ADD_MEMBERSHIP => sockopt::set_ipv6_add_membership(
+            libc::IPV6_ADD_MEMBERSHIP => sockopt::set_ipv6_add_membership(
                 fd,
                 &read_ipv6_multiaddr(optval, optlen),
                 read_ipv6_interface(optval, optlen),
             ),
-            data::IPV6_DROP_MEMBERSHIP => sockopt::set_ipv6_drop_membership(
+            libc::IPV6_DROP_MEMBERSHIP => sockopt::set_ipv6_drop_membership(
                 fd,
                 &read_ipv6_multiaddr(optval, optlen),
                 read_ipv6_interface(optval, optlen),
             ),
-            data::IPV6_V6ONLY => sockopt::set_ipv6_v6only(fd, read_bool(optval, optlen)),
+            libc::IPV6_V6ONLY => sockopt::set_ipv6_v6only(fd, read_bool(optval, optlen)),
             _ => unimplemented!(
                 "unimplemented setsockopt IPPROTO_IPV6 optname {:?}",
                 optname
             ),
         },
-        data::IPPROTO_TCP => match optname {
-            data::TCP_NODELAY => sockopt::set_tcp_nodelay(fd, read_bool(optval, optlen)),
+        libc::IPPROTO_TCP => match optname {
+            libc::TCP_NODELAY => sockopt::set_tcp_nodelay(fd, read_bool(optval, optlen)),
             _ => unimplemented!("unimplemented setsockopt IPPROTO_TCP optname {:?}", optname),
         },
         _ => unimplemented!(
@@ -1077,8 +1073,8 @@ unsafe extern "C" fn setsockopt(
 unsafe extern "C" fn getaddrinfo(
     node: *const c_char,
     service: *const c_char,
-    hints: *const data::Addrinfo,
-    res: *mut *mut data::Addrinfo,
+    hints: *const libc::addrinfo,
+    res: *mut *mut libc::addrinfo,
 ) -> c_int {
     libc!(getaddrinfo(
         node,
@@ -1113,18 +1109,18 @@ unsafe extern "C" fn getaddrinfo(
         Ok(host) => host,
         Err(_) => {
             *__errno_location() = rustix::io::Error::ILSEQ.raw_os_error();
-            return data::EAI_SYSTEM;
+            return libc::EAI_SYSTEM;
         }
     };
 
-    let layout = alloc::alloc::Layout::new::<data::Addrinfo>();
+    let layout = alloc::alloc::Layout::new::<libc::addrinfo>();
     let addr_layout = alloc::alloc::Layout::new::<SocketAddrStorage>();
-    let mut first: *mut data::Addrinfo = null_mut();
-    let mut prev: *mut data::Addrinfo = null_mut();
+    let mut first: *mut libc::addrinfo = null_mut();
+    let mut prev: *mut libc::addrinfo = null_mut();
     match resolve_host(host) {
         Ok(addrs) => {
             for addr in addrs {
-                let ptr = alloc::alloc::alloc(layout).cast::<data::Addrinfo>();
+                let ptr = alloc::alloc::alloc(layout).cast::<libc::addrinfo>();
                 ptr.write(zeroed());
                 let info = &mut *ptr;
                 match addr {
@@ -1132,14 +1128,14 @@ unsafe extern "C" fn getaddrinfo(
                         // TODO: Create and write to `SocketAddrV4Storage`?
                         let storage = alloc::alloc::alloc(addr_layout).cast::<SocketAddrStorage>();
                         let len = SocketAddrAny::V4(SocketAddrV4::new(v4, 0)).write(storage);
-                        info.ai_addr = storage;
+                        info.ai_addr = storage.cast();
                         info.ai_addrlen = len.try_into().unwrap();
                     }
                     IpAddr::V6(v6) => {
                         // TODO: Create and write to `SocketAddrV6Storage`?
                         let storage = alloc::alloc::alloc(addr_layout).cast::<SocketAddrStorage>();
                         let len = SocketAddrAny::V6(SocketAddrV6::new(v6, 0, 0, 0)).write(storage);
-                        info.ai_addr = storage;
+                        info.ai_addr = storage.cast();
                         info.ai_addrlen = len.try_into().unwrap();
                     }
                 }
@@ -1157,7 +1153,7 @@ unsafe extern "C" fn getaddrinfo(
         Err(err) => {
             if let Some(err) = rustix::io::Error::from_io_error(&err) {
                 *__errno_location() = err.raw_os_error();
-                data::EAI_SYSTEM
+                libc::EAI_SYSTEM
             } else {
                 // TODO: sync-resolve should return a custom error type
                 if err.to_string()
@@ -1165,7 +1161,7 @@ unsafe extern "C" fn getaddrinfo(
                     || err.to_string()
                         == "failed to resolve host: server responded with error: no such name"
                 {
-                    data::EAI_NONAME
+                    libc::EAI_NONAME
                 } else {
                     panic!("unknown error: {}", err);
                 }
@@ -1176,10 +1172,10 @@ unsafe extern "C" fn getaddrinfo(
 
 #[cfg(feature = "sync-resolve")]
 #[no_mangle]
-unsafe extern "C" fn freeaddrinfo(mut res: *mut data::Addrinfo) {
+unsafe extern "C" fn freeaddrinfo(mut res: *mut libc::addrinfo) {
     libc!(freeaddrinfo(same_ptr_mut(res)));
 
-    let layout = alloc::alloc::Layout::new::<data::Addrinfo>();
+    let layout = alloc::alloc::Layout::new::<libc::addrinfo>();
     let addr_layout = alloc::alloc::Layout::new::<SocketAddrStorage>();
 
     while !res.is_null() {
@@ -1199,8 +1195,8 @@ unsafe extern "C" fn gai_strerror(errcode: c_int) -> *const c_char {
     libc!(gai_strerror(errcode));
 
     match errcode {
-        data::EAI_NONAME => &b"Name does not resolve\0"[..],
-        data::EAI_SYSTEM => &b"System error\0"[..],
+        libc::EAI_NONAME => &b"Name does not resolve\0"[..],
+        libc::EAI_SYSTEM => &b"System error\0"[..],
         _ => panic!("unrecognized gai_strerror {:?}", errcode),
     }
     .as_ptr()
@@ -1256,7 +1252,7 @@ unsafe extern "C" fn recvfrom(
     len: usize,
     flags: c_int,
     from: *mut SocketAddrStorage,
-    from_len: *mut data::SockLen,
+    from_len: *mut libc::socklen_t,
 ) -> isize {
     libc!(recvfrom(fd, buf, len, flags, same_ptr_mut(from), from_len));
 
@@ -1297,7 +1293,7 @@ unsafe extern "C" fn sendto(
     len: usize,
     flags: c_int,
     to: *const SocketAddrStorage,
-    to_len: data::SockLen,
+    to_len: libc::socklen_t,
 ) -> isize {
     libc!(sendto(fd, buf, len, flags, same_ptr(to), to_len));
 
@@ -1337,9 +1333,9 @@ unsafe extern "C" fn shutdown(fd: c_int, how: c_int) -> c_int {
     libc!(shutdown(fd, how));
 
     let how = match how {
-        data::SHUT_RD => Shutdown::Read,
-        data::SHUT_WR => Shutdown::Write,
-        data::SHUT_RDWR => Shutdown::ReadWrite,
+        libc::SHUT_RD => Shutdown::Read,
+        libc::SHUT_WR => Shutdown::Write,
+        libc::SHUT_RDWR => Shutdown::ReadWrite,
         _ => panic!("unrecognized shutdown kind {}", how),
     };
     match set_errno(rustix::net::shutdown(&BorrowedFd::borrow_raw_fd(fd), how)) {
@@ -1526,8 +1522,11 @@ unsafe extern "C" fn isatty(fd: c_int) -> c_int {
 
 #[no_mangle]
 unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
+    const TCGETS: c_long = libc::TCGETS as c_long;
+    const FIONBIO: c_long = libc::FIONBIO as c_long;
+    const TIOCGWINSZ: c_long = libc::TIOCGWINSZ as c_long;
     match request {
-        data::TCGETS => {
+        TCGETS => {
             libc!(ioctl(fd, TCGETS));
             let fd = BorrowedFd::borrow_raw_fd(fd);
             match set_errno(rustix::io::ioctl_tcgets(&fd)) {
@@ -1538,7 +1537,7 @@ unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
                 None => -1,
             }
         }
-        data::FIONBIO => {
+        FIONBIO => {
             libc!(ioctl(fd, FIONBIO));
             let fd = BorrowedFd::borrow_raw_fd(fd);
             let ptr = args.arg::<*mut c_int>();
@@ -1548,7 +1547,7 @@ unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
                 None => -1,
             }
         }
-        data::TIOCGWINSZ => {
+        TIOCGWINSZ => {
             libc!(ioctl(fd, TIOCGWINSZ));
             let fd = BorrowedFd::borrow_raw_fd(fd);
             match set_errno(rustix::io::ioctl_tiocgwinsz(&fd)) {
@@ -1607,7 +1606,7 @@ unsafe extern "C" fn epoll_ctl(
     _epfd: c_int,
     _op: c_int,
     _fd: c_int,
-    _event: *mut data::EpollEvent,
+    _event: *mut libc::epoll_event,
 ) -> c_int {
     libc!(epoll_ctl(_epfd, _op, _fd, same_ptr_mut(_event)));
     unimplemented!("epoll_ctl")
@@ -1616,7 +1615,7 @@ unsafe extern "C" fn epoll_ctl(
 #[no_mangle]
 unsafe extern "C" fn epoll_wait(
     _epfd: c_int,
-    _events: *mut data::EpollEvent,
+    _events: *mut libc::epoll_event,
     _maxevents: c_int,
     _timeout: c_int,
 ) -> c_int {
@@ -1708,7 +1707,8 @@ unsafe fn tagged_dealloc(ptr: *mut u8) {
 unsafe extern "C" fn malloc(size: usize) -> *mut c_void {
     libc!(malloc(size));
 
-    let layout = alloc::alloc::Layout::from_size_align(size, data::ALIGNOF_MAXALIGN_T).unwrap();
+    let layout =
+        alloc::alloc::Layout::from_size_align(size, align_of::<libc::max_align_t>()).unwrap();
     tagged_alloc(layout).cast::<_>()
 }
 
@@ -1861,9 +1861,9 @@ unsafe extern "C" fn mmap(
 ) -> *mut c_void {
     libc!(mmap(addr, length, prot, flags, fd, offset));
 
-    let anon = flags & data::MAP_ANONYMOUS == data::MAP_ANONYMOUS;
+    let anon = flags & libc::MAP_ANONYMOUS == libc::MAP_ANONYMOUS;
     let prot = ProtFlags::from_bits(prot as _).unwrap();
-    let flags = MapFlags::from_bits((flags & !data::MAP_ANONYMOUS) as _).unwrap();
+    let flags = MapFlags::from_bits((flags & !libc::MAP_ANONYMOUS) as _).unwrap();
     match set_errno(if anon {
         rustix::io::mmap_anonymous(addr, length, prot, flags)
     } else {
@@ -1877,7 +1877,7 @@ unsafe extern "C" fn mmap(
         )
     }) {
         Some(ptr) => ptr,
-        None => data::MAP_FAILED,
+        None => libc::MAP_FAILED,
     }
 }
 
@@ -1892,9 +1892,9 @@ unsafe extern "C" fn mmap64(
 ) -> *mut c_void {
     libc!(mmap64(addr, length, prot, flags, fd, offset));
 
-    let anon = flags & data::MAP_ANONYMOUS == data::MAP_ANONYMOUS;
+    let anon = flags & libc::MAP_ANONYMOUS == libc::MAP_ANONYMOUS;
     let prot = ProtFlags::from_bits(prot as _).unwrap();
-    let flags = MapFlags::from_bits((flags & !data::MAP_ANONYMOUS) as _).unwrap();
+    let flags = MapFlags::from_bits((flags & !libc::MAP_ANONYMOUS) as _).unwrap();
     match set_errno(if anon {
         rustix::io::mmap_anonymous(addr, length, prot, flags)
     } else {
@@ -1908,7 +1908,7 @@ unsafe extern "C" fn mmap64(
         )
     }) {
         Some(ptr) => ptr,
-        None => data::MAP_FAILED,
+        None => libc::MAP_FAILED,
     }
 }
 
@@ -1930,11 +1930,11 @@ unsafe extern "C" fn mremap(
     flags: c_int,
     mut args: ...
 ) -> *mut c_void {
-    if (flags & data::MREMAP_FIXED) == data::MREMAP_FIXED {
+    if (flags & libc::MREMAP_FIXED) == libc::MREMAP_FIXED {
         let new_address = args.arg::<*mut c_void>();
         libc!(mremap(old_address, old_size, new_size, flags, new_address));
 
-        let flags = flags & !data::MREMAP_FIXED;
+        let flags = flags & !libc::MREMAP_FIXED;
         let flags = MremapFlags::from_bits(flags as _).unwrap();
         match set_errno(rustix::io::mremap_fixed(
             old_address,
@@ -1944,7 +1944,7 @@ unsafe extern "C" fn mremap(
             new_address,
         )) {
             Some(new_address) => new_address,
-            None => data::MAP_FAILED,
+            None => libc::MAP_FAILED,
         }
     } else {
         libc!(mremap(old_address, old_size, new_size, flags));
@@ -1952,7 +1952,7 @@ unsafe extern "C" fn mremap(
         let flags = MremapFlags::from_bits(flags as _).unwrap();
         match set_errno(rustix::io::mremap(old_address, old_size, new_size, flags)) {
             Some(new_address) => new_address,
-            None => data::MAP_FAILED,
+            None => libc::MAP_FAILED,
         }
     }
 }
@@ -2020,11 +2020,12 @@ unsafe extern "C" fn sysconf(name: c_int) -> c_long {
     libc!(sysconf(name));
 
     match name {
-        data::_SC_PAGESIZE => rustix::process::page_size() as _,
-        data::_SC_GETPW_R_SIZE_MAX => -1,
+        libc::_SC_PAGESIZE => rustix::process::page_size() as _,
+        libc::_SC_GETPW_R_SIZE_MAX => -1,
         // TODO: Oddly, only ever one processor seems to be online.
-        data::_SC_NPROCESSORS_ONLN => 1,
-        data::_SC_SYMLOOP_MAX => data::SYMLOOP_MAX,
+        libc::_SC_NPROCESSORS_ONLN => 1,
+        #[cfg(any(target_os = "android", target_os = "linux", target_os = "wasi"))]
+        libc::_SC_SYMLOOP_MAX => 40,
         _ => panic!("unrecognized sysconf({})", name),
     }
 }
@@ -2071,7 +2072,7 @@ unsafe extern "C" fn getauxval(type_: c_ulong) -> c_ulong {
 unsafe extern "C" fn __getauxval(type_: c_ulong) -> c_ulong {
     libc!(getauxval(type_));
     match type_ {
-        data::AT_HWCAP => rustix::process::linux_hwcap().0 as c_ulong,
+        libc::AT_HWCAP => rustix::process::linux_hwcap().0 as c_ulong,
         _ => unimplemented!("unrecognized __getauxval {}", type_),
     }
 }
@@ -2079,7 +2080,11 @@ unsafe extern "C" fn __getauxval(type_: c_ulong) -> c_ulong {
 #[no_mangle]
 unsafe extern "C" fn dl_iterate_phdr(
     callback: Option<
-        unsafe extern "C" fn(info: *mut data::DlPhdrInfo, size: usize, data: *mut c_void) -> c_int,
+        unsafe extern "C" fn(
+            info: *mut libc::dl_phdr_info,
+            size: usize,
+            data: *mut c_void,
+        ) -> c_int,
     >,
     data: *mut c_void,
 ) -> c_int {
@@ -2087,17 +2092,18 @@ unsafe extern "C" fn dl_iterate_phdr(
         static mut __executable_start: c_void;
     }
 
-    // Disabled for now, as our `DlPhdrInfo` has fewer fields than libc's.
+    // Disabled for now, as our `dl_phdr_info` has fewer fields than libc's.
     //libc!(dl_iterate_phdr(callback, data));
 
     let (phdr, phnum) = rustix::runtime::exe_phdrs();
-    let mut info = data::DlPhdrInfo {
-        dlpi_addr: &mut __executable_start as *mut _ as usize,
+    let mut info = libc::dl_phdr_info {
+        dlpi_addr: &mut __executable_start as *mut _ as c_ulong,
         dlpi_name: b"/proc/self/exe\0".as_ptr().cast(),
         dlpi_phdr: phdr.cast(),
         dlpi_phnum: phnum.try_into().unwrap(),
+        ..zeroed()
     };
-    callback.unwrap()(&mut info, size_of::<data::DlPhdrInfo>(), data)
+    callback.unwrap()(&mut info, size_of::<libc::dl_phdr_info>(), data)
 }
 
 #[no_mangle]
@@ -2175,17 +2181,15 @@ unsafe extern "C" fn sched_yield() -> c_int {
     0
 }
 
-fn set_cpu(cpu: usize, cpuset: &mut data::CpuSet) {
-    let size_in_bits = 8 * core::mem::size_of_val(&cpuset.bits[0]); // 32, 64 etc
-    let (idx, offset) = (cpu / size_in_bits, cpu % size_in_bits);
-    cpuset.bits[idx] |= 1 << offset;
+unsafe fn set_cpu(cpu: usize, cpuset: &mut libc::cpu_set_t) {
+    libc::CPU_SET(cpu, cpuset)
 }
 
 #[no_mangle]
 unsafe extern "C" fn sched_getaffinity(
     pid: c_int,
     cpu_set_size: usize,
-    mask: *mut data::CpuSet,
+    mask: *mut libc::cpu_set_t,
 ) -> c_int {
     libc!(sched_getaffinity(pid, cpu_set_size, mask.cast::<_>()));
     let pid = rustix::process::Pid::from_raw(pid as _);
@@ -2211,7 +2215,7 @@ unsafe extern "C" fn prctl(
 ) -> c_int {
     libc!(prctl(option, arg2, _arg3, _arg4, _arg5));
     match option {
-        data::PR_SET_NAME => {
+        libc::PR_SET_NAME => {
             match set_errno(rustix::runtime::set_thread_name(ZStr::from_ptr(
                 arg2 as *const _,
             ))) {
@@ -2298,7 +2302,7 @@ unsafe extern "C" fn signal(_num: c_int, _handler: usize) -> usize {
     libc!(signal(_num, _handler));
 
     // Somehow no signals for this handler were ever delivered. How odd.
-    data::SIG_DFL
+    libc::SIG_DFL
 }
 
 #[no_mangle]
@@ -2336,7 +2340,7 @@ unsafe extern "C" fn sigemptyset(_sigset: *mut c_void) -> c_int {
 #[no_mangle]
 unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
     match number {
-        data::SYS_getrandom => {
+        libc::SYS_getrandom => {
             let buf = args.arg::<*mut c_void>();
             let len = args.arg::<usize>();
             let flags = args.arg::<u32>();
@@ -2344,13 +2348,13 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
             getrandom(buf, len, flags) as _
         }
         #[cfg(feature = "threads")]
-        data::SYS_futex => {
+        libc::SYS_futex => {
             use rustix::thread::{futex, FutexFlags, FutexOperation};
 
             let uaddr = args.arg::<*mut u32>();
             let futex_op = args.arg::<c_int>();
             let val = args.arg::<u32>();
-            let timeout = args.arg::<*const data::OldTimespec>();
+            let timeout = args.arg::<*const libc::timespec>();
             let uaddr2 = args.arg::<*mut u32>();
             let val3 = args.arg::<u32>();
             libc!(syscall(
@@ -2358,16 +2362,16 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
             ));
             let flags = FutexFlags::from_bits_truncate(futex_op as _);
             let op = match futex_op & (!flags.bits() as i32) {
-                data::FUTEX_WAIT => FutexOperation::Wait,
-                data::FUTEX_WAKE => FutexOperation::Wake,
-                data::FUTEX_FD => FutexOperation::Fd,
-                data::FUTEX_REQUEUE => FutexOperation::Requeue,
-                data::FUTEX_CMP_REQUEUE => FutexOperation::CmpRequeue,
-                data::FUTEX_WAKE_OP => FutexOperation::WakeOp,
-                data::FUTEX_LOCK_PI => FutexOperation::LockPi,
-                data::FUTEX_UNLOCK_PI => FutexOperation::UnlockPi,
-                data::FUTEX_TRYLOCK_PI => FutexOperation::TrylockPi,
-                data::FUTEX_WAIT_BITSET => FutexOperation::WaitBitset,
+                libc::FUTEX_WAIT => FutexOperation::Wait,
+                libc::FUTEX_WAKE => FutexOperation::Wake,
+                libc::FUTEX_FD => FutexOperation::Fd,
+                libc::FUTEX_REQUEUE => FutexOperation::Requeue,
+                libc::FUTEX_CMP_REQUEUE => FutexOperation::CmpRequeue,
+                libc::FUTEX_WAKE_OP => FutexOperation::WakeOp,
+                libc::FUTEX_LOCK_PI => FutexOperation::LockPi,
+                libc::FUTEX_UNLOCK_PI => FutexOperation::UnlockPi,
+                libc::FUTEX_TRYLOCK_PI => FutexOperation::TrylockPi,
+                libc::FUTEX_WAIT_BITSET => FutexOperation::WaitBitset,
                 _ => unimplemented!("unrecognized futex op {}", futex_op),
             };
             let old_timespec = if timeout.is_null()
@@ -2391,7 +2395,7 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
                 None => -1,
             }
         }
-        data::SYS_clone3 => {
+        libc::SYS_clone3 => {
             // ensure std::process uses fork as fallback code on linux
             set_errno::<()>(Err(rustix::io::Error::NOSYS));
             -1
@@ -2483,8 +2487,8 @@ unsafe extern "C" fn clock_gettime(id: c_int, tp: *mut rustix::time::Timespec) -
     libc!(clock_gettime(id, same_ptr_mut(tp)));
 
     let id = match id {
-        data::CLOCK_MONOTONIC => rustix::time::ClockId::Monotonic,
-        data::CLOCK_REALTIME => rustix::time::ClockId::Realtime,
+        libc::CLOCK_MONOTONIC => rustix::time::ClockId::Monotonic,
+        libc::CLOCK_REALTIME => rustix::time::ClockId::Realtime,
         _ => panic!("unimplemented clock({})", id),
     };
     *tp = rustix::time::clock_gettime(id);
@@ -2492,10 +2496,7 @@ unsafe extern "C" fn clock_gettime(id: c_int, tp: *mut rustix::time::Timespec) -
 }
 
 #[no_mangle]
-unsafe extern "C" fn nanosleep(
-    req: *const data::OldTimespec,
-    rem: *mut data::OldTimespec,
-) -> c_int {
+unsafe extern "C" fn nanosleep(req: *const libc::timespec, rem: *mut libc::timespec) -> c_int {
     libc!(nanosleep(same_ptr(req), same_ptr_mut(rem)));
 
     let req = rustix::time::Timespec {
@@ -2505,7 +2506,7 @@ unsafe extern "C" fn nanosleep(
     match rustix::thread::nanosleep(&req) {
         rustix::thread::NanosleepRelativeResult::Ok => 0,
         rustix::thread::NanosleepRelativeResult::Interrupted(remaining) => {
-            *rem = data::OldTimespec {
+            *rem = libc::timespec {
                 tv_sec: remaining.tv_sec.try_into().unwrap(),
                 tv_nsec: remaining.tv_nsec as _,
             };
@@ -3542,7 +3543,7 @@ unsafe extern "C" fn pthread_mutexattr_init(attr: *mut PthreadMutexattrT) -> c_i
     ptr::write(
         attr,
         PthreadMutexattrT {
-            kind: AtomicU32::new(data::PTHREAD_MUTEX_DEFAULT as u32),
+            kind: AtomicU32::new(libc::PTHREAD_MUTEX_DEFAULT as u32),
         },
     );
     0
@@ -3561,9 +3562,9 @@ unsafe extern "C" fn pthread_mutexattr_settype(attr: *mut PthreadMutexattrT, kin
 unsafe extern "C" fn pthread_mutex_destroy(mutex: *mut PthreadMutexT) -> c_int {
     libc!(pthread_mutex_destroy(same_ptr_mut(mutex)));
     match (*mutex).kind.load(SeqCst) as i32 {
-        data::PTHREAD_MUTEX_NORMAL => ptr::drop_in_place(&mut (*mutex).u.normal),
-        data::PTHREAD_MUTEX_RECURSIVE => ptr::drop_in_place(&mut (*mutex).u.reentrant),
-        data::PTHREAD_MUTEX_ERRORCHECK => unimplemented!("PTHREAD_MUTEX_ERRORCHECK"),
+        libc::PTHREAD_MUTEX_NORMAL => ptr::drop_in_place(&mut (*mutex).u.normal),
+        libc::PTHREAD_MUTEX_RECURSIVE => ptr::drop_in_place(&mut (*mutex).u.reentrant),
+        libc::PTHREAD_MUTEX_ERRORCHECK => unimplemented!("PTHREAD_MUTEX_ERRORCHECK"),
         other => unimplemented!("unsupported pthread mutex kind {}", other),
     }
     (*mutex).kind.store(!0, SeqCst);
@@ -3579,12 +3580,12 @@ unsafe extern "C" fn pthread_mutex_init(
     libc!(pthread_mutex_init(same_ptr_mut(mutex), same_ptr(mutexattr)));
     let kind = (*mutexattr).kind.load(SeqCst);
     match kind as i32 {
-        data::PTHREAD_MUTEX_NORMAL => ptr::write(&mut (*mutex).u.normal, RawMutex::INIT),
-        data::PTHREAD_MUTEX_RECURSIVE => ptr::write(
+        libc::PTHREAD_MUTEX_NORMAL => ptr::write(&mut (*mutex).u.normal, RawMutex::INIT),
+        libc::PTHREAD_MUTEX_RECURSIVE => ptr::write(
             &mut (*mutex).u.reentrant,
             parking_lot::lock_api::RawReentrantMutex::<parking_lot::RawMutex, GetThreadId>::INIT,
         ),
-        data::PTHREAD_MUTEX_ERRORCHECK => unimplemented!("PTHREAD_MUTEX_ERRORCHECK"),
+        libc::PTHREAD_MUTEX_ERRORCHECK => unimplemented!("PTHREAD_MUTEX_ERRORCHECK"),
         other => unimplemented!("unsupported pthread mutex kind {}", other),
     }
     (*mutex).kind.store(kind, SeqCst);
@@ -3596,9 +3597,9 @@ unsafe extern "C" fn pthread_mutex_init(
 unsafe extern "C" fn pthread_mutex_lock(mutex: *mut PthreadMutexT) -> c_int {
     libc!(pthread_mutex_lock(same_ptr_mut(mutex)));
     match (*mutex).kind.load(SeqCst) as i32 {
-        data::PTHREAD_MUTEX_NORMAL => (*mutex).u.normal.lock(),
-        data::PTHREAD_MUTEX_RECURSIVE => (*mutex).u.reentrant.lock(),
-        data::PTHREAD_MUTEX_ERRORCHECK => unimplemented!("PTHREAD_MUTEX_ERRORCHECK"),
+        libc::PTHREAD_MUTEX_NORMAL => (*mutex).u.normal.lock(),
+        libc::PTHREAD_MUTEX_RECURSIVE => (*mutex).u.reentrant.lock(),
+        libc::PTHREAD_MUTEX_ERRORCHECK => unimplemented!("PTHREAD_MUTEX_ERRORCHECK"),
         other => unimplemented!("unsupported pthread mutex kind {}", other),
     }
     0
@@ -3609,9 +3610,9 @@ unsafe extern "C" fn pthread_mutex_lock(mutex: *mut PthreadMutexT) -> c_int {
 unsafe extern "C" fn pthread_mutex_trylock(mutex: *mut PthreadMutexT) -> c_int {
     libc!(pthread_mutex_trylock(same_ptr_mut(mutex)));
     if match (*mutex).kind.load(SeqCst) as i32 {
-        data::PTHREAD_MUTEX_NORMAL => (*mutex).u.normal.try_lock(),
-        data::PTHREAD_MUTEX_RECURSIVE => (*mutex).u.reentrant.try_lock(),
-        data::PTHREAD_MUTEX_ERRORCHECK => unimplemented!("PTHREAD_MUTEX_ERRORCHECK"),
+        libc::PTHREAD_MUTEX_NORMAL => (*mutex).u.normal.try_lock(),
+        libc::PTHREAD_MUTEX_RECURSIVE => (*mutex).u.reentrant.try_lock(),
+        libc::PTHREAD_MUTEX_ERRORCHECK => unimplemented!("PTHREAD_MUTEX_ERRORCHECK"),
         other => unimplemented!("unsupported pthread mutex kind {}", other),
     } {
         0
@@ -3625,9 +3626,9 @@ unsafe extern "C" fn pthread_mutex_trylock(mutex: *mut PthreadMutexT) -> c_int {
 unsafe extern "C" fn pthread_mutex_unlock(mutex: *mut PthreadMutexT) -> c_int {
     libc!(pthread_mutex_unlock(same_ptr_mut(mutex)));
     match (*mutex).kind.load(SeqCst) as i32 {
-        data::PTHREAD_MUTEX_NORMAL => (*mutex).u.normal.unlock(),
-        data::PTHREAD_MUTEX_RECURSIVE => (*mutex).u.reentrant.unlock(),
-        data::PTHREAD_MUTEX_ERRORCHECK => unimplemented!("PTHREAD_MUTEX_ERRORCHECK"),
+        libc::PTHREAD_MUTEX_NORMAL => (*mutex).u.normal.unlock(),
+        libc::PTHREAD_MUTEX_RECURSIVE => (*mutex).u.reentrant.unlock(),
+        libc::PTHREAD_MUTEX_ERRORCHECK => unimplemented!("PTHREAD_MUTEX_ERRORCHECK"),
         other => unimplemented!("unsupported pthread mutex kind {}", other),
     }
     0
@@ -3854,7 +3855,7 @@ unsafe extern "C" fn pthread_cond_wait(cond: *mut PthreadCondT, lock: *mut Pthre
 unsafe extern "C" fn pthread_cond_timedwait(
     cond: *mut PthreadCondT,
     lock: *mut PthreadMutexT,
-    abstime: *const data::OldTimespec,
+    abstime: *const libc::timespec,
 ) -> c_int {
     libc!(pthread_cond_timedwait(
         same_ptr_mut(cond),
