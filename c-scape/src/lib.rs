@@ -58,13 +58,19 @@ use rustix::fd::{AsFd, BorrowedFd};
 use rustix::fd::{AsRawFd, FromRawFd, IntoRawFd};
 use rustix::ffi::{ZStr, ZString};
 use rustix::fs::{cwd, openat, AtFlags, FdFlags, Mode, OFlags};
+#[cfg(any(target_os = "android", target_os = "linux"))]
+use rustix::io::EventfdFlags;
+#[cfg(not(target_os = "wasi"))]
 use rustix::io::{
-    EventfdFlags, MapFlags, MprotectFlags, MremapFlags, OwnedFd, PipeFlags, ProtFlags,
+    MapFlags, MprotectFlags, MremapFlags, PipeFlags, ProtFlags,
 };
+use rustix::io::OwnedFd;
+#[cfg(feature = "net")]
 use rustix::net::{
     AcceptFlags, AddressFamily, Ipv4Addr, Ipv6Addr, Protocol, RecvFlags, SendFlags, Shutdown,
     SocketAddrAny, SocketAddrStorage, SocketFlags, SocketType,
 };
+#[cfg(not(target_os = "wasi"))]
 use rustix::process::WaitOptions;
 #[cfg(feature = "sync-resolve")]
 use {
@@ -670,6 +676,7 @@ unsafe extern "C" fn fchown() {
 
 // net
 
+#[cfg(feature = "net")]
 #[no_mangle]
 unsafe extern "C" fn accept(
     fd: c_int,
@@ -688,6 +695,7 @@ unsafe extern "C" fn accept(
     }
 }
 
+#[cfg(feature = "net")]
 #[no_mangle]
 unsafe extern "C" fn accept4(
     fd: c_int,
@@ -711,6 +719,7 @@ unsafe extern "C" fn accept4(
     }
 }
 
+#[cfg(feature = "net")]
 #[no_mangle]
 unsafe extern "C" fn bind(
     sockfd: c_int,
@@ -736,6 +745,7 @@ unsafe extern "C" fn bind(
     }
 }
 
+#[cfg(feature = "net")]
 #[no_mangle]
 unsafe extern "C" fn connect(
     sockfd: c_int,
@@ -761,6 +771,7 @@ unsafe extern "C" fn connect(
     }
 }
 
+#[cfg(feature = "net")]
 #[no_mangle]
 unsafe extern "C" fn getpeername(
     fd: c_int,
@@ -779,6 +790,7 @@ unsafe extern "C" fn getpeername(
     }
 }
 
+#[cfg(feature = "net")]
 #[no_mangle]
 unsafe extern "C" fn getsockname(
     fd: c_int,
@@ -797,6 +809,7 @@ unsafe extern "C" fn getsockname(
     }
 }
 
+#[cfg(feature = "net")]
 #[no_mangle]
 unsafe extern "C" fn getsockopt(
     fd: c_int,
@@ -917,6 +930,7 @@ unsafe extern "C" fn getsockopt(
     }
 }
 
+#[cfg(feature = "net")]
 #[no_mangle]
 unsafe extern "C" fn setsockopt(
     fd: c_int,
@@ -2329,6 +2343,7 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
             libc!(syscall(SYS_getrandom, buf, len, flags));
             getrandom(buf, len, flags) as _
         }
+        #[cfg(feature = "threads")]
         data::SYS_futex => {
             use rustix::thread::{futex, FutexFlags, FutexOperation};
 
@@ -2570,6 +2585,7 @@ unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> 
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn fork() -> c_int {
     libc!(fork());
@@ -2581,6 +2597,7 @@ unsafe extern "C" fn fork() -> c_int {
 }
 
 // <https://refspecs.linuxbase.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/baselib---register-atfork.html>
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn __register_atfork(
     prepare: Option<unsafe extern "C" fn()>,
@@ -2599,6 +2616,7 @@ unsafe extern "C" fn clone3() {
     unimplemented!("clone3")
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn waitpid(pid: c_int, status: *mut c_int, options: c_int) -> c_int {
     libc!(waitpid(pid, status, options));
