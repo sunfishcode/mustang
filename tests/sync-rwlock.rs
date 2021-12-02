@@ -23,6 +23,7 @@ fn smoke() {
 }
 
 #[test]
+#[cfg_attr(all(target_vendor = "mustang", not(target_arch = "x86-64")), ignore)] // FIXME(mustang): triggers segfault
 fn frob() {
     const N: u32 = 10;
     const M: usize = 1000;

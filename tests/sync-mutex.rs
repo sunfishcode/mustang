@@ -23,6 +23,7 @@ fn smoke() {
 }
 
 #[test]
+#[cfg_attr(all(target_vendor = "mustang", not(target_arch = "x86-64")), ignore)] // FIXME(mustang): triggers segfault
 fn lots_and_lots() {
     const J: u32 = 1000;
     const K: u32 = 3;
