@@ -75,7 +75,7 @@ jobs:
             qemu_target: arm-linux-user
             host_target: armv5te-unknown-linux-gnueabi
             mustang_target: armv5te-mustang-linux-gnueabi
-            # when testing on armv5te, using more than 1 thread triggers a segfault
+            # FIXME(mustang): when testing on armv5te, using more than 1 thread triggers a segfault
             test_args: --test-threads 1
     steps:
     - uses: actions/checkout@v2
