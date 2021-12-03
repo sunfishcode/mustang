@@ -46,6 +46,7 @@ use core::slice;
 use core::sync::atomic::Ordering::SeqCst;
 #[cfg(feature = "threads")]
 use core::sync::atomic::{AtomicBool, AtomicU32};
+use errno::{set_errno, Errno};
 use error_str::error_str;
 use libc::{c_char, c_int, c_long, c_uint, c_ulong};
 use memoffset::offset_of;
@@ -83,8 +84,6 @@ use {
 unsafe extern "C" fn __errno_location() -> *mut c_int {
     libc!(__errno_location());
 
-    // When threads are supported, this will need to return a per-thread
-    // pointer, but for now, we can just return a single static address.
     #[cfg_attr(feature = "threads", thread_local)]
     static mut ERRNO: i32 = 0;
     &mut ERRNO
@@ -196,7 +195,7 @@ unsafe extern "C" fn statx(
     libc!(statx(dirfd_, path, flags, mask, same_ptr_mut(stat_)));
 
     if path.is_null() || stat_.is_null() {
-        *__errno_location() = rustix::io::Error::FAULT.raw_os_error();
+        set_errno(Errno(libc::EFAULT));
         return -1;
     }
 
@@ -230,7 +229,7 @@ unsafe extern "C" fn realpath(path: *const c_char, resolved_path: *mut c_char) -
             if resolved_path.is_null() {
                 let ptr = malloc(len + 1).cast::<u8>();
                 if ptr.is_null() {
-                    *__errno_location() = rustix::io::Error::NOMEM.raw_os_error();
+                    set_errno(Errno(libc::ENOMEM));
                     return null_mut();
                 }
                 slice::from_raw_parts_mut(ptr, len).copy_from_slice(&buf[..len]);
@@ -247,7 +246,7 @@ unsafe extern "C" fn realpath(path: *const c_char, resolved_path: *mut c_char) -
             }
         }
         Err(err) => {
-            *__errno_location() = err;
+            set_errno(Errno(err));
             null_mut()
         }
     }
@@ -566,7 +565,7 @@ unsafe extern "C" fn copy_file_range(
     libc!(copy_file_range(fd_in, off_in, fd_out, off_out, len, flags));
 
     if fd_in == -1 || fd_out == -1 {
-        *__errno_location() = rustix::io::Error::BADF.raw_os_error();
+        set_errno(Errno(libc::EBADF));
         return -1;
     }
     assert_eq!(flags, 0);
@@ -1110,7 +1109,7 @@ unsafe extern "C" fn getaddrinfo(
     let host = match ZStr::from_ptr(node.cast()).to_str() {
         Ok(host) => host,
         Err(_) => {
-            *__errno_location() = rustix::io::Error::ILSEQ.raw_os_error();
+            set_errno(Errno(libc::EILSEQ));
             return libc::EAI_SYSTEM;
         }
     };
@@ -1154,7 +1153,7 @@ unsafe extern "C" fn getaddrinfo(
         }
         Err(err) => {
             if let Some(err) = rustix::io::Error::from_io_error(&err) {
-                *__errno_location() = err.raw_os_error();
+                set_errno(Errno(err.raw_os_error()));
                 libc::EAI_SYSTEM
             } else {
                 // TODO: sync-resolve should return a custom error type
@@ -1210,7 +1209,7 @@ unsafe extern "C" fn gethostname(name: *mut c_char, len: usize) -> c_int {
     let uname = rustix::process::uname();
     let nodename = uname.nodename();
     if nodename.to_bytes().len() + 1 > len {
-        *__errno_location() = rustix::io::Error::NAMETOOLONG.raw_os_error();
+        set_errno(Errno(libc::ENAMETOOLONG));
         return -1;
     }
     memcpy(
@@ -1408,7 +1407,7 @@ unsafe extern "C" fn writev(fd: c_int, iov: *const rustix::io::IoSlice, iovcnt: 
     libc!(writev(fd, same_ptr(iov), iovcnt));
 
     if iovcnt < 0 {
-        *__errno_location() = rustix::io::Error::INVAL.raw_os_error();
+        set_errno(Errno(libc::EINVAL));
         return -1;
     }
 
@@ -1439,7 +1438,7 @@ unsafe extern "C" fn readv(fd: c_int, iov: *const rustix::io::IoSliceMut, iovcnt
     libc!(readv(fd, same_ptr(iov), iovcnt));
 
     if iovcnt < 0 {
-        *__errno_location() = rustix::io::Error::INVAL.raw_os_error();
+        set_errno(Errno(libc::EINVAL));
         return -1;
     }
 
@@ -1517,7 +1516,7 @@ unsafe extern "C" fn isatty(fd: c_int) -> c_int {
     if rustix::io::isatty(&BorrowedFd::borrow_raw_fd(fd)) {
         1
     } else {
-        *__errno_location() = rustix::io::Error::NOTTY.raw_os_error();
+        set_errno(Errno(libc::ENOTTY));
         0
     }
 }
@@ -1744,7 +1743,7 @@ unsafe extern "C" fn calloc(nmemb: usize, size: usize) -> *mut c_void {
     let product = match nmemb.checked_mul(size) {
         Some(product) => product,
         None => {
-            *__errno_location() = rustix::io::Error::NOMEM.raw_os_error();
+            set_errno(Errno(libc::ENOMEM));
             return null_mut();
         }
     };
@@ -2048,7 +2047,7 @@ unsafe extern "C" fn getcwd(buf: *mut c_char, len: usize) -> *mut c_char {
                 *buf.add(path.len()) = 0;
                 buf
             } else {
-                *__errno_location() = rustix::io::Error::RANGE.raw_os_error();
+                set_errno(Errno(libc::ERANGE));
                 null_mut()
             }
         }
@@ -2516,11 +2515,11 @@ unsafe extern "C" fn nanosleep(req: *const libc::timespec, rem: *mut libc::times
                 tv_sec: remaining.tv_sec.try_into().unwrap(),
                 tv_nsec: remaining.tv_nsec as _,
             };
-            *__errno_location() = rustix::io::Error::INTR.raw_os_error();
+            set_errno(Errno(libc::EINTR));
             -1
         }
         rustix::thread::NanosleepRelativeResult::Err(err) => {
-            *__errno_location() = err.raw_os_error();
+            set_errno(Errno(err.raw_os_error()));
             -1
         }
     }
@@ -4126,8 +4125,6 @@ unsafe extern "C" fn __aeabi_d2f(_a: f64) -> f32 {
 /// in `errno`.
 fn convert_res<T>(result: Result<T, rustix::io::Error>) -> Option<T> {
     result
-        .map_err(|err| unsafe {
-            *__errno_location() = err.raw_os_error();
-        })
+        .map_err(|err| set_errno(Errno(err.raw_os_error())))
         .ok()
 }
