@@ -1554,6 +1554,7 @@ unsafe extern "C" fn isatty(fd: c_int) -> c_int {
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
     const TCGETS: c_long = libc::TCGETS as c_long;
@@ -1618,12 +1619,14 @@ unsafe extern "C" fn sendfile() {
     unimplemented!("sendfile")
 }
 
+#[cfg(feature = "net")]
 #[no_mangle]
 unsafe extern "C" fn sendmsg() {
     //libc!(libc::sendmsg());
     unimplemented!("sendmsg")
 }
 
+#[cfg(feature = "net")]
 #[no_mangle]
 unsafe extern "C" fn recvmsg() {
     //libc!(libc::recvmsg());
@@ -1893,6 +1896,7 @@ unsafe extern "C" fn strlen(mut s: *const c_char) -> usize {
 
 // mmap
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn mmap(
     addr: *mut c_void,
@@ -1924,6 +1928,7 @@ unsafe extern "C" fn mmap(
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn mmap64(
     addr: *mut c_void,
@@ -1955,6 +1960,7 @@ unsafe extern "C" fn mmap64(
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn munmap(ptr: *mut c_void, len: usize) -> c_int {
     libc!(libc::munmap(ptr, len));
@@ -1965,6 +1971,7 @@ unsafe extern "C" fn munmap(ptr: *mut c_void, len: usize) -> c_int {
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn mremap(
     old_address: *mut c_void,
@@ -2006,6 +2013,7 @@ unsafe extern "C" fn mremap(
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn mprotect(addr: *mut c_void, length: usize, prot: c_int) -> c_int {
     libc!(libc::mprotect(addr, length, prot));
@@ -2019,6 +2027,7 @@ unsafe extern "C" fn mprotect(addr: *mut c_void, length: usize, prot: c_int) -> 
 
 // rand
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn getrandom(buf: *mut c_void, buflen: usize, flags: u32) -> isize {
     libc!(libc::getrandom(buf, buflen, flags));
@@ -2128,6 +2137,7 @@ unsafe extern "C" fn __getauxval(type_: c_ulong) -> c_ulong {
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn dl_iterate_phdr(
     callback: Option<
@@ -2157,6 +2167,7 @@ unsafe extern "C" fn dl_iterate_phdr(
     callback.unwrap()(&mut info, size_of::<libc::dl_phdr_info>(), data)
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c_void {
     libc!(libc::dlsym(handle, symbol));
@@ -2237,10 +2248,12 @@ unsafe extern "C" fn sched_yield() -> c_int {
     0
 }
 
+#[cfg(not(target_os = "wasi"))]
 unsafe fn set_cpu(cpu: usize, cpuset: &mut libc::cpu_set_t) {
     libc::CPU_SET(cpu, cpuset)
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn sched_getaffinity(
     pid: c_int,
@@ -2261,6 +2274,7 @@ unsafe extern "C" fn sched_getaffinity(
     }
 }
 
+#[cfg(any(target_os = "android", target_os = "linux"))]
 #[no_mangle]
 unsafe extern "C" fn prctl(
     option: c_int,
@@ -2283,54 +2297,63 @@ unsafe extern "C" fn prctl(
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn setgid() {
     //libc!(libc::setgid());
     unimplemented!("setgid")
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn setgroups() {
     //libc!(libc::setgroups());
     unimplemented!("setgroups")
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn setuid() {
     //libc!(libc::setuid());
     unimplemented!("setuid")
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn getpid() -> c_int {
     libc!(libc::getpid());
     rustix::process::getpid().as_raw() as _
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn getppid() -> c_int {
     libc!(libc::getppid());
     rustix::process::getppid().as_raw() as _
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn getuid() -> c_uint {
     libc!(libc::getuid());
     rustix::process::getuid().as_raw()
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn getgid() -> c_uint {
     libc!(libc::getgid());
     rustix::process::getgid().as_raw()
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn kill(_pid: c_int, _sig: c_int) -> c_int {
     libc!(libc::kill(_pid, _sig));
     unimplemented!("kill")
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn raise(_sig: c_int) -> c_int {
     libc!(libc::raise(_sig));
@@ -2339,6 +2362,7 @@ unsafe extern "C" fn raise(_sig: c_int) -> c_int {
 
 // nss
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn getpwuid_r() {
     //libc!(libc::getpwuid_r());
@@ -2361,6 +2385,7 @@ unsafe extern "C" fn signal(_num: c_int, _handler: usize) -> usize {
     libc::SIG_DFL
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn sigaction(_signum: c_int, _act: *const c_void, _oldact: *mut c_void) -> c_int {
     libc!(libc::sigaction(
@@ -2373,6 +2398,7 @@ unsafe extern "C" fn sigaction(_signum: c_int, _act: *const c_void, _oldact: *mu
     0
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn sigaltstack(_ss: *const c_void, _old_ss: *mut c_void) -> c_int {
     libc!(libc::sigaltstack(_ss.cast::<_>(), _old_ss.cast::<_>()));
@@ -2381,6 +2407,7 @@ unsafe extern "C" fn sigaltstack(_ss: *const c_void, _old_ss: *mut c_void) -> c_
     0
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn sigaddset(_sigset: *mut c_void, _signum: c_int) -> c_int {
     libc!(libc::sigaddset(_sigset.cast::<_>(), _signum));
@@ -2388,6 +2415,7 @@ unsafe extern "C" fn sigaddset(_sigset: *mut c_void, _signum: c_int) -> c_int {
     0
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn sigemptyset(_sigset: *mut c_void) -> c_int {
     libc!(libc::sigemptyset(_sigset.cast::<_>()));
@@ -2397,6 +2425,7 @@ unsafe extern "C" fn sigemptyset(_sigset: *mut c_void) -> c_int {
 
 // syscall
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
     match number {
@@ -2472,12 +2501,14 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
 
 // posix_spawn
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn posix_spawnp() {
     //libc!(libc::posix_spawnp());
     unimplemented!("posix_spawnp");
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn posix_spawnattr_destroy(_ptr: *const c_void) -> c_int {
     //libc!(libc::posix_spawn_spawnattr_destroy(ptr));
@@ -2489,6 +2520,7 @@ unsafe extern "C" fn posix_spawnattr_destroy(_ptr: *const c_void) -> c_int {
     0
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn posix_spawnattr_init(_ptr: *const c_void) -> c_int {
     //libc!(libc::posix_spawnattr_init(ptr));
@@ -2500,30 +2532,35 @@ unsafe extern "C" fn posix_spawnattr_init(_ptr: *const c_void) -> c_int {
     0
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn posix_spawnattr_setflags() {
     //libc!(libc::posix_spawnattr_setflags());
     unimplemented!("posix_spawnattr_setflags")
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn posix_spawnattr_setsigdefault() {
     //libc!(libc::posix_spawnattr_setsigdefault());
     unimplemented!("posix_spawnattr_setsigdefault")
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn posix_spawnattr_setsigmask() {
     //libc!(libc::posix_spawnattr_setsigmask());
     unimplemented!("posix_spawnsetsigmask")
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn posix_spawn_file_actions_adddup2() {
     //libc!(libc::posix_spawn_file_actions_adddup2());
     unimplemented!("posix_spawn_file_actions_adddup2")
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn posix_spawn_file_actions_destroy(_ptr: *const c_void) -> c_int {
     //libc!(libc::posix_spawn_file_actions_destroy(ptr));
@@ -2535,6 +2572,7 @@ unsafe extern "C" fn posix_spawn_file_actions_destroy(_ptr: *const c_void) -> c_
     0
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn posix_spawn_file_actions_init(_ptr: *const c_void) -> c_int {
     //libc!(libc::posix_spawn_file_actions_init(ptr));
