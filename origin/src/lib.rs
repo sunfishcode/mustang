@@ -35,7 +35,9 @@ mod arch;
 
 use core::ffi::c_void;
 
-pub use program::{at_exit, at_fork, exit, exit_immediately, fork};
+pub use program::{at_exit, exit, exit_immediately};
+#[cfg(not(target_os = "wasi"))]
+pub use program::{at_fork, fork};
 #[cfg(feature = "threads")]
 pub use threads::{
     at_thread_exit, create_thread, current_thread, current_thread_id, current_thread_tls_addr,

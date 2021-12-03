@@ -2626,6 +2626,7 @@ unsafe extern "C" fn nanosleep(req: *const libc::timespec, rem: *mut libc::times
 
 // exec
 
+#[cfg(not(target_os = "wasi"))]
 unsafe fn null_terminated_array<'a>(list: *const *const c_char) -> Vec<&'a ZStr> {
     let mut len = 0;
     while !(*list.wrapping_add(len)).is_null() {
@@ -2638,6 +2639,7 @@ unsafe fn null_terminated_array<'a>(list: *const *const c_char) -> Vec<&'a ZStr>
         .collect()
 }
 
+#[cfg(not(target_os = "wasi"))]
 fn file_exists(cwd: &rustix::fd::BorrowedFd<'_>, path: &ZStr) -> bool {
     rustix::fs::accessat(
         cwd,
@@ -2648,6 +2650,7 @@ fn file_exists(cwd: &rustix::fd::BorrowedFd<'_>, path: &ZStr) -> bool {
     .is_ok()
 }
 
+#[cfg(not(target_os = "wasi"))]
 fn resolve_binary<'a>(file: &'a ZStr, envs: &[&ZStr]) -> rustix::io::Result<Cow<'a, ZStr>> {
     let file_bytes = file.to_bytes();
     if file_bytes.contains(&b'/') {
@@ -2676,6 +2679,7 @@ fn resolve_binary<'a>(file: &'a ZStr, envs: &[&ZStr]) -> rustix::io::Result<Cow<
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> c_int {
     libc!(libc::execvp(file, args));
@@ -3404,6 +3408,7 @@ static INIT_ARRAY: unsafe extern "C" fn(c_int, *mut *mut c_char, *mut *mut c_cha
 ///
 /// <https://refspecs.linuxbase.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/baselib---environ.html>
 #[cfg(not(target_env = "gnu"))]
+#[cfg(not(target_os = "wasi"))]
 #[link_section = ".init_array.00098"]
 #[used]
 static INIT_ARRAY: unsafe extern "C" fn() = {
@@ -3417,6 +3422,7 @@ static INIT_ARRAY: unsafe extern "C" fn() = {
     function
 };
 
+#[cfg(not(target_os = "wasi"))]
 fn init_from_envp(envp: *mut *mut c_char) {
     unsafe {
         environ = envp;
