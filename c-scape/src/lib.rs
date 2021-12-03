@@ -39,6 +39,7 @@ use core::convert::TryInto;
 use core::ffi::c_void;
 #[cfg(not(target_arch = "riscv64"))]
 use core::mem::align_of;
+#[cfg(not(target_os = "wasi"))]
 use core::mem::{size_of, transmute, zeroed};
 use core::ptr::{self, null, null_mut};
 use core::slice;
@@ -49,6 +50,7 @@ use core::sync::atomic::{AtomicBool, AtomicU32};
 use errno::{set_errno, Errno};
 use error_str::error_str;
 use libc::{c_char, c_int, c_long, c_uint, c_ulong};
+#[cfg(not(target_os = "wasi"))]
 use memoffset::offset_of;
 #[cfg(feature = "threads")]
 use origin::Thread;
@@ -275,6 +277,7 @@ unsafe extern "C" fn fcntl(fd: c_int, cmd: c_int, mut args: ...) -> c_int {
                 None => -1,
             }
         }
+        #[cfg(not(target_os = "wasi"))]
         libc::F_DUPFD_CLOEXEC => {
             let arg = args.arg::<c_int>();
             libc!(libc::fcntl(fd, libc::F_DUPFD_CLOEXEC, arg));
@@ -460,6 +463,7 @@ unsafe extern "C" fn fdopendir(fd: c_int) -> *mut c_void {
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn readdir64_r(
     dir: *mut c_void,
@@ -593,6 +597,7 @@ unsafe extern "C" fn copy_file_range(
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn chmod(pathname: *const c_char, mode: c_uint) -> c_int {
     libc!(libc::chmod(pathname, mode));
@@ -608,6 +613,7 @@ unsafe extern "C" fn chmod(pathname: *const c_char, mode: c_uint) -> c_int {
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn fchmod(fd: c_int, mode: c_uint) -> c_int {
     libc!(libc::fchmod(fd, mode));
@@ -1206,6 +1212,7 @@ unsafe extern "C" fn gai_strerror(errcode: c_int) -> *const c_char {
     .cast::<_>()
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn gethostname(name: *mut c_char, len: usize) -> c_int {
     let uname = rustix::process::uname();
@@ -1521,6 +1528,7 @@ unsafe extern "C" fn close(fd: c_int) -> c_int {
     0
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn dup2(fd: c_int, to: c_int) -> c_int {
     libc!(libc::dup2(fd, to));

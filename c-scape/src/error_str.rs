@@ -46,6 +46,7 @@ pub(crate) const fn error_str(e: Error) -> Option<&'static str> {
         Error::NETUNREACH => "Network unreachable.",
         Error::NFILE => "Too many files open in system.",
         Error::NOBUFS => "No buffer space available.",
+        #[cfg(not(target_os = "wasi"))]
         Error::NODATA => "No message is available on the STREAM head read queue.",
         Error::NODEV => "No such device.",
         Error::NOENT => "No such file or directory.",
@@ -56,7 +57,9 @@ pub(crate) const fn error_str(e: Error) -> Option<&'static str> {
         Error::NOMSG => "No message of the desired type.",
         Error::NOPROTOOPT => "Protocol not available.",
         Error::NOSPC => "No space left on device.",
+        #[cfg(not(target_os = "wasi"))]
         Error::NOSR => "No STREAM resources.",
+        #[cfg(not(target_os = "wasi"))]
         Error::NOSTR => "Not a STREAM.",
         Error::NOSYS => "Functionality not supported.",
         Error::NOTCONN => "The socket is not connected.",
@@ -80,11 +83,14 @@ pub(crate) const fn error_str(e: Error) -> Option<&'static str> {
         Error::SPIPE => "Invalid seek.",
         Error::SRCH => "No such process.",
         Error::STALE => "Reserved.",
+        #[cfg(not(target_os = "wasi"))]
         Error::TIME => "Stream ioctl() timeout.",
         Error::TIMEDOUT => "Connection timed out.",
         Error::TXTBSY => "Text file busy.",
         //Error::WOULDBLOCK => "Operation would block.", // same as `AGAIN`
         Error::XDEV => "Cross-device link.",
+        #[cfg(target_os = "wasi")]
+        Error::NOTCAPABLE => "Capabilities insufficient",
         _ => return None,
     })
 }
