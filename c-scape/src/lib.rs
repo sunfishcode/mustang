@@ -113,7 +113,7 @@ unsafe extern "C" fn open64(pathname: *const c_char, flags: c_int, mode: c_int) 
 
     let flags = OFlags::from_bits(flags as _).unwrap();
     let mode = Mode::from_bits(mode as _).unwrap();
-    match set_errno(openat(&cwd(), ZStr::from_ptr(pathname.cast()), flags, mode)) {
+    match convert_res(openat(&cwd(), ZStr::from_ptr(pathname.cast()), flags, mode)) {
         Some(fd) => fd.into_raw_fd(),
         None => -1,
     }
@@ -129,7 +129,7 @@ unsafe extern "C" fn open() {
 unsafe extern "C" fn readlink(pathname: *const c_char, buf: *mut c_char, bufsiz: usize) -> isize {
     libc!(readlink(pathname, buf, bufsiz));
 
-    let path = match set_errno(rustix::fs::readlinkat(
+    let path = match convert_res(rustix::fs::readlinkat(
         &cwd(),
         ZStr::from_ptr(pathname.cast()),
         Vec::new(),
@@ -153,7 +153,7 @@ unsafe extern "C" fn stat() -> c_int {
 unsafe extern "C" fn stat64(pathname: *const c_char, stat_: *mut rustix::fs::Stat) -> c_int {
     libc!(stat64(pathname, same_ptr_mut(stat_)));
 
-    match set_errno(rustix::fs::statat(
+    match convert_res(rustix::fs::statat(
         &cwd(),
         ZStr::from_ptr(pathname.cast()),
         AtFlags::empty(),
@@ -176,7 +176,7 @@ unsafe extern "C" fn fstat(_fd: c_int, _stat: *mut rustix::fs::Stat) -> c_int {
 unsafe extern "C" fn fstat64(fd: c_int, stat_: *mut rustix::fs::Stat) -> c_int {
     libc!(fstat64(fd, same_ptr_mut(stat_)));
 
-    match set_errno(rustix::fs::fstat(&BorrowedFd::borrow_raw_fd(fd))) {
+    match convert_res(rustix::fs::fstat(&BorrowedFd::borrow_raw_fd(fd))) {
         Some(r) => {
             *stat_ = r;
             0
@@ -202,7 +202,7 @@ unsafe extern "C" fn statx(
 
     let flags = AtFlags::from_bits(flags as _).unwrap();
     let mask = rustix::fs::StatxFlags::from_bits(mask).unwrap();
-    match set_errno(rustix::fs::statx(
+    match convert_res(rustix::fs::statx(
         &BorrowedFd::borrow_raw_fd(dirfd_),
         ZStr::from_ptr(path.cast()),
         flags,
@@ -259,7 +259,7 @@ unsafe extern "C" fn fcntl(fd: c_int, cmd: c_int, mut args: ...) -> c_int {
         libc::F_GETFL => {
             libc!(fcntl(fd, F_GETFL));
             let fd = BorrowedFd::borrow_raw_fd(fd);
-            match set_errno(rustix::fs::fcntl_getfl(&fd)) {
+            match convert_res(rustix::fs::fcntl_getfl(&fd)) {
                 Some(flags) => flags.bits() as _,
                 None => -1,
             }
@@ -268,7 +268,7 @@ unsafe extern "C" fn fcntl(fd: c_int, cmd: c_int, mut args: ...) -> c_int {
             let flags = args.arg::<c_int>();
             libc!(fcntl(fd, F_SETFD, flags));
             let fd = BorrowedFd::borrow_raw_fd(fd);
-            match set_errno(rustix::fs::fcntl_setfd(
+            match convert_res(rustix::fs::fcntl_setfd(
                 &fd,
                 FdFlags::from_bits(flags as _).unwrap(),
             )) {
@@ -280,7 +280,7 @@ unsafe extern "C" fn fcntl(fd: c_int, cmd: c_int, mut args: ...) -> c_int {
             let arg = args.arg::<c_int>();
             libc!(fcntl(fd, F_DUPFD_CLOEXEC, arg));
             let fd = BorrowedFd::borrow_raw_fd(fd);
-            match set_errno(rustix::fs::fcntl_dupfd_cloexec(&fd, arg)) {
+            match convert_res(rustix::fs::fcntl_dupfd_cloexec(&fd, arg)) {
                 Some(fd) => fd.into_raw_fd(),
                 None => -1,
             }
@@ -294,7 +294,7 @@ unsafe extern "C" fn mkdir(pathname: *const c_char, mode: c_uint) -> c_int {
     libc!(mkdir(pathname, mode));
 
     let mode = Mode::from_bits(mode as _).unwrap();
-    match set_errno(rustix::fs::mkdirat(
+    match convert_res(rustix::fs::mkdirat(
         &cwd(),
         ZStr::from_ptr(pathname.cast()),
         mode,
@@ -308,7 +308,7 @@ unsafe extern "C" fn mkdir(pathname: *const c_char, mode: c_uint) -> c_int {
 unsafe extern "C" fn fdatasync(fd: c_int) -> c_int {
     libc!(fdatasync(fd));
 
-    match set_errno(rustix::fs::fdatasync(&BorrowedFd::borrow_raw_fd(fd))) {
+    match convert_res(rustix::fs::fdatasync(&BorrowedFd::borrow_raw_fd(fd))) {
         Some(()) => 0,
         None => -1,
     }
@@ -324,7 +324,7 @@ unsafe extern "C" fn fstatat64(
     libc!(fstatat64(fd, pathname, same_ptr_mut(stat_), flags));
 
     let flags = AtFlags::from_bits(flags as _).unwrap();
-    match set_errno(rustix::fs::statat(
+    match convert_res(rustix::fs::statat(
         &BorrowedFd::borrow_raw_fd(fd),
         ZStr::from_ptr(pathname.cast()),
         flags,
@@ -341,7 +341,7 @@ unsafe extern "C" fn fstatat64(
 unsafe extern "C" fn fsync(fd: c_int) -> c_int {
     libc!(fsync(fd));
 
-    match set_errno(rustix::fs::fdatasync(&BorrowedFd::borrow_raw_fd(fd))) {
+    match convert_res(rustix::fs::fdatasync(&BorrowedFd::borrow_raw_fd(fd))) {
         Some(()) => 0,
         None => -1,
     }
@@ -351,7 +351,7 @@ unsafe extern "C" fn fsync(fd: c_int) -> c_int {
 unsafe extern "C" fn ftruncate64(fd: c_int, length: i64) -> c_int {
     libc!(ftruncate64(fd, length));
 
-    match set_errno(rustix::fs::ftruncate(
+    match convert_res(rustix::fs::ftruncate(
         &BorrowedFd::borrow_raw_fd(fd),
         length as u64,
     )) {
@@ -364,7 +364,7 @@ unsafe extern "C" fn ftruncate64(fd: c_int, length: i64) -> c_int {
 unsafe extern "C" fn rename(old: *const c_char, new: *const c_char) -> c_int {
     libc!(rename(old, new));
 
-    match set_errno(rustix::fs::renameat(
+    match convert_res(rustix::fs::renameat(
         &cwd(),
         ZStr::from_ptr(old.cast()),
         &cwd(),
@@ -379,7 +379,7 @@ unsafe extern "C" fn rename(old: *const c_char, new: *const c_char) -> c_int {
 unsafe extern "C" fn rmdir(pathname: *const c_char) -> c_int {
     libc!(rmdir(pathname));
 
-    match set_errno(rustix::fs::unlinkat(
+    match convert_res(rustix::fs::unlinkat(
         &cwd(),
         ZStr::from_ptr(pathname.cast()),
         AtFlags::REMOVEDIR,
@@ -393,7 +393,7 @@ unsafe extern "C" fn rmdir(pathname: *const c_char) -> c_int {
 unsafe extern "C" fn unlink(pathname: *const c_char) -> c_int {
     libc!(unlink(pathname));
 
-    match set_errno(rustix::fs::unlinkat(
+    match convert_res(rustix::fs::unlinkat(
         &cwd(),
         ZStr::from_ptr(pathname.cast()),
         AtFlags::empty(),
@@ -413,7 +413,7 @@ unsafe extern "C" fn lseek64(fd: c_int, offset: i64, whence: c_int) -> i64 {
         libc::SEEK_END => rustix::io::SeekFrom::End(offset),
         _ => panic!("unrecognized whence({})", whence),
     };
-    match set_errno(rustix::fs::seek(&BorrowedFd::borrow_raw_fd(fd), seek_from)) {
+    match convert_res(rustix::fs::seek(&BorrowedFd::borrow_raw_fd(fd), seek_from)) {
         Some(offset) => offset as i64,
         None => -1,
     }
@@ -423,7 +423,7 @@ unsafe extern "C" fn lseek64(fd: c_int, offset: i64, whence: c_int) -> i64 {
 unsafe extern "C" fn lstat64(pathname: *const c_char, stat_: *mut rustix::fs::Stat) -> c_int {
     libc!(lstat64(pathname, same_ptr_mut(stat_)));
 
-    match set_errno(rustix::fs::statat(
+    match convert_res(rustix::fs::statat(
         &cwd(),
         ZStr::from_ptr(pathname.cast()),
         AtFlags::SYMLINK_NOFOLLOW,
@@ -440,7 +440,7 @@ unsafe extern "C" fn lstat64(pathname: *const c_char, stat_: *mut rustix::fs::St
 unsafe extern "C" fn opendir(pathname: *const c_char) -> *mut c_void {
     libc!(opendir(pathname).cast::<_>());
 
-    match set_errno(rustix::fs::openat(
+    match convert_res(rustix::fs::openat(
         &cwd(),
         ZStr::from_ptr(pathname.cast()),
         OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC,
@@ -455,7 +455,7 @@ unsafe extern "C" fn opendir(pathname: *const c_char) -> *mut c_void {
 unsafe extern "C" fn fdopendir(fd: c_int) -> *mut c_void {
     libc!(fdopendir(fd).cast::<_>());
 
-    match set_errno(rustix::fs::Dir::from(OwnedFd::from_raw_fd(fd))) {
+    match convert_res(rustix::fs::Dir::from(OwnedFd::from_raw_fd(fd))) {
         Some(dir) => Box::into_raw(Box::new(dir)).cast::<_>(),
         None => null_mut(),
     }
@@ -580,7 +580,7 @@ unsafe extern "C" fn copy_file_range(
     } else {
         Some(&mut *off_out.cast::<u64>())
     };
-    match set_errno(rustix::fs::copy_file_range(
+    match convert_res(rustix::fs::copy_file_range(
         &BorrowedFd::borrow_raw_fd(fd_in),
         off_in,
         &BorrowedFd::borrow_raw_fd(fd_out),
@@ -597,7 +597,7 @@ unsafe extern "C" fn chmod(pathname: *const c_char, mode: c_uint) -> c_int {
     libc!(chmod(pathname, mode));
 
     let mode = Mode::from_bits(mode as _).unwrap();
-    match set_errno(rustix::fs::chmodat(
+    match convert_res(rustix::fs::chmodat(
         &cwd(),
         ZStr::from_ptr(pathname.cast()),
         mode,
@@ -612,7 +612,7 @@ unsafe extern "C" fn fchmod(fd: c_int, mode: c_uint) -> c_int {
     libc!(fchmod(fd, mode));
 
     let mode = Mode::from_bits(mode as _).unwrap();
-    match set_errno(rustix::fs::fchmod(&BorrowedFd::borrow_raw_fd(fd), mode)) {
+    match convert_res(rustix::fs::fchmod(&BorrowedFd::borrow_raw_fd(fd), mode)) {
         Some(()) => 0,
         None => -1,
     }
@@ -629,7 +629,7 @@ unsafe extern "C" fn linkat(
     libc!(linkat(olddirfd, oldpath, newdirfd, newpath, flags));
 
     let flags = AtFlags::from_bits(flags as _).unwrap();
-    match set_errno(rustix::fs::linkat(
+    match convert_res(rustix::fs::linkat(
         &BorrowedFd::borrow_raw_fd(olddirfd),
         ZStr::from_ptr(oldpath.cast()),
         &BorrowedFd::borrow_raw_fd(newdirfd),
@@ -645,7 +645,7 @@ unsafe extern "C" fn linkat(
 unsafe extern "C" fn symlink(target: *const c_char, linkpath: *const c_char) -> c_int {
     libc!(symlink(target, linkpath));
 
-    match set_errno(rustix::fs::symlinkat(
+    match convert_res(rustix::fs::symlinkat(
         ZStr::from_ptr(target.cast()),
         &cwd(),
         ZStr::from_ptr(linkpath.cast()),
@@ -684,7 +684,7 @@ unsafe extern "C" fn accept(
 ) -> c_int {
     libc!(accept(fd, same_ptr_mut(addr), len));
 
-    match set_errno(rustix::net::acceptfrom(&BorrowedFd::borrow_raw_fd(fd))) {
+    match convert_res(rustix::net::acceptfrom(&BorrowedFd::borrow_raw_fd(fd))) {
         Some((accepted_fd, from)) => {
             let encoded_len = from.write(addr);
             *len = encoded_len.try_into().unwrap();
@@ -705,7 +705,7 @@ unsafe extern "C" fn accept4(
     libc!(accept4(fd, same_ptr_mut(addr), len, flags));
 
     let flags = AcceptFlags::from_bits(flags as _).unwrap();
-    match set_errno(rustix::net::acceptfrom_with(
+    match convert_res(rustix::net::acceptfrom_with(
         &BorrowedFd::borrow_raw_fd(fd),
         flags,
     )) {
@@ -727,11 +727,11 @@ unsafe extern "C" fn bind(
 ) -> c_int {
     libc!(bind(sockfd, same_ptr(addr), len));
 
-    let addr = match set_errno(SocketAddrAny::read(addr, len.try_into().unwrap())) {
+    let addr = match convert_res(SocketAddrAny::read(addr, len.try_into().unwrap())) {
         Some(addr) => addr,
         None => return -1,
     };
-    match set_errno(match addr {
+    match convert_res(match addr {
         SocketAddrAny::V4(v4) => rustix::net::bind_v4(&BorrowedFd::borrow_raw_fd(sockfd), &v4),
         SocketAddrAny::V6(v6) => rustix::net::bind_v6(&BorrowedFd::borrow_raw_fd(sockfd), &v6),
         SocketAddrAny::Unix(unix) => {
@@ -753,11 +753,11 @@ unsafe extern "C" fn connect(
 ) -> c_int {
     libc!(connect(sockfd, same_ptr(addr), len));
 
-    let addr = match set_errno(SocketAddrAny::read(addr, len.try_into().unwrap())) {
+    let addr = match convert_res(SocketAddrAny::read(addr, len.try_into().unwrap())) {
         Some(addr) => addr,
         None => return -1,
     };
-    match set_errno(match addr {
+    match convert_res(match addr {
         SocketAddrAny::V4(v4) => rustix::net::connect_v4(&BorrowedFd::borrow_raw_fd(sockfd), &v4),
         SocketAddrAny::V6(v6) => rustix::net::connect_v6(&BorrowedFd::borrow_raw_fd(sockfd), &v6),
         SocketAddrAny::Unix(unix) => {
@@ -779,7 +779,7 @@ unsafe extern "C" fn getpeername(
 ) -> c_int {
     libc!(getpeername(fd, same_ptr_mut(addr), len));
 
-    match set_errno(rustix::net::getpeername(&BorrowedFd::borrow_raw_fd(fd))) {
+    match convert_res(rustix::net::getpeername(&BorrowedFd::borrow_raw_fd(fd))) {
         Some(from) => {
             let encoded_len = from.write(addr);
             *len = encoded_len.try_into().unwrap();
@@ -798,7 +798,7 @@ unsafe extern "C" fn getsockname(
 ) -> c_int {
     libc!(getsockname(fd, same_ptr_mut(addr), len));
 
-    match set_errno(rustix::net::getsockname(&BorrowedFd::borrow_raw_fd(fd))) {
+    match convert_res(rustix::net::getsockname(&BorrowedFd::borrow_raw_fd(fd))) {
         Some(from) => {
             let encoded_len = from.write(addr);
             *len = encoded_len.try_into().unwrap();
@@ -923,7 +923,7 @@ unsafe extern "C" fn getsockopt(
             optname
         ),
     };
-    match set_errno(result) {
+    match convert_res(result) {
         Some(()) => 0,
         None => -1,
     }
@@ -1064,7 +1064,7 @@ unsafe extern "C" fn setsockopt(
             optname
         ),
     };
-    match set_errno(result) {
+    match convert_res(result) {
         Some(()) => 0,
         None => -1,
     }
@@ -1226,7 +1226,7 @@ unsafe extern "C" fn gethostname(name: *mut c_char, len: usize) -> c_int {
 unsafe extern "C" fn listen(fd: c_int, backlog: c_int) -> c_int {
     libc!(listen(fd, backlog));
 
-    match set_errno(rustix::net::listen(&BorrowedFd::borrow_raw_fd(fd), backlog)) {
+    match convert_res(rustix::net::listen(&BorrowedFd::borrow_raw_fd(fd), backlog)) {
         Some(()) => 0,
         None => -1,
     }
@@ -1237,7 +1237,7 @@ unsafe extern "C" fn recv(fd: c_int, ptr: *mut c_void, len: usize, flags: c_int)
     libc!(recv(fd, ptr, len, flags));
 
     let flags = RecvFlags::from_bits(flags as _).unwrap();
-    match set_errno(rustix::net::recv(
+    match convert_res(rustix::net::recv(
         &BorrowedFd::borrow_raw_fd(fd),
         slice::from_raw_parts_mut(ptr.cast::<u8>(), len),
         flags,
@@ -1259,7 +1259,7 @@ unsafe extern "C" fn recvfrom(
     libc!(recvfrom(fd, buf, len, flags, same_ptr_mut(from), from_len));
 
     let flags = RecvFlags::from_bits(flags as _).unwrap();
-    match set_errno(rustix::net::recvfrom(
+    match convert_res(rustix::net::recvfrom(
         &BorrowedFd::borrow_raw_fd(fd),
         slice::from_raw_parts_mut(buf.cast::<u8>(), len),
         flags,
@@ -1278,7 +1278,7 @@ unsafe extern "C" fn send(fd: c_int, buf: *const c_void, len: usize, flags: c_in
     libc!(send(fd, buf, len, flags));
 
     let flags = SendFlags::from_bits(flags as _).unwrap();
-    match set_errno(rustix::net::send(
+    match convert_res(rustix::net::send(
         &BorrowedFd::borrow_raw_fd(fd),
         slice::from_raw_parts(buf.cast::<u8>(), len),
         flags,
@@ -1300,11 +1300,11 @@ unsafe extern "C" fn sendto(
     libc!(sendto(fd, buf, len, flags, same_ptr(to), to_len));
 
     let flags = SendFlags::from_bits(flags as _).unwrap();
-    let addr = match set_errno(SocketAddrAny::read(to, to_len.try_into().unwrap())) {
+    let addr = match convert_res(SocketAddrAny::read(to, to_len.try_into().unwrap())) {
         Some(addr) => addr,
         None => return -1,
     };
-    match set_errno(match addr {
+    match convert_res(match addr {
         SocketAddrAny::V4(v4) => rustix::net::sendto_v4(
             &BorrowedFd::borrow_raw_fd(fd),
             slice::from_raw_parts(buf.cast::<u8>(), len),
@@ -1340,7 +1340,7 @@ unsafe extern "C" fn shutdown(fd: c_int, how: c_int) -> c_int {
         libc::SHUT_RDWR => Shutdown::ReadWrite,
         _ => panic!("unrecognized shutdown kind {}", how),
     };
-    match set_errno(rustix::net::shutdown(&BorrowedFd::borrow_raw_fd(fd), how)) {
+    match convert_res(rustix::net::shutdown(&BorrowedFd::borrow_raw_fd(fd), how)) {
         Some(()) => 0,
         None => -1,
     }
@@ -1354,7 +1354,7 @@ unsafe extern "C" fn socket(domain: c_int, type_: c_int, protocol: c_int) -> c_i
     let flags = SocketFlags::from_bits_truncate(type_ as _);
     let type_ = SocketType::from_raw(type_ as u32 & !SocketFlags::all().bits());
     let protocol = Protocol::from_raw(protocol as _);
-    match set_errno(rustix::net::socket_with(domain, type_, flags, protocol)) {
+    match convert_res(rustix::net::socket_with(domain, type_, flags, protocol)) {
         Some(fd) => fd.into_raw_fd(),
         None => -1,
     }
@@ -1373,7 +1373,7 @@ unsafe extern "C" fn socketpair(
     let flags = SocketFlags::from_bits_truncate(type_ as _);
     let type_ = SocketType::from_raw(type_ as u32 & !SocketFlags::all().bits());
     let protocol = Protocol::from_raw(protocol as _);
-    match set_errno(rustix::net::socketpair(domain, type_, flags, protocol)) {
+    match convert_res(rustix::net::socketpair(domain, type_, flags, protocol)) {
         Some((fd0, fd1)) => {
             (*sv) = [fd0.into_raw_fd(), fd1.into_raw_fd()];
             0
@@ -1394,7 +1394,7 @@ unsafe extern "C" fn __res_init() -> c_int {
 unsafe extern "C" fn write(fd: c_int, ptr: *const c_void, len: usize) -> isize {
     libc!(write(fd, ptr, len));
 
-    match set_errno(rustix::io::write(
+    match convert_res(rustix::io::write(
         &BorrowedFd::borrow_raw_fd(fd),
         slice::from_raw_parts(ptr.cast::<u8>(), len),
     )) {
@@ -1412,7 +1412,7 @@ unsafe extern "C" fn writev(fd: c_int, iov: *const rustix::io::IoSlice, iovcnt: 
         return -1;
     }
 
-    match set_errno(rustix::io::writev(
+    match convert_res(rustix::io::writev(
         &BorrowedFd::borrow_raw_fd(fd),
         slice::from_raw_parts(iov, iovcnt as usize),
     )) {
@@ -1425,7 +1425,7 @@ unsafe extern "C" fn writev(fd: c_int, iov: *const rustix::io::IoSlice, iovcnt: 
 unsafe extern "C" fn read(fd: c_int, ptr: *mut c_void, len: usize) -> isize {
     libc!(read(fd, ptr, len));
 
-    match set_errno(rustix::io::read(
+    match convert_res(rustix::io::read(
         &BorrowedFd::borrow_raw_fd(fd),
         slice::from_raw_parts_mut(ptr.cast::<u8>(), len),
     )) {
@@ -1443,7 +1443,7 @@ unsafe extern "C" fn readv(fd: c_int, iov: *const rustix::io::IoSliceMut, iovcnt
         return -1;
     }
 
-    match set_errno(rustix::io::readv(
+    match convert_res(rustix::io::readv(
         &BorrowedFd::borrow_raw_fd(fd),
         slice::from_raw_parts(iov, iovcnt as usize),
     )) {
@@ -1456,7 +1456,7 @@ unsafe extern "C" fn readv(fd: c_int, iov: *const rustix::io::IoSliceMut, iovcnt
 unsafe extern "C" fn pread64(fd: c_int, ptr: *mut c_void, len: usize, offset: i64) -> isize {
     libc!(pread64(fd, ptr, len, offset));
 
-    match set_errno(rustix::io::pread(
+    match convert_res(rustix::io::pread(
         &BorrowedFd::borrow_raw_fd(fd),
         slice::from_raw_parts_mut(ptr.cast::<u8>(), len),
         offset as u64,
@@ -1470,7 +1470,7 @@ unsafe extern "C" fn pread64(fd: c_int, ptr: *mut c_void, len: usize, offset: i6
 unsafe extern "C" fn pwrite64(fd: c_int, ptr: *const c_void, len: usize, offset: i64) -> isize {
     libc!(pwrite64(fd, ptr, len, offset));
 
-    match set_errno(rustix::io::pwrite(
+    match convert_res(rustix::io::pwrite(
         &BorrowedFd::borrow_raw_fd(fd),
         slice::from_raw_parts(ptr.cast::<u8>(), len),
         offset as u64,
@@ -1485,7 +1485,7 @@ unsafe extern "C" fn poll(fds: *mut rustix::io::PollFd, nfds: c_ulong, timeout: 
     libc!(poll(same_ptr_mut(fds), nfds, timeout));
 
     let fds = slice::from_raw_parts_mut(fds, nfds.try_into().unwrap());
-    match set_errno(rustix::io::poll(fds, timeout)) {
+    match convert_res(rustix::io::poll(fds, timeout)) {
         Some(num) => num.try_into().unwrap(),
         None => -1,
     }
@@ -1504,7 +1504,7 @@ unsafe extern "C" fn dup2(fd: c_int, to: c_int) -> c_int {
     libc!(dup2(fd, to));
 
     let to = OwnedFd::from_raw_fd(to).into();
-    match set_errno(rustix::io::dup2(&BorrowedFd::borrow_raw_fd(fd), &to)) {
+    match convert_res(rustix::io::dup2(&BorrowedFd::borrow_raw_fd(fd), &to)) {
         Some(()) => OwnedFd::from(to).into_raw_fd(),
         None => -1,
     }
@@ -1531,7 +1531,7 @@ unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
         TCGETS => {
             libc!(ioctl(fd, TCGETS));
             let fd = BorrowedFd::borrow_raw_fd(fd);
-            match set_errno(rustix::io::ioctl_tcgets(&fd)) {
+            match convert_res(rustix::io::ioctl_tcgets(&fd)) {
                 Some(x) => {
                     args.arg::<*mut rustix::io::Termios>().write(x);
                     0
@@ -1544,7 +1544,7 @@ unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
             let fd = BorrowedFd::borrow_raw_fd(fd);
             let ptr = args.arg::<*mut c_int>();
             let value = *ptr != 0;
-            match set_errno(rustix::io::ioctl_fionbio(&fd, value)) {
+            match convert_res(rustix::io::ioctl_fionbio(&fd, value)) {
                 Some(()) => 0,
                 None => -1,
             }
@@ -1552,7 +1552,7 @@ unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
         TIOCGWINSZ => {
             libc!(ioctl(fd, TIOCGWINSZ));
             let fd = BorrowedFd::borrow_raw_fd(fd);
-            match set_errno(rustix::io::ioctl_tiocgwinsz(&fd)) {
+            match convert_res(rustix::io::ioctl_tiocgwinsz(&fd)) {
                 Some(x) => {
                     args.arg::<*mut rustix::io::Winsize>().write(x);
                     0
@@ -1569,7 +1569,7 @@ unsafe extern "C" fn pipe2(pipefd: *mut c_int, flags: c_int) -> c_int {
     libc!(pipe2(pipefd, flags));
 
     let flags = PipeFlags::from_bits(flags as _).unwrap();
-    match set_errno(rustix::io::pipe_with(flags)) {
+    match convert_res(rustix::io::pipe_with(flags)) {
         Some((a, b)) => {
             *pipefd = a.into_raw_fd();
             *pipefd.add(1) = b.into_raw_fd();
@@ -1634,7 +1634,7 @@ unsafe extern "C" fn epoll_wait(
 unsafe extern "C" fn eventfd(initval: c_uint, flags: c_int) -> c_int {
     libc!(eventfd(initval, flags));
     let flags = EventfdFlags::from_bits(flags.try_into().unwrap()).unwrap();
-    match set_errno(rustix::io::eventfd(initval, flags)) {
+    match convert_res(rustix::io::eventfd(initval, flags)) {
         Some(fd) => fd.into_raw_fd(),
         None => -1,
     }
@@ -1870,7 +1870,7 @@ unsafe extern "C" fn mmap(
     let anon = flags & libc::MAP_ANONYMOUS == libc::MAP_ANONYMOUS;
     let prot = ProtFlags::from_bits(prot as _).unwrap();
     let flags = MapFlags::from_bits((flags & !libc::MAP_ANONYMOUS) as _).unwrap();
-    match set_errno(if anon {
+    match convert_res(if anon {
         rustix::io::mmap_anonymous(addr, length, prot, flags)
     } else {
         rustix::io::mmap(
@@ -1901,7 +1901,7 @@ unsafe extern "C" fn mmap64(
     let anon = flags & libc::MAP_ANONYMOUS == libc::MAP_ANONYMOUS;
     let prot = ProtFlags::from_bits(prot as _).unwrap();
     let flags = MapFlags::from_bits((flags & !libc::MAP_ANONYMOUS) as _).unwrap();
-    match set_errno(if anon {
+    match convert_res(if anon {
         rustix::io::mmap_anonymous(addr, length, prot, flags)
     } else {
         rustix::io::mmap(
@@ -1922,7 +1922,7 @@ unsafe extern "C" fn mmap64(
 unsafe extern "C" fn munmap(ptr: *mut c_void, len: usize) -> c_int {
     libc!(munmap(ptr, len));
 
-    match set_errno(rustix::io::munmap(ptr, len)) {
+    match convert_res(rustix::io::munmap(ptr, len)) {
         Some(()) => 0,
         None => -1,
     }
@@ -1942,7 +1942,7 @@ unsafe extern "C" fn mremap(
 
         let flags = flags & !libc::MREMAP_FIXED;
         let flags = MremapFlags::from_bits(flags as _).unwrap();
-        match set_errno(rustix::io::mremap_fixed(
+        match convert_res(rustix::io::mremap_fixed(
             old_address,
             old_size,
             new_size,
@@ -1956,7 +1956,7 @@ unsafe extern "C" fn mremap(
         libc!(mremap(old_address, old_size, new_size, flags));
 
         let flags = MremapFlags::from_bits(flags as _).unwrap();
-        match set_errno(rustix::io::mremap(old_address, old_size, new_size, flags)) {
+        match convert_res(rustix::io::mremap(old_address, old_size, new_size, flags)) {
             Some(new_address) => new_address,
             None => libc::MAP_FAILED,
         }
@@ -1968,7 +1968,7 @@ unsafe extern "C" fn mprotect(addr: *mut c_void, length: usize, prot: c_int) -> 
     libc!(mprotect(addr, length, prot));
 
     let prot = MprotectFlags::from_bits(prot as _).unwrap();
-    match set_errno(rustix::io::mprotect(addr, length, prot)) {
+    match convert_res(rustix::io::mprotect(addr, length, prot)) {
         Some(()) => 0,
         None => -1,
     }
@@ -1984,7 +1984,7 @@ unsafe extern "C" fn getrandom(buf: *mut c_void, buflen: usize, flags: u32) -> i
         return 0;
     }
     let flags = rustix::rand::GetRandomFlags::from_bits(flags).unwrap();
-    match set_errno(rustix::rand::getrandom(
+    match convert_res(rustix::rand::getrandom(
         slice::from_raw_parts_mut(buf.cast::<u8>(), buflen),
         flags,
     )) {
@@ -2040,7 +2040,7 @@ unsafe extern "C" fn sysconf(name: c_int) -> c_long {
 unsafe extern "C" fn getcwd(buf: *mut c_char, len: usize) -> *mut c_char {
     libc!(getcwd(buf, len));
 
-    match set_errno(rustix::process::getcwd(Vec::new())) {
+    match convert_res(rustix::process::getcwd(Vec::new())) {
         Some(path) => {
             let path = path.as_bytes();
             if path.len() + 1 <= len {
@@ -2061,7 +2061,7 @@ unsafe extern "C" fn chdir(path: *const c_char) -> c_int {
     libc!(chdir(path));
 
     let path = ZStr::from_ptr(path.cast());
-    match set_errno(rustix::process::chdir(path)) {
+    match convert_res(rustix::process::chdir(path)) {
         Some(()) => 0,
         None => -1,
     }
@@ -2199,7 +2199,7 @@ unsafe extern "C" fn sched_getaffinity(
 ) -> c_int {
     libc!(sched_getaffinity(pid, cpu_set_size, mask.cast::<_>()));
     let pid = rustix::process::Pid::from_raw(pid as _);
-    match set_errno(rustix::process::sched_getaffinity(pid)) {
+    match convert_res(rustix::process::sched_getaffinity(pid)) {
         Some(cpu_set) => {
             let mask = &mut *mask;
             (0..cpu_set_size)
@@ -2222,7 +2222,7 @@ unsafe extern "C" fn prctl(
     libc!(prctl(option, arg2, _arg3, _arg4, _arg5));
     match option {
         libc::PR_SET_NAME => {
-            match set_errno(rustix::runtime::set_thread_name(ZStr::from_ptr(
+            match convert_res(rustix::runtime::set_thread_name(ZStr::from_ptr(
                 arg2 as *const _,
             ))) {
                 Some(()) => 0,
@@ -2396,14 +2396,14 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
             } else {
                 &new_timespec
             };
-            match set_errno(futex(uaddr, op, flags, val, new_timespec, uaddr2, val3)) {
+            match convert_res(futex(uaddr, op, flags, val, new_timespec, uaddr2, val3)) {
                 Some(result) => result as _,
                 None => -1,
             }
         }
         libc::SYS_clone3 => {
             // ensure std::process uses fork as fallback code on linux
-            set_errno::<()>(Err(rustix::io::Error::NOSYS));
+            convert_res::<()>(Err(rustix::io::Error::NOSYS));
             -1
         }
         _ => unimplemented!("syscall({:?})", number),
@@ -2583,7 +2583,7 @@ unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> 
     libc!(execvp(file, args));
     let args = null_terminated_array(args);
     let envs = null_terminated_array(environ.cast::<_>());
-    match set_errno(
+    match convert_res(
         resolve_binary(ZStr::from_ptr(file.cast()), &envs)
             .and_then(|path| rustix::runtime::execve(path, &args, &envs)),
     ) {
@@ -2596,7 +2596,7 @@ unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> 
 #[no_mangle]
 unsafe extern "C" fn fork() -> c_int {
     libc!(fork());
-    match set_errno(origin::fork()) {
+    match convert_res(origin::fork()) {
         Some(Some(pid)) => pid.as_raw() as c_int,
         Some(None) => 0,
         None => -1,
@@ -2631,7 +2631,7 @@ unsafe extern "C" fn waitpid(pid: c_int, status: *mut c_int, options: c_int) -> 
     let ret_pid;
     let ret_status;
     match pid {
-        -1 => match set_errno(rustix::process::wait(options)) {
+        -1 => match convert_res(rustix::process::wait(options)) {
             Some(Some((new_pid, new_status))) => {
                 ret_pid = new_pid.as_raw() as c_int;
                 ret_status = new_status.as_raw() as c_int;
@@ -2639,7 +2639,7 @@ unsafe extern "C" fn waitpid(pid: c_int, status: *mut c_int, options: c_int) -> 
             Some(None) => return 0,
             None => return -1,
         },
-        pid => match set_errno(rustix::process::waitpid(
+        pid => match convert_res(rustix::process::waitpid(
             rustix::process::Pid::from_raw(pid as _),
             options,
         )) {
@@ -4122,7 +4122,9 @@ unsafe extern "C" fn __aeabi_d2f(_a: f64) -> f32 {
 
 // utilities
 
-fn set_errno<T>(result: Result<T, rustix::io::Error>) -> Option<T> {
+/// Convert a rustix `Result` into an `Option` with the error stored
+/// in `errno`.
+fn convert_res<T>(result: Result<T, rustix::io::Error>) -> Option<T> {
     result
         .map_err(|err| unsafe {
             *__errno_location() = err.raw_os_error();
