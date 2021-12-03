@@ -6,8 +6,8 @@ use rustix::thread::{futex, FutexFlags, FutexOperation};
 
 /// Raw mutex type backed by atomic operations and Linux `futex` calls.
 ///
-/// The current implementation does not provide fairness, is not reentrant,
-/// and is not proven correct.
+/// The current implementation does not provide fairness, is not reentrant, and
+/// is not proven correct.
 ///
 /// This type is not movable when locked; the `new` function is `unsafe` to
 /// reflect this.
@@ -16,13 +16,16 @@ use rustix::thread::{futex, FutexFlags, FutexOperation};
 // 2 => locked with waiters waiting
 struct FutexMutex(AtomicU32);
 
-/// a safe wrapper around `FutexMutex`, ensuring that it won't be moved while locked.
+/// A safe wrapper around `FutexMutex`, ensuring that it won't be moved while
+/// locked.
 pub(crate) struct Mutex<T> {
     inner: FutexMutex,
     value: UnsafeCell<T>,
 }
 
-/// access to the data is protected by the mutex
+/// # Safety
+///
+/// Access to the data is protected by the mutex.
 unsafe impl<T> Sync for Mutex<T> {}
 
 /// This implements the same API as `lock_api::RawMutex`, except it doesn't
@@ -129,8 +132,8 @@ impl<T> Mutex<T> {
     }
 
     pub fn lock<R, F: FnOnce(&mut T) -> R>(&self, fun: F) -> R {
-        // since the futex is guarenteed to be unlocked by the end of the function,
-        // the mutex can be moved freely outside of it.
+        // Since the futex is guarenteed to be unlocked by the end of the
+        // function, the mutex can be moved freely outside of it.
         unsafe {
             self.inner.lock();
             let value = &mut *self.value.get();
