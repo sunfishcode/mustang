@@ -239,6 +239,7 @@ static FORK_FUNCS: Mutex<RegisteredForkFuncs> = Mutex::new(RegisteredForkFuncs::
 /// The handlers for each phase are called in the following order:
 /// the prepare handlers are called in reverse order of registration;
 /// the parent and child handlers are called in the order of registration.
+#[cfg(not(target_os = "wasi"))]
 pub fn at_fork(
     prepare_func: Option<unsafe extern "C" fn()>,
     parent_func: Option<unsafe extern "C" fn()>,
@@ -283,6 +284,7 @@ pub fn at_fork(
 /// code should use `at_fork` to either protect them,
 /// from being used by other threads during the fork,
 /// or reinitialize them in child process.
+#[cfg(not(target_os = "wasi"))]
 pub unsafe fn fork() -> rustix::io::Result<Option<rustix::process::Pid>> {
     #[cfg(target_vendor = "mustang")]
     {
