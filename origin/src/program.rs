@@ -4,6 +4,7 @@ use crate::mutex::Mutex;
 #[cfg(feature = "threads")]
 use crate::threads::{initialize_main_thread, set_current_thread_id};
 use alloc::boxed::Box;
+#[cfg(target_vendor = "mustang")]
 use alloc::vec::Vec;
 use core::ffi::c_void;
 #[cfg(not(target_vendor = "mustang"))]
