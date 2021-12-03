@@ -1223,6 +1223,7 @@ unsafe extern "C" fn gethostname(name: *mut c_char, len: usize) -> c_int {
     0
 }
 
+#[cfg(feature = "net")]
 #[no_mangle]
 unsafe extern "C" fn listen(fd: c_int, backlog: c_int) -> c_int {
     libc!(libc::listen(fd, backlog));
@@ -1233,6 +1234,7 @@ unsafe extern "C" fn listen(fd: c_int, backlog: c_int) -> c_int {
     }
 }
 
+#[cfg(feature = "net")]
 #[no_mangle]
 unsafe extern "C" fn recv(fd: c_int, ptr: *mut c_void, len: usize, flags: c_int) -> isize {
     libc!(libc::recv(fd, ptr, len, flags));
@@ -1248,6 +1250,7 @@ unsafe extern "C" fn recv(fd: c_int, ptr: *mut c_void, len: usize, flags: c_int)
     }
 }
 
+#[cfg(feature = "net")]
 #[no_mangle]
 unsafe extern "C" fn recvfrom(
     fd: c_int,
@@ -1281,6 +1284,7 @@ unsafe extern "C" fn recvfrom(
     }
 }
 
+#[cfg(feature = "net")]
 #[no_mangle]
 unsafe extern "C" fn send(fd: c_int, buf: *const c_void, len: usize, flags: c_int) -> isize {
     libc!(libc::send(fd, buf, len, flags));
@@ -1296,6 +1300,7 @@ unsafe extern "C" fn send(fd: c_int, buf: *const c_void, len: usize, flags: c_in
     }
 }
 
+#[cfg(feature = "net")]
 #[no_mangle]
 unsafe extern "C" fn sendto(
     fd: c_int,
@@ -1338,6 +1343,7 @@ unsafe extern "C" fn sendto(
     }
 }
 
+#[cfg(feature = "net")]
 #[no_mangle]
 unsafe extern "C" fn shutdown(fd: c_int, how: c_int) -> c_int {
     libc!(libc::shutdown(fd, how));
@@ -1354,6 +1360,7 @@ unsafe extern "C" fn shutdown(fd: c_int, how: c_int) -> c_int {
     }
 }
 
+#[cfg(feature = "net")]
 #[no_mangle]
 unsafe extern "C" fn socket(domain: c_int, type_: c_int, protocol: c_int) -> c_int {
     libc!(libc::socket(domain, type_, protocol));
@@ -1368,6 +1375,7 @@ unsafe extern "C" fn socket(domain: c_int, type_: c_int, protocol: c_int) -> c_i
     }
 }
 
+#[cfg(feature = "net")]
 #[no_mangle]
 unsafe extern "C" fn socketpair(
     domain: c_int,
@@ -1395,6 +1403,7 @@ unsafe extern "C" fn socketpair(
     }
 }
 
+#[cfg(feature = "sync-resolve")]
 #[no_mangle]
 unsafe extern "C" fn __res_init() -> c_int {
     libc!(libc::res_init());
