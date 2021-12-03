@@ -89,8 +89,6 @@ pub(crate) const fn error_str(e: Error) -> Option<&'static str> {
         Error::TXTBSY => "Text file busy.",
         //Error::WOULDBLOCK => "Operation would block.", // same as `AGAIN`
         Error::XDEV => "Cross-device link.",
-        #[cfg(target_os = "wasi")]
-        Error::NOTCAPABLE => "Capabilities insufficient",
         _ => return None,
     })
 }

@@ -84,6 +84,7 @@ use {
 
 // errno
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn __errno_location() -> *mut c_int {
     libc!(libc::__errno_location());
@@ -110,6 +111,7 @@ unsafe extern "C" fn __xpg_strerror_r(errnum: c_int, buf: *mut c_char, buflen: u
 
 // fs
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn open64(pathname: *const c_char, flags: c_int, mode: c_int) -> c_int {
     libc!(libc::open64(pathname, flags, mode));
@@ -152,6 +154,7 @@ unsafe extern "C" fn stat() -> c_int {
     unimplemented!("stat")
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn stat64(pathname: *const c_char, stat_: *mut rustix::fs::Stat) -> c_int {
     libc!(libc::stat64(pathname, same_ptr_mut(stat_)));
@@ -175,6 +178,7 @@ unsafe extern "C" fn fstat(_fd: c_int, _stat: *mut rustix::fs::Stat) -> c_int {
     unimplemented!("fstat")
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn fstat64(fd: c_int, stat_: *mut rustix::fs::Stat) -> c_int {
     libc!(libc::fstat64(fd, same_ptr_mut(stat_)));
@@ -220,6 +224,7 @@ unsafe extern "C" fn statx(
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn realpath(path: *const c_char, resolved_path: *mut c_char) -> *mut c_char {
     libc!(libc::realpath(path, resolved_path));
@@ -319,6 +324,7 @@ unsafe extern "C" fn fdatasync(fd: c_int) -> c_int {
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn fstatat64(
     fd: c_int,
@@ -352,6 +358,7 @@ unsafe extern "C" fn fsync(fd: c_int) -> c_int {
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn ftruncate64(fd: c_int, length: i64) -> c_int {
     libc!(libc::ftruncate64(fd, length));
@@ -408,6 +415,7 @@ unsafe extern "C" fn unlink(pathname: *const c_char) -> c_int {
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn lseek64(fd: c_int, offset: i64, whence: c_int) -> i64 {
     libc!(libc::lseek64(fd, offset, whence));
@@ -424,6 +432,7 @@ unsafe extern "C" fn lseek64(fd: c_int, offset: i64, whence: c_int) -> i64 {
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn lstat64(pathname: *const c_char, stat_: *mut rustix::fs::Stat) -> c_int {
     libc!(libc::lstat64(pathname, same_ptr_mut(stat_)));
@@ -1485,6 +1494,7 @@ unsafe extern "C" fn readv(fd: c_int, iov: *const rustix::io::IoSliceMut, iovcnt
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn pread64(fd: c_int, ptr: *mut c_void, len: usize, offset: i64) -> isize {
     libc!(libc::pread64(fd, ptr, len, offset));
@@ -1499,6 +1509,7 @@ unsafe extern "C" fn pread64(fd: c_int, ptr: *mut c_void, len: usize, offset: i6
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn pwrite64(fd: c_int, ptr: *const c_void, len: usize, offset: i64) -> isize {
     libc!(libc::pwrite64(fd, ptr, len, offset));
@@ -1599,6 +1610,7 @@ unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn pipe2(pipefd: *mut c_int, flags: c_int) -> c_int {
     libc!(libc::pipe2(pipefd, flags));
@@ -2069,6 +2081,7 @@ unsafe extern "C" fn cfmakeraw() {
 
 // process
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn chroot(_name: *const c_char) -> c_int {
     libc!(libc::chroot(_name));
@@ -2094,9 +2107,11 @@ unsafe extern "C" fn sysconf(name: c_int) -> c_long {
 
 #[no_mangle]
 unsafe extern "C" fn getcwd(buf: *mut c_char, len: usize) -> *mut c_char {
-    libc!(libc::getcwd(buf, len));
+    #[cfg(not(target_os = "wasi"))]
+    {
+        libc!(libc::getcwd(buf, len));
 
-    match convert_res(rustix::process::getcwd(Vec::new())) {
+        match convert_res(rustix::process::getcwd(Vec::new())) {
         Some(path) => {
             let path = path.as_bytes();
             if path.len() + 1 <= len {
@@ -2110,10 +2125,18 @@ unsafe extern "C" fn getcwd(buf: *mut c_char, len: usize) -> *mut c_char {
         }
         None => null_mut(),
     }
+    }
+
+    #[cfg(target_os = "wasi")]
+    {
+        todo!("getcwd")
+    }
 }
 
 #[no_mangle]
 unsafe extern "C" fn chdir(path: *const c_char) -> c_int {
+    #[cfg(not(target_os = "wasi"))]
+    {
     libc!(libc::chdir(path));
 
     let path = ZStr::from_ptr(path.cast());
@@ -2121,8 +2144,15 @@ unsafe extern "C" fn chdir(path: *const c_char) -> c_int {
         Some(()) => 0,
         None => -1,
     }
+    }
+
+    #[cfg(target_os = "wasi")]
+    {
+        todo!("chdir")
+    }
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn getauxval(type_: c_ulong) -> c_ulong {
     libc!(libc::getauxval(type_));
@@ -2379,6 +2409,7 @@ unsafe extern "C" fn abort() {
     unimplemented!("abort")
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn signal(_num: c_int, _handler: usize) -> usize {
     libc!(libc::signal(_num, _handler));
@@ -2588,6 +2619,7 @@ unsafe extern "C" fn posix_spawn_file_actions_init(_ptr: *const c_void) -> c_int
 
 // time
 
+#[cfg(not(target_os = "wasi"))] // TODO: wasi has clocks, but wasi-libc's clockids are weird because cloudlibc
 #[no_mangle]
 unsafe extern "C" fn clock_gettime(id: c_int, tp: *mut rustix::time::Timespec) -> c_int {
     libc!(libc::clock_gettime(id, same_ptr_mut(tp)));
@@ -2601,6 +2633,7 @@ unsafe extern "C" fn clock_gettime(id: c_int, tp: *mut rustix::time::Timespec) -
     0
 }
 
+#[cfg(not(target_os = "wasi"))] // TODO: wasi has poll, but it's not wired up here yet
 #[no_mangle]
 unsafe extern "C" fn nanosleep(req: *const libc::timespec, rem: *mut libc::timespec) -> c_int {
     libc!(libc::nanosleep(same_ptr(req), same_ptr_mut(rem)));

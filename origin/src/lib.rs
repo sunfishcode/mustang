@@ -12,7 +12,7 @@
 #[cfg(not(feature = "rustc-dep-of-std"))]
 extern crate alloc;
 
-#[cfg(target_vendor = "mustang")]
+#[cfg_attr(target_os = "wasi", path = "wasi_mutex.rs")]
 mod mutex;
 mod program;
 #[cfg(feature = "threads")]
