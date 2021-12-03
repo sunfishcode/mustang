@@ -186,6 +186,7 @@ unsafe extern "C" fn fstat64(fd: c_int, stat_: *mut rustix::fs::Stat) -> c_int {
     }
 }
 
+#[cfg(any(target_os = "android", target_os = "linux"))]
 #[no_mangle]
 unsafe extern "C" fn statx(
     dirfd_: c_int,
@@ -557,6 +558,7 @@ unsafe extern "C" fn telldir() {
     unimplemented!("telldir")
 }
 
+#[cfg(any(target_os = "android", target_os = "linux"))]
 #[no_mangle]
 unsafe extern "C" fn copy_file_range(
     fd_in: c_int,
@@ -1609,6 +1611,7 @@ unsafe extern "C" fn pipe2(pipefd: *mut c_int, flags: c_int) -> c_int {
     }
 }
 
+#[cfg(any(target_os = "android", target_os = "linux"))]
 #[no_mangle]
 unsafe extern "C" fn sendfile() {
     //libc!(libc::sendfile());
@@ -1627,12 +1630,14 @@ unsafe extern "C" fn recvmsg() {
     unimplemented!("recvmsg")
 }
 
+#[cfg(any(target_os = "android", target_os = "linux"))]
 #[no_mangle]
 unsafe extern "C" fn epoll_create1(_flags: c_int) -> c_int {
     libc!(libc::epoll_create1(_flags));
     unimplemented!("epoll_create1")
 }
 
+#[cfg(any(target_os = "android", target_os = "linux"))]
 #[no_mangle]
 unsafe extern "C" fn epoll_ctl(
     _epfd: c_int,
@@ -1644,6 +1649,7 @@ unsafe extern "C" fn epoll_ctl(
     unimplemented!("epoll_ctl")
 }
 
+#[cfg(any(target_os = "android", target_os = "linux"))]
 #[no_mangle]
 unsafe extern "C" fn epoll_wait(
     _epfd: c_int,
@@ -1660,6 +1666,7 @@ unsafe extern "C" fn epoll_wait(
     unimplemented!("epoll_wait")
 }
 
+#[cfg(any(target_os = "android", target_os = "linux"))]
 #[no_mangle]
 unsafe extern "C" fn eventfd(initval: c_uint, flags: c_int) -> c_int {
     libc!(libc::eventfd(initval, flags));
@@ -2157,15 +2164,19 @@ unsafe extern "C" fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c
     if handle.is_null() {
         // `std` uses `dlsym` to dynamically detect feature availability; recognize
         // functions it asks for.
+        #[cfg(any(target_os = "android", target_os = "linux"))]
         if ZStr::from_ptr(symbol.cast()).to_bytes() == b"statx" {
             return statx as *mut c_void;
         }
+        #[cfg(any(target_os = "android", target_os = "linux"))]
         if ZStr::from_ptr(symbol.cast()).to_bytes() == b"getrandom" {
             return getrandom as *mut c_void;
         }
+        #[cfg(any(target_os = "android", target_os = "linux"))]
         if ZStr::from_ptr(symbol.cast()).to_bytes() == b"copy_file_range" {
             return copy_file_range as *mut c_void;
         }
+        #[cfg(any(target_os = "android", target_os = "linux"))]
         if ZStr::from_ptr(symbol.cast()).to_bytes() == b"clone3" {
             // Let's just say we don't support this for now.
             return null_mut();
@@ -2174,6 +2185,7 @@ unsafe extern "C" fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c
             // Let's just say we don't support this for now.
             return null_mut();
         }
+        #[cfg(target_env = "gnu")]
         if ZStr::from_ptr(symbol.cast()).to_bytes() == b"gnu_get_libc_version" {
             return gnu_get_libc_version as *mut c_void;
         }
