@@ -2063,8 +2063,10 @@ unsafe extern "C" fn sysconf(name: c_int) -> c_long {
 
     match name {
         libc::_SC_PAGESIZE => rustix::process::page_size() as _,
+        #[cfg(not(target_os = "wasi"))]
         libc::_SC_GETPW_R_SIZE_MAX => -1,
         // TODO: Oddly, only ever one processor seems to be online.
+        #[cfg(not(target_os = "wasi"))]
         libc::_SC_NPROCESSORS_ONLN => 1,
         #[cfg(any(target_os = "android", target_os = "linux", target_os = "wasi"))]
         libc::_SC_SYMLOOP_MAX => 40,
