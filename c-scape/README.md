@@ -2,7 +2,7 @@
   <h1><code>c-scape</code></h1>
 
   <p>
-    <strong>Selected C-ABI-compatible libc, libm, and libpthread interfaces</strong>
+    <strong>A libc implementation in Rust</strong>
   </p>
 
   <p>
@@ -16,12 +16,13 @@
 C-ABI-compatible libc, libm, libpthread, and libunwind interfaces, implemented
 in terms of crates written in Rust, such as [rustix], [origin], [sync-resolve],
 [libm], [realpath-ext], [memchr], and [parking\_lot]. Currently this only
-supports `*-*-linux-gnu` ABIs, though other ABIs could be added.
+supports `*-*-linux-gnu` ABIs, though other ABIs could be added in the future.
+And currently this only supports features needed by Rust programs, though more
+support for C programs (eg. `printf`) could also be added in the future.
 
-The goal is to have very little code in c-scape itself, by factoring out all
-of the significant functionality into independent crates with more
-Rust-idiomatic APIs, with c-scape just wrapping those APIs to implement the
-C ABIs.
+The goal is to have very little code in c-scape itself, by factoring out all of
+the significant functionality into independent crates with more Rust-idiomatic
+APIs, with c-scape just wrapping those APIs to implement the C ABIs.
 
 This is currently experimental, incomplete, and some things aren't optimized.
 
