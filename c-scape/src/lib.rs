@@ -58,8 +58,7 @@ use origin::Thread;
 use parking_lot::lock_api::{RawMutex as _, RawRwLock};
 #[cfg(feature = "threads")]
 use parking_lot::RawMutex;
-use rustix::fd::{AsFd, BorrowedFd};
-use rustix::fd::{AsRawFd, FromRawFd, IntoRawFd};
+use rustix::fd::{AsFd, AsRawFd, BorrowedFd, FromRawFd, IntoRawFd};
 use rustix::ffi::{ZStr, ZString};
 use rustix::fs::{cwd, openat, AtFlags, FdFlags, Mode, OFlags};
 #[cfg(any(target_os = "android", target_os = "linux"))]
@@ -2027,7 +2026,7 @@ unsafe extern "C" fn mprotect(addr: *mut c_void, length: usize, prot: c_int) -> 
 
 // rand
 
-#[cfg(not(target_os = "wasi"))]
+#[cfg(any(target_os = "android", target_os = "linux"))]
 #[no_mangle]
 unsafe extern "C" fn getrandom(buf: *mut c_void, buflen: usize, flags: u32) -> isize {
     libc!(libc::getrandom(buf, buflen, flags));
