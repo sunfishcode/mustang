@@ -2402,7 +2402,7 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
         }
         libc::SYS_clone3 => {
             // ensure std::process uses fork as fallback code on linux
-            convert_res::<()>(Err(rustix::io::Error::NOSYS));
+            set_errno(Errno(libc::ENOSYS));
             -1
         }
         _ => unimplemented!("syscall({:?})", number),
