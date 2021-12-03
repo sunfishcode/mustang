@@ -34,8 +34,6 @@ mod arch;
 #[path = "arch-arm.rs"]
 mod arch;
 
-use core::ffi::c_void;
-
 pub use program::{at_exit, exit, exit_immediately};
 #[cfg(not(target_os = "wasi"))]
 pub use program::{at_fork, fork};
@@ -104,16 +102,28 @@ unsafe extern "C" fn _start() -> ! {
          options(noreturn));
 }
 
-#[repr(transparent)]
-struct SendSyncVoidStar(*mut c_void);
-
-unsafe impl Send for SendSyncVoidStar {}
-unsafe impl Sync for SendSyncVoidStar {}
-
 /// An ABI-conforming `__dso_handle`.
 #[cfg(target_vendor = "mustang")]
 #[no_mangle]
-static __dso_handle: SendSyncVoidStar = SendSyncVoidStar(&__dso_handle as *const _ as *mut c_void);
+static __dso_handle: UnsafeSendSyncVoidStar =
+    UnsafeSendSyncVoidStar(&__dso_handle as *const _ as *const _);
+
+/// A type for `__dso_handle`.
+///
+/// `*const c_void` isn't `Send` or `Sync` because a raw pointer could point to
+/// arbitrary data which isn't thread-safe, however `__dso_handle` is used as
+/// an opaque cookie value, and it always points to itself.
+///
+/// Note that in C, `__dso_handle`'s type is usually `void *` which would
+/// correspond to `*mut c_void`, however we can assume the pointee is never
+/// actually mutated.
+#[cfg(target_vendor = "mustang")]
+#[repr(transparent)]
+struct UnsafeSendSyncVoidStar(*const core::ffi::c_void);
+#[cfg(target_vendor = "mustang")]
+unsafe impl Send for UnsafeSendSyncVoidStar {}
+#[cfg(target_vendor = "mustang")]
+unsafe impl Sync for UnsafeSendSyncVoidStar {}
 
 /// Initialize logging, if enabled.
 #[cfg(target_vendor = "mustang")]
