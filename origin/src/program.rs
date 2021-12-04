@@ -207,6 +207,7 @@ pub fn exit(status: c_int) -> ! {
 /// `.fini_array`.
 #[inline]
 pub fn exit_immediately(status: c_int) -> ! {
+    #[cfg(target_vendor = "mustang")]
     log::trace!("Program exiting");
 
     rustix::runtime::exit_group(status)

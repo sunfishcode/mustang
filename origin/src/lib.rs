@@ -9,6 +9,7 @@
 #![feature(const_fn_fn_ptr_basics)]
 #![no_std]
 
+#[cfg(not(feature = "rustc-dep-of-std"))]
 extern crate alloc;
 
 mod allocator;
