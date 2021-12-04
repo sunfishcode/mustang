@@ -20,13 +20,13 @@ dlmalloc = "0.2"
 [target.'cfg(target_vendor = "mustang")'.dependencies]
 log = { version = "0.4.14", default-features = false }
 
-[target.'cfg(not(target_vendor = "mustang"))'.dependencies]
-libc = { version = "0.2.101", default-features = false }
-
 # Optional logging backend. You can use any external logger, but using this
 # feature allows origin to initialize the logger before main, so that you can
 # see the log messages emitted before main is called.
 env_logger = { version = "0.9.0", optional = true }
+
+[target.'cfg(not(target_vendor = "mustang"))'.dependencies]
+libc = { version = "0.2.101", default-features = false }
 
 # Special dependencies used in rustc-dep-of-std mode.
 core = { version = "1.0.0", optional = true, package = "rustc-std-workspace-core" }

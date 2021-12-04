@@ -29,6 +29,8 @@ ctor = "0.1.21"
 [features]
 default = ["threads"]
 threads = ["origin/threads", "mustang/threads"]
+
+[target.'cfg(target_vendor = "mustang")'.features]
 env_logger = ["origin/env_logger"]
 max_level_off = ["origin/max_level_off"]
 
