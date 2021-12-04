@@ -209,7 +209,7 @@ pub fn exit(status: c_int) -> ! {
 pub fn exit_immediately(status: c_int) -> ! {
     log::trace!("Program exiting");
 
-    rustix::process::exit_group(status)
+    rustix::runtime::exit_group(status)
 }
 
 #[cfg(target_vendor = "mustang")]
