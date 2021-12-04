@@ -16,9 +16,7 @@ rustix = { version = "0.29.2", default-features = false }
 bitflags = "1.3.0"
 memoffset = { version = "0.6.4", optional = true }
 dlmalloc = "0.2"
-
-[target.'cfg(target_vendor = "mustang")'.dependencies]
-log = { version = "0.4.14", default-features = false }
+log = { version = "0.4.14", default-features = false, optional = true }
 
 # Optional logging backend. You can use any external logger, but using this
 # feature allows origin to initialize the logger before main, so that you can
@@ -34,7 +32,7 @@ alloc = { version = "1.0.0", optional = true, package = "rustc-std-workspace-all
 compiler_builtins = { version = '0.1.49', optional = true }
 
 [features]
-default = ["std", "threads"]
+default = ["std", "threads", "log"]
 std = ["rustix/std", "linux-raw-sys/std"]
 rustc-dep-of-std = [
     "core",
@@ -49,5 +47,4 @@ rustc-dep-of-std = [
 threads = ["memoffset"]
 
 # Disable logging.
-[target.'cfg(target_vendor = "mustang")'.features]
 max_level_off = ["log/max_level_off"]

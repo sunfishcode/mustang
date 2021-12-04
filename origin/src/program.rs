@@ -81,11 +81,13 @@ pub(super) unsafe extern "C" fn entry(mem: *mut usize) -> ! {
     // Call the functions registered via `.init_array`.
     call_ctors(argc, argv, envp);
 
+    #[cfg(feature = "log")]
     log::trace!("Calling `main({:?}, {:?}, {:?})`", argc, argv, envp);
 
     // Call `main`.
     let status = main(argc, argv, envp);
 
+    #[cfg(feature = "log")]
     log::trace!("`main` returned `{:?}`", status);
 
     // Run functions registered with `at_exit`, and exit with main's return
@@ -109,6 +111,7 @@ pub(super) unsafe fn call_ctors(argc: c_int, argv: *mut *mut u8, envp: *mut *mut
     asm!("# {}", inout(reg) init);
 
     while init != init_end {
+        #[cfg(feature = "log")]
         log::trace!(
             "Calling `.init_array`-registered function `{:?}({:?}, {:?}, {:?})`",
             *init,
@@ -163,6 +166,7 @@ pub fn exit(status: c_int) -> ! {
     // to the end of the list.
     #[cfg(target_vendor = "mustang")]
     while let Some(dtor) = DTORS.lock(|dtors| dtors.pop()) {
+        #[cfg(feature = "log")]
         log::trace!("Calling `at_exit`-registered function",);
 
         dtor();
@@ -185,7 +189,10 @@ pub fn exit(status: c_int) -> ! {
 
         while fini != fini_start {
             fini = fini.sub(1);
+
+            #[cfg(feature = "log")]
             log::trace!("Calling `.fini_array`-registered function `{:?}()`", *fini);
+
             (*fini)();
         }
     }
@@ -207,7 +214,7 @@ pub fn exit(status: c_int) -> ! {
 /// `.fini_array`.
 #[inline]
 pub fn exit_immediately(status: c_int) -> ! {
-    #[cfg(target_vendor = "mustang")]
+    #[cfg(feature = "log")]
     log::trace!("Program exiting");
 
     rustix::runtime::exit_group(status)

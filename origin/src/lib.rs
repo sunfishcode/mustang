@@ -134,17 +134,19 @@ static INIT_ARRAY: unsafe extern "C" fn() = {
     unsafe extern "C" fn function() {
         env_logger::init();
 
+        #[cfg(feature = "log")]
         log::trace!(target: "origin::program", "Program started");
 
         // Log the thread id. We initialized the main earlier than this, but
         // we couldn't initialize the logger until after the main thread is
         // intialized :-).
-        #[cfg(feature = "threads")]
+        #[cfg(all(feature = "log", feature = "threads"))]
         log::trace!(target: "origin::threads", "Main Thread[{:?}] initialized", current_thread_id());
     }
     function
 };
 
+/// Create and declare the Rust global allocator.
 #[cfg(target_vendor = "mustang")]
 #[global_allocator]
 static GLOBAL_ALLOCATOR: allocator::GlobalAllocator = allocator::GlobalAllocator;

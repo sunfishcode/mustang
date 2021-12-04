@@ -29,10 +29,10 @@ use rustix::thread::gettid;
 /// # Safety
 ///
 /// After calling `func`, this terminates the thread.
-#[cfg(feature = "threads")]
 pub(super) unsafe extern "C" fn entry(fn_: *mut Box<dyn FnOnce() -> Option<Box<dyn Any>>>) -> ! {
     let fn_ = Box::from_raw(fn_);
 
+    #[cfg(feature = "log")]
     log::trace!("Thread[{:?}] launched", current_thread_id());
 
     // Do some basic precondition checks, to ensure that our assembly code did
@@ -178,6 +178,7 @@ pub fn current_thread_id() -> Pid {
     tid
 }
 /// Change the current thread id.
+#[cfg(target_vendor = "mustang")]
 #[inline]
 pub(crate) fn set_current_thread_id(tid: Pid) {
     unsafe { (*current_thread()).thread_id.store(tid.as_raw(), SeqCst) };
@@ -244,6 +245,7 @@ fn call_thread_dtors(current: *mut Thread) {
     // Safety: `current` points to thread-local data which is valid as long
     // as the thread is alive.
     while let Some(func) = unsafe { (*current).dtors.pop() } {
+        #[cfg(feature = "log")]
         if log::log_enabled!(log::Level::Trace) {
             log::trace!(
                 "Thread[{:?}] calling `at_thread_exit`-registered function",
@@ -276,6 +278,7 @@ unsafe fn exit_thread() -> ! {
         let current_stack_addr = (*current).stack_addr;
         let current_guard_size = (*current).guard_size;
 
+        #[cfg(feature = "log")]
         log::trace!("Thread[{:?}] exiting as detached", current_thread_id);
         debug_assert_eq!(e, DETACHED);
 
@@ -296,6 +299,7 @@ unsafe fn exit_thread() -> ! {
     } else {
         // The thread was not detached, so its memory will be freed when it's
         // joined.
+        #[cfg(feature = "log")]
         if log::log_enabled!(log::Level::Trace) {
             log::trace!(
                 "Thread[{:?}] exiting as joinable",
@@ -615,6 +619,7 @@ fn round_up(addr: usize, boundary: usize) -> usize {
 /// detached and will not be joined.
 #[inline]
 pub unsafe fn detach_thread(thread: *mut Thread) {
+    #[cfg(feature = "log")]
     if log::log_enabled!(log::Level::Trace) {
         log::trace!(
             "Thread[{:?}] marked as detached",
@@ -635,6 +640,7 @@ pub unsafe fn detach_thread(thread: *mut Thread) {
 /// `thread` must point to a valid and live thread record that has not already
 /// been detached or joined.
 pub unsafe fn join_thread(thread: *mut Thread) {
+    #[cfg(feature = "log")]
     if log::log_enabled!(log::Level::Trace) {
         log::trace!(
             "Thread[{:?}] is being joined",
@@ -685,6 +691,7 @@ unsafe fn free_thread_memory(thread: *mut Thread) {
     let stack_addr = (*thread).stack_addr;
     let guard_size = (*thread).guard_size;
 
+    #[cfg(feature = "log")]
     if log::log_enabled!(log::Level::Trace) {
         log::trace!(
             "Thread[{:?}] memory being freed",
