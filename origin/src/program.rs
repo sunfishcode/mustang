@@ -311,10 +311,7 @@ pub unsafe fn fork() -> rustix::io::Result<Option<rustix::process::Pid>> {
 
     #[cfg(not(target_vendor = "mustang"))]
     {
-        extern "C" {
-            fn fork() -> c_int;
-        }
-        match fork() {
+        match libc::fork() {
             -1 => {
                 let raw = *libc::__errno_location();
                 Err(rustix::io::Error::from_raw_os_error(raw))
