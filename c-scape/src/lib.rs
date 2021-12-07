@@ -2654,27 +2654,53 @@ unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> 
     for dir in path.to_bytes().split(|byte| *byte == b':') {
         // Open the directory and use `execveat` to avoid needing to
         // dynamically allocate a combined path string ourselves.
-        match openat(
+        let result = openat(
             &cwd,
             dir,
             OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC | OFlags::NOCTTY,
             Mode::empty(),
         )
         .and_then::<(), _>(|dirfd| {
-            Err(rustix::runtime::execveat(
+            let mut error = rustix::runtime::execveat(
                 &dirfd,
                 file,
                 args.cast(),
                 environ.cast(),
                 AtFlags::empty(),
-            ))
-        }) {
+            );
+
+            // If `execveat` is unsupported, emulate it with `execve`, without
+            // allocating. This trusts /proc/self/fd.
+            #[cfg(any(target_os = "android", target_os = "linux"))]
+            if let rustix::io::Error::NOSYS = error {
+                let fd = openat(
+                    &dirfd,
+                    file,
+                    OFlags::PATH | OFlags::CLOEXEC | OFlags::NOCTTY,
+                    Mode::empty(),
+                )?;
+                const PREFIX: &[u8] = b"/proc/self/fd/";
+                const PREFIX_LEN: usize = PREFIX.len();
+                let mut buf = [0_u8; PREFIX_LEN + 20 + 1];
+                buf[..PREFIX_LEN].copy_from_slice(PREFIX);
+                let fd_dec = rustix::path::DecInt::from_fd(&fd);
+                let fd_bytes = fd_dec.as_bytes();
+                buf[PREFIX_LEN..PREFIX_LEN + fd_bytes.len()].copy_from_slice(fd_bytes);
+                buf[PREFIX_LEN + fd_bytes.len()] = b'\0';
+                error = rustix::runtime::execve(
+                    ZStr::from_bytes_with_nul_unchecked(&buf),
+                    args.cast(),
+                    environ.cast(),
+                );
+            }
+
+            Err(error)
+        });
+
+        match result {
             Ok(()) => (),
             Err(rustix::io::Error::ACCES) => access_error = true,
             Err(rustix::io::Error::NOENT) | Err(rustix::io::Error::NOTDIR) => {}
-            Err(rustix::io::Error::NOSYS) => {
-                todo!("emulate execveat on older Linux kernels using /proc/self/fd and execve")
-            }
             Err(err) => {
                 set_errno(Errno(err.raw_os_error()));
                 return -1;
