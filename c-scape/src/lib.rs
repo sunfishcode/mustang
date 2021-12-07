@@ -2637,8 +2637,7 @@ unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> 
 
     let file = ZStr::from_ptr(file);
     if file.to_bytes().contains(&b'/') {
-        let err =
-            rustix::runtime::execveat(&cwd, file, args.cast(), environ.cast(), AtFlags::empty());
+        let err = rustix::runtime::execve(file, args.cast(), environ.cast());
         set_errno(Errno(err.raw_os_error()));
         return -1;
     }
