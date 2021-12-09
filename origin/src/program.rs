@@ -78,6 +78,11 @@ pub(super) unsafe extern "C" fn entry(mem: *mut usize) -> ! {
     #[cfg(feature = "threads")]
     initialize_main_thread(mem.cast());
 
+    // `parking_lot_core` needs to allocate some datastructures before any
+    // threads start up.
+    #[cfg(feature = "parking_lot_core")]
+    parking_lot_core::init();
+
     // Call the functions registered via `.init_array`.
     call_ctors(argc, argv, envp);
 
