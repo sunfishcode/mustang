@@ -379,6 +379,8 @@ unsafe fn exit_thread() -> ! {
 /// already running.
 #[cfg(target_vendor = "mustang")]
 pub(super) unsafe fn initialize_main_thread(mem: *mut c_void) {
+    use io::{mmap_anonymous, MapFlags, ProtFlags};
+
     // Read the TLS information from the ELF header.
     STARTUP_TLS_INFO = rustix::runtime::startup_tls_info();
 
@@ -433,10 +435,18 @@ pub(super) unsafe fn initialize_main_thread(mem: *mut c_void) {
         alloc_size += round_up(STARTUP_TLS_INFO.mem_size, tls_data_align);
     }
 
-    let layout = alloc::alloc::Layout::from_size_align(alloc_size, metadata_align).unwrap();
-
-    // Allocate the thread data.
-    let new = alloc::alloc::alloc(layout);
+    // Allocate the thread data. Use `mmap_anonymous` rather than `alloc` here
+    // as the allocator may depend on thread-local data, which is what we're
+    // initializing here.
+    let new = mmap_anonymous(
+        null_mut(),
+        alloc_size,
+        ProtFlags::READ | ProtFlags::WRITE,
+        MapFlags::PRIVATE,
+    )
+    .unwrap()
+    .cast::<u8>();
+    debug_assert_eq!(new as usize % metadata_align, 0);
 
     let tls_data = new.add(tls_data_bottom);
     let metadata: *mut Metadata = new.add(header).cast();
