@@ -507,14 +507,6 @@ pub fn create_thread(
 ) -> io::Result<*mut Thread> {
     use io::{mmap_anonymous, mprotect, MapFlags, MprotectFlags, ProtFlags};
 
-    // Notify parking_lot_core that we're about to create a new thread. This
-    // allows it perform memory allocation within the parent thread rather than
-    // within the newly created thread, since allocation may require taking
-    // locks, which requires the newly created thread to have memory allocated
-    // for it.
-    #[cfg(feature = "parking_lot_core")]
-    parking_lot_core::reserve(1);
-
     // Safety: `STARGUP_TLS_INFO` is initialized at program startup before
     // we come here creating new threads.
     let (startup_tls_align, startup_tls_mem_size) =
