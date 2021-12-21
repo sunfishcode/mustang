@@ -4256,15 +4256,6 @@ unsafe extern "C" fn gnu_get_libc_version() -> *const c_char {
     b"2.23\0".as_ptr().cast::<_>()
 }
 
-// compiler-builtins
-
-#[cfg(target_arch = "arm")]
-#[no_mangle]
-unsafe extern "C" fn __aeabi_d2f(_a: f64) -> f32 {
-    //libc!(libc::__aeabi_d2f(_a));
-    unimplemented!("__aeabi_d2f")
-}
-
 // utilities
 
 /// Convert a rustix `Result` into an `Option` with the error stored
