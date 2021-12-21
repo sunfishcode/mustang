@@ -24,7 +24,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        build: [ubuntu, ubuntu-18.04, i686-linux, aarch64-linux, riscv64-linux, arm-linux]
+        build: [ubuntu, ubuntu-18.04, i686-linux, aarch64-linux, riscv64-linux]
         include:
           - build: ubuntu
             os: ubuntu-latest
