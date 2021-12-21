@@ -4,6 +4,7 @@ use core::ffi::c_void;
 use linux_raw_sys::general::{__NR_clone, __NR_exit, __NR_munmap};
 use rustix::process::RawPid;
 
+/// A wrapper around the Linux `clone` system call.
 #[inline]
 pub(super) unsafe fn clone(
     flags: u32,
@@ -78,6 +79,7 @@ pub(super) unsafe fn clone(
     r0
 }
 
+/// Write a value to the platform thread-pointer register.
 #[cfg(target_vendor = "mustang")]
 #[inline]
 pub(super) unsafe fn set_thread_pointer(ptr: *mut c_void) {
@@ -101,6 +103,7 @@ pub(super) unsafe fn set_thread_pointer(ptr: *mut c_void) {
     debug_assert_eq!(get_thread_pointer(), ptr);
 }
 
+/// Read the value of the platform thread-pointer register.
 #[inline]
 pub(super) fn get_thread_pointer() -> *mut c_void {
     let ptr;
