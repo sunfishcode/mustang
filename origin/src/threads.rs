@@ -733,7 +733,7 @@ unsafe fn wait_for_thread_exit(thread: *mut Thread) {
     let thread = &mut *thread;
     let thread_id = &mut thread.thread_id;
     let id_value = thread_id.load(SeqCst);
-    if Pid::from_raw(id_value).is_some() {
+    if let Some(id_value) = Pid::from_raw(id_value) {
         // This doesn't use any shared memory, but we can't use
         // `FutexFlags::PRIVATE` because the wake comes from Linux
         // as arranged by the `CloneFlags::CHILD_CLEARTID` flag,
@@ -742,7 +742,7 @@ unsafe fn wait_for_thread_exit(thread: *mut Thread) {
             thread_id.as_mut_ptr(),
             FutexOperation::Wait,
             FutexFlags::empty(),
-            id_value,
+            id_value.as_raw_nonzero().get(),
             null(),
             null_mut(),
             0,

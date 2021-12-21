@@ -5,7 +5,7 @@ pub(crate) const fn error_str(e: Error) -> Option<&'static str> {
     // <https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/errno.h.html>
     Some(match e {
         Error::TOOBIG => "Argument list too long.",
-        Error::ACCES => "Permission denied.",
+        Error::ACCESS => "Permission denied.",
         Error::ADDRINUSE => "Address in use.",
         Error::ADDRNOTAVAIL => "Address not available.",
         Error::AFNOSUPPORT => "Address family not supported.",

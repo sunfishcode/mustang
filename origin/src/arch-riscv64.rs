@@ -1,5 +1,6 @@
 use alloc::boxed::Box;
 use core::any::Any;
+use core::arch::asm;
 use core::ffi::c_void;
 use linux_raw_sys::general::{__NR_clone, __NR_exit, __NR_munmap};
 use rustix::process::RawPid;

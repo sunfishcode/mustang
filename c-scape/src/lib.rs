@@ -75,7 +75,7 @@ use rustix::net::{
     SocketAddrAny, SocketAddrStorage, SocketFlags, SocketType,
 };
 #[cfg(not(target_os = "wasi"))]
-use rustix::process::WaitOptions;
+use rustix::process::{Pid, WaitOptions};
 #[cfg(feature = "sync-resolve")]
 use {
     rustix::net::{IpAddr, SocketAddrV4, SocketAddrV6},
@@ -2331,7 +2331,7 @@ unsafe extern "C" fn getpid() -> c_int {
 #[no_mangle]
 unsafe extern "C" fn getppid() -> c_int {
     libc!(libc::getppid());
-    rustix::process::Pid::as_raw(rustix::process::getppid()) as _
+    Pid::as_raw(rustix::process::getppid()) as _
 }
 
 #[cfg(not(target_os = "wasi"))]
@@ -2698,7 +2698,7 @@ unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> 
 
         match result {
             Ok(()) => (),
-            Err(rustix::io::Error::ACCES) => access_error = true,
+            Err(rustix::io::Error::ACCESS) => access_error = true,
             Err(rustix::io::Error::NOENT) | Err(rustix::io::Error::NOTDIR) => {}
             Err(err) => {
                 set_errno(Errno(err.raw_os_error()));
