@@ -8,6 +8,7 @@
   "executables": true,
   "features": "+soft-float,+strict-align",
   "has-elf-tls": true,
+  "has-thread-local": true,
   "has-rpath": true,
   "has-thumb-interworking": true,
   "is-builtin": false,
