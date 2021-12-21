@@ -17,20 +17,12 @@ mod program;
 #[cfg(feature = "threads")]
 mod threads;
 
-#[cfg(all(target_arch = "aarch64", feature = "threads"))]
-#[path = "arch-aarch64.rs"]
-mod arch;
-#[cfg(all(target_arch = "x86_64", feature = "threads"))]
-#[path = "arch-x86_64.rs"]
-mod arch;
-#[cfg(all(target_arch = "x86", feature = "threads"))]
-#[path = "arch-x86.rs"]
-mod arch;
-#[cfg(all(target_arch = "riscv64", feature = "threads"))]
-#[path = "arch-riscv64.rs"]
-mod arch;
-#[cfg(all(target_arch = "arm", feature = "threads"))]
-#[path = "arch-arm.rs"]
+#[cfg(feature = "threads")]
+#[cfg_attr(target_arch = "aarch64", path = "arch-aarch64.rs")]
+#[cfg_attr(target_arch = "x86_64", path = "arch-x86_64.rs")]
+#[cfg_attr(target_arch = "x86", path = "arch-x86.rs")]
+#[cfg_attr(target_arch = "riscv64", path = "arch-riscv64.rs")]
+#[cfg_attr(target_arch = "arm", path = "arch-arm.rs")]
 mod arch;
 
 pub use program::{at_exit, exit, exit_immediately};
@@ -50,8 +42,8 @@ pub use threads::{
 /// # Safety
 ///
 /// This function should never be called explicitly. It is the first thing
-/// executed in the program, and it assumes that memory is laid out
-/// according to the operating system convention for starting a new program.
+/// executed in the program, and it assumes that memory is laid out according
+/// to the operating system convention for starting a new program.
 #[cfg(target_vendor = "mustang")]
 #[naked]
 #[no_mangle]
@@ -59,9 +51,9 @@ unsafe extern "C" fn _start() -> ! {
     use program::entry;
 
     // Jump to `entry`, passing it the initial stack pointer value as an
-    // argument, a NULL return address, a NULL frame pointer, and an aligned
+    // argument, a null return address, a null frame pointer, and an aligned
     // stack pointer. On many architectures, the incoming frame pointer is
-    // already NULL.
+    // already null.
 
     #[cfg(target_arch = "x86_64")]
     asm!("mov rdi, rsp",   // Pass the incoming `rsp` as the arg to `entry`.

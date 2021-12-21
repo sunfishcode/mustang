@@ -348,9 +348,10 @@ unsafe fn exit_thread() -> ! {
         // Free the thread's `mmap` region, if we allocated it.
         let map_size = current_map_size;
         if map_size != 0 {
-            // NULL out the tid address, so the kernel doesn't write to memory
-            // that we've freed trying to clear our TID when we exit.
+            // Null out the tid address so that the kernel doesn't write to
+            // memory that we've freed trying to clear our tid when we exit.
             let _ = set_tid_address(null_mut());
+
             // `munmap` the memory, which also frees the stack we're currently
             // on, and do an `exit` carefully without touching the stack.
             let map = current_stack_addr.cast::<u8>().sub(current_guard_size);
