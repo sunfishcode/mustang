@@ -1,4 +1,5 @@
 #![doc = include_str!("../README.md")]
+#![allow(stable_features)]
 #![deny(missing_docs)]
 #![feature(asm)]
 #![feature(asm_const)]
@@ -48,6 +49,7 @@ pub use threads::{
 #[naked]
 #[no_mangle]
 unsafe extern "C" fn _start() -> ! {
+    use core::arch::asm;
     use program::entry;
 
     // Jump to `entry`, passing it the initial stack pointer value as an

@@ -6,6 +6,7 @@ use crate::threads::initialize_main_thread;
 use alloc::boxed::Box;
 #[cfg(target_vendor = "mustang")]
 use alloc::vec::Vec;
+use core::arch::asm;
 use core::ffi::c_void;
 #[cfg(not(target_vendor = "mustang"))]
 use core::ptr::null_mut;
