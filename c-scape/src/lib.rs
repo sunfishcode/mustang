@@ -14,9 +14,9 @@ extern crate compiler_builtins;
 #[macro_use]
 mod use_libc;
 
-mod error_str;
 #[cfg(not(target_os = "wasi"))]
 mod at_fork;
+mod error_str;
 // Unwinding isn't supported on 32-bit arm yet.
 #[cfg(target_arch = "arm")]
 mod unwind;
