@@ -3400,14 +3400,14 @@ unsafe fn _getenv(key: &ZStr) -> *mut c_char {
 }
 
 #[no_mangle]
-unsafe extern "C" fn setenv() {
-    //libc!(libc::setenv());
+unsafe extern "C" fn setenv(name: *const c_char, value: *const c_char, overwrite: c_int) -> c_int {
+    libc!(libc::setenv(name, value, overwrite));
     unimplemented!("setenv")
 }
 
 #[no_mangle]
-unsafe extern "C" fn unsetenv() {
-    //libc!(libc::unsetenv());
+unsafe extern "C" fn unsetenv(name: *const c_char) -> c_int {
+    libc!(libc::unsetenv(name));
     unimplemented!("unsetenv")
 }
 
