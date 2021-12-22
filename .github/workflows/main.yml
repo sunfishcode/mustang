@@ -65,18 +65,6 @@ jobs:
             qemu_target: riscv64-linux-user
             host_target: riscv64gc-unknown-linux-gnu
             mustang_target: riscv64gc-mustang-linux-gnu
-          - build: arm-linux
-            os: ubuntu-latest
-            rust: nightly
-            target: armv5te-unknown-linux-gnueabi
-            gcc_package: gcc-arm-linux-gnueabi
-            gcc: arm-linux-gnueabi-gcc
-            qemu: qemu-arm -L /usr/arm-linux-gnueabi
-            qemu_target: arm-linux-user
-            host_target: armv5te-unknown-linux-gnueabi
-            mustang_target: armv5te-mustang-linux-gnueabi
-            # FIXME(mustang): when testing on armv5te, using more than 1 thread triggers a segfault
-            test_args: --test-threads 1
     steps:
     - uses: actions/checkout@v2
       with:
