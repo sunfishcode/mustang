@@ -41,4 +41,6 @@ members = [
   "mustang",
   "origin",
   "c-scape",
+  "wasi-libc-bottom-half-staticlib",
+  "wasi-libc-bottom-half-build",
 ]
