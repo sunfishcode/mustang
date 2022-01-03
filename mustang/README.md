@@ -37,4 +37,4 @@ in Rust.
 [Mustang]: https://github.com/sunfishcode/mustang/
 [here]: https://github.com/sunfishcode/mustang#usage
 [dlmalloc]: https://crates.io/crates/dlmalloc
-[wee_alloc]: https://crates.io/crates/wee_alloc
+[wee\_alloc]: https://crates.io/crates/wee_alloc
