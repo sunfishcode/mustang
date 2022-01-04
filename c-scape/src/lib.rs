@@ -2683,9 +2683,8 @@ unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> 
                 let mut buf = [0_u8; PREFIX_LEN + 20 + 1];
                 buf[..PREFIX_LEN].copy_from_slice(PREFIX);
                 let fd_dec = rustix::path::DecInt::from_fd(&fd);
-                let fd_bytes = fd_dec.as_bytes();
+                let fd_bytes = fd_dec.as_z_str().to_bytes_with_nul();
                 buf[PREFIX_LEN..PREFIX_LEN + fd_bytes.len()].copy_from_slice(fd_bytes);
-                buf[PREFIX_LEN + fd_bytes.len()] = b'\0';
                 error = rustix::runtime::execve(
                     ZStr::from_bytes_with_nul_unchecked(&buf),
                     args.cast(),
