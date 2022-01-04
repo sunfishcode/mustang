@@ -142,7 +142,7 @@ unsafe extern "C" fn readlink(pathname: *const c_char, buf: *mut c_char, bufsiz:
     };
     let bytes = path.as_bytes();
     let min = core::cmp::min(bytes.len(), bufsiz);
-    slice::from_raw_parts_mut(buf.cast::<_>(), min).copy_from_slice(bytes);
+    slice::from_raw_parts_mut(buf.cast(), min).copy_from_slice(bytes);
     min as isize
 }
 
@@ -443,7 +443,7 @@ unsafe extern "C" fn lstat64(pathname: *const c_char, stat_: *mut rustix::fs::St
 
 #[no_mangle]
 unsafe extern "C" fn opendir(pathname: *const c_char) -> *mut c_void {
-    libc!(libc::opendir(pathname).cast::<_>());
+    libc!(libc::opendir(pathname).cast());
 
     match convert_res(rustix::fs::openat(
         &cwd(),
@@ -458,10 +458,10 @@ unsafe extern "C" fn opendir(pathname: *const c_char) -> *mut c_void {
 
 #[no_mangle]
 unsafe extern "C" fn fdopendir(fd: c_int) -> *mut c_void {
-    libc!(libc::fdopendir(fd).cast::<_>());
+    libc!(libc::fdopendir(fd).cast());
 
     match convert_res(rustix::fs::Dir::from(OwnedFd::from_raw_fd(fd))) {
-        Some(dir) => Box::into_raw(Box::new(dir)).cast::<_>(),
+        Some(dir) => Box::into_raw(Box::new(dir)).cast(),
         None => null_mut(),
     }
 }
@@ -474,7 +474,7 @@ unsafe extern "C" fn readdir64_r(
     ptr: *mut *mut libc::dirent64,
 ) -> c_int {
     libc!(libc::readdir64_r(
-        dir.cast::<_>(),
+        dir.cast(),
         same_ptr_mut(entry),
         same_ptr_mut(ptr)
     ));
@@ -516,7 +516,7 @@ unsafe extern "C" fn readdir64_r(
 
 #[no_mangle]
 unsafe extern "C" fn closedir(dir: *mut c_void) -> c_int {
-    libc!(libc::closedir(dir.cast::<_>()));
+    libc!(libc::closedir(dir.cast()));
 
     drop(Box::<rustix::fs::Dir>::from_raw(dir.cast()));
     0
@@ -524,7 +524,7 @@ unsafe extern "C" fn closedir(dir: *mut c_void) -> c_int {
 
 #[no_mangle]
 unsafe extern "C" fn dirfd(dir: *mut c_void) -> c_int {
-    libc!(libc::dirfd(dir.cast::<_>()));
+    libc!(libc::dirfd(dir.cast()));
 
     let dir = dir.cast::<rustix::fs::Dir>();
     (*dir).as_fd().as_raw_fd()
@@ -1194,11 +1194,11 @@ unsafe extern "C" fn freeaddrinfo(mut res: *mut libc::addrinfo) {
     while !res.is_null() {
         let addr = (*res).ai_addr;
         if !addr.is_null() {
-            alloc::alloc::dealloc(addr.cast::<_>(), addr_layout);
+            alloc::alloc::dealloc(addr.cast(), addr_layout);
         }
         let old = res;
         res = (*res).ai_next;
-        alloc::alloc::dealloc(old.cast::<_>(), layout);
+        alloc::alloc::dealloc(old.cast(), layout);
     }
 }
 
@@ -1213,7 +1213,7 @@ unsafe extern "C" fn gai_strerror(errcode: c_int) -> *const c_char {
         _ => panic!("unrecognized gai_strerror {:?}", errcode),
     }
     .as_ptr()
-    .cast::<_>()
+    .cast()
 }
 
 #[cfg(not(target_os = "wasi"))]
@@ -1226,8 +1226,8 @@ unsafe extern "C" fn gethostname(name: *mut c_char, len: usize) -> c_int {
         return -1;
     }
     memcpy(
-        name.cast::<_>(),
-        nodename.to_bytes().as_ptr().cast::<_>(),
+        name.cast(),
+        nodename.to_bytes().as_ptr().cast(),
         nodename.to_bytes().len(),
     );
     *name.add(nodename.to_bytes().len()) = 0;
@@ -1713,7 +1713,7 @@ fn tagged_alloc(type_layout: alloc::alloc::Layout) -> *mut u8 {
         let tag_offset = offset - tag_layout.size();
         unsafe {
             total_ptr.wrapping_add(tag_offset).cast::<Tag>().write(tag);
-            total_ptr.wrapping_add(offset).cast::<_>()
+            total_ptr.wrapping_add(offset).cast()
         }
     } else {
         core::ptr::null_mut()
@@ -1757,7 +1757,7 @@ unsafe extern "C" fn malloc(size: usize) -> *mut c_void {
     #[cfg(not(target_arch = "riscv64"))]
     let layout =
         alloc::alloc::Layout::from_size_align(size, align_of::<libc::max_align_t>()).unwrap();
-    tagged_alloc(layout).cast::<_>()
+    tagged_alloc(layout).cast()
 }
 
 #[no_mangle]
@@ -1767,14 +1767,14 @@ unsafe extern "C" fn realloc(old: *mut c_void, size: usize) -> *mut c_void {
     if old.is_null() {
         malloc(size)
     } else {
-        let old_layout = get_layout(old.cast::<_>());
+        let old_layout = get_layout(old.cast());
         if old_layout.size() >= size {
             return old;
         }
 
         let new = malloc(size);
         memcpy(new, old, core::cmp::min(size, old_layout.size()));
-        tagged_dealloc(old.cast::<_>());
+        tagged_dealloc(old.cast());
         new
     }
 }
@@ -1807,7 +1807,7 @@ unsafe extern "C" fn posix_memalign(
     }
 
     let layout = alloc::alloc::Layout::from_size_align(size, alignment).unwrap();
-    let ptr = tagged_alloc(layout).cast::<_>();
+    let ptr = tagged_alloc(layout).cast();
 
     *memptr = ptr;
     0
@@ -1821,7 +1821,7 @@ unsafe extern "C" fn free(ptr: *mut c_void) {
         return;
     }
 
-    tagged_dealloc(ptr.cast::<_>());
+    tagged_dealloc(ptr.cast());
 }
 
 // mem
@@ -1830,7 +1830,7 @@ unsafe extern "C" fn free(ptr: *mut c_void) {
 unsafe extern "C" fn memcmp(a: *const c_void, b: *const c_void, len: usize) -> c_int {
     libc!(libc::memcmp(a, b, len));
 
-    compiler_builtins::mem::memcmp(a.cast::<_>(), b.cast::<_>(), len)
+    compiler_builtins::mem::memcmp(a.cast(), b.cast(), len)
 }
 
 #[no_mangle]
@@ -1838,28 +1838,28 @@ unsafe extern "C" fn bcmp(a: *const c_void, b: *const c_void, len: usize) -> c_i
     // `bcmp` is just an alias for `memcmp`.
     libc!(libc::memcmp(a, b, len));
 
-    compiler_builtins::mem::bcmp(a.cast::<_>(), b.cast::<_>(), len)
+    compiler_builtins::mem::bcmp(a.cast(), b.cast(), len)
 }
 
 #[no_mangle]
 unsafe extern "C" fn memcpy(dst: *mut c_void, src: *const c_void, len: usize) -> *mut c_void {
     libc!(libc::memcpy(dst, src, len));
 
-    compiler_builtins::mem::memcpy(dst.cast::<_>(), src.cast::<_>(), len).cast::<_>()
+    compiler_builtins::mem::memcpy(dst.cast(), src.cast(), len).cast()
 }
 
 #[no_mangle]
 unsafe extern "C" fn memmove(dst: *mut c_void, src: *const c_void, len: usize) -> *mut c_void {
     libc!(libc::memmove(dst, src, len));
 
-    compiler_builtins::mem::memmove(dst.cast::<_>(), src.cast::<_>(), len).cast::<_>()
+    compiler_builtins::mem::memmove(dst.cast(), src.cast(), len).cast()
 }
 
 #[no_mangle]
 unsafe extern "C" fn memset(dst: *mut c_void, fill: c_int, len: usize) -> *mut c_void {
     libc!(libc::memset(dst, fill, len));
 
-    compiler_builtins::mem::memset(dst.cast::<_>(), fill, len).cast::<_>()
+    compiler_builtins::mem::memset(dst.cast(), fill, len).cast()
 }
 
 #[no_mangle]
@@ -2262,7 +2262,7 @@ unsafe extern "C" fn sched_getaffinity(
     cpu_set_size: usize,
     mask: *mut libc::cpu_set_t,
 ) -> c_int {
-    libc!(libc::sched_getaffinity(pid, cpu_set_size, mask.cast::<_>()));
+    libc!(libc::sched_getaffinity(pid, cpu_set_size, mask.cast()));
     let pid = rustix::process::Pid::from_raw(pid as _);
     match convert_res(rustix::process::sched_getaffinity(pid)) {
         Some(cpu_set) => {
@@ -2390,11 +2390,7 @@ unsafe extern "C" fn signal(_num: c_int, _handler: usize) -> usize {
 #[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn sigaction(_signum: c_int, _act: *const c_void, _oldact: *mut c_void) -> c_int {
-    libc!(libc::sigaction(
-        _signum,
-        _act.cast::<_>(),
-        _oldact.cast::<_>()
-    ));
+    libc!(libc::sigaction(_signum, _act.cast(), _oldact.cast()));
 
     // No signals for this handler were ever delivered either. What a coincidence.
     0
@@ -2403,7 +2399,7 @@ unsafe extern "C" fn sigaction(_signum: c_int, _act: *const c_void, _oldact: *mu
 #[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn sigaltstack(_ss: *const c_void, _old_ss: *mut c_void) -> c_int {
-    libc!(libc::sigaltstack(_ss.cast::<_>(), _old_ss.cast::<_>()));
+    libc!(libc::sigaltstack(_ss.cast(), _old_ss.cast()));
 
     // Somehow no signals were delivered and the stack wasn't ever used. What luck.
     0
@@ -2412,7 +2408,7 @@ unsafe extern "C" fn sigaltstack(_ss: *const c_void, _old_ss: *mut c_void) -> c_
 #[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn sigaddset(_sigset: *mut c_void, _signum: c_int) -> c_int {
-    libc!(libc::sigaddset(_sigset.cast::<_>(), _signum));
+    libc!(libc::sigaddset(_sigset.cast(), _signum));
     // Signal sets are not used right now.
     0
 }
@@ -2420,7 +2416,7 @@ unsafe extern "C" fn sigaddset(_sigset: *mut c_void, _signum: c_int) -> c_int {
 #[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn sigemptyset(_sigset: *mut c_void) -> c_int {
-    libc!(libc::sigemptyset(_sigset.cast::<_>()));
+    libc!(libc::sigemptyset(_sigset.cast()));
     // Signal sets are not used right now.
     0
 }
@@ -4252,7 +4248,7 @@ unsafe extern "C" fn gnu_get_libc_version() -> *const c_char {
     // which is a glibc version where `posix_spawn` doesn't handle `ENOENT`
     // as std wants, so it uses `fork`+`exec` instead, since we don't yet
     // implement `posix_spawn`.
-    b"2.23\0".as_ptr().cast::<_>()
+    b"2.23\0".as_ptr().cast()
 }
 
 // utilities
