@@ -154,7 +154,7 @@ unsafe extern "C" fn stat() -> c_int {
 
 #[no_mangle]
 unsafe extern "C" fn stat64(pathname: *const c_char, stat_: *mut rustix::fs::Stat) -> c_int {
-    libc!(libc::stat64(pathname, same_ptr_mut(stat_)));
+    libc!(checked_cast!(libc::stat64(pathname, stat_), stat_));
 
     match convert_res(rustix::fs::statat(
         &cwd(),
@@ -170,14 +170,14 @@ unsafe extern "C" fn stat64(pathname: *const c_char, stat_: *mut rustix::fs::Sta
 }
 
 #[no_mangle]
-unsafe extern "C" fn fstat(_fd: c_int, _stat: *mut rustix::fs::Stat) -> c_int {
-    libc!(libc::fstat(_fd, same_ptr_mut(_stat)));
+unsafe extern "C" fn fstat(_fd: c_int, _stat: *mut libc::stat) -> c_int {
+    libc!(libc::fstat(_fd, _stat));
     unimplemented!("fstat")
 }
 
 #[no_mangle]
 unsafe extern "C" fn fstat64(fd: c_int, stat_: *mut rustix::fs::Stat) -> c_int {
-    libc!(libc::fstat64(fd, same_ptr_mut(stat_)));
+    libc!(checked_cast!(libc::fstat64(fd, stat_), stat_));
 
     match convert_res(rustix::fs::fstat(&BorrowedFd::borrow_raw_fd(fd))) {
         Some(r) => {
@@ -197,7 +197,10 @@ unsafe extern "C" fn statx(
     mask: c_uint,
     stat_: *mut rustix::fs::Statx,
 ) -> c_int {
-    libc!(libc::statx(dirfd_, path, flags, mask, same_ptr_mut(stat_)));
+    libc!(checked_cast!(
+        libc::statx(dirfd_, path, flags, mask, stat_),
+        stat_
+    ));
 
     if path.is_null() || stat_.is_null() {
         set_errno(Errno(libc::EFAULT));
@@ -326,7 +329,10 @@ unsafe extern "C" fn fstatat64(
     stat_: *mut rustix::fs::Stat,
     flags: c_int,
 ) -> c_int {
-    libc!(libc::fstatat64(fd, pathname, same_ptr_mut(stat_), flags));
+    libc!(checked_cast!(
+        libc::fstatat64(fd, pathname, stat_, flags),
+        stat_
+    ));
 
     let flags = AtFlags::from_bits(flags as _).unwrap();
     match convert_res(rustix::fs::statat(
@@ -426,7 +432,7 @@ unsafe extern "C" fn lseek64(fd: c_int, offset: i64, whence: c_int) -> i64 {
 
 #[no_mangle]
 unsafe extern "C" fn lstat64(pathname: *const c_char, stat_: *mut rustix::fs::Stat) -> c_int {
-    libc!(libc::lstat64(pathname, same_ptr_mut(stat_)));
+    libc!(checked_cast!(libc::lstat64(pathname, stat_), stat_));
 
     match convert_res(rustix::fs::statat(
         &cwd(),
@@ -473,11 +479,7 @@ unsafe extern "C" fn readdir64_r(
     entry: *mut libc::dirent64,
     ptr: *mut *mut libc::dirent64,
 ) -> c_int {
-    libc!(libc::readdir64_r(
-        dir.cast(),
-        same_ptr_mut(entry),
-        same_ptr_mut(ptr)
-    ));
+    libc!(libc::readdir64_r(dir.cast(), entry, ptr));
 
     let dir = dir.cast::<rustix::fs::Dir>();
     match (*dir).read() {
@@ -693,7 +695,10 @@ unsafe extern "C" fn accept(
     addr: *mut SocketAddrStorage,
     len: *mut libc::socklen_t,
 ) -> c_int {
-    libc!(libc::accept(fd, same_ptr_mut(addr), len));
+    // FIXME: layout of addr doesn't match signature on i686
+    // uncomment once it does:
+    // libc!(checked_cast!(libc::accept(fd, addr, len), addr));
+    libc!(libc::accept(fd, addr.cast(), len));
 
     match convert_res(rustix::net::acceptfrom(&BorrowedFd::borrow_raw_fd(fd))) {
         Some((accepted_fd, from)) => {
@@ -713,7 +718,10 @@ unsafe extern "C" fn accept4(
     len: *mut libc::socklen_t,
     flags: c_int,
 ) -> c_int {
-    libc!(libc::accept4(fd, same_ptr_mut(addr), len, flags));
+    // FIXME: layout of addr doesn't match signature on i686
+    // uncomment once it does:
+    // libc!(checked_cast!(libc::accept4(fd, addr, len, flags), addr));
+    libc!(libc::accept4(fd, addr.cast(), len, flags));
 
     let flags = AcceptFlags::from_bits(flags as _).unwrap();
     match convert_res(rustix::net::acceptfrom_with(
@@ -736,7 +744,10 @@ unsafe extern "C" fn bind(
     addr: *const SocketAddrStorage,
     len: libc::socklen_t,
 ) -> c_int {
-    libc!(libc::bind(sockfd, same_ptr(addr), len));
+    // FIXME: layout of addr doesn't match signature on i686
+    // uncomment once it does:
+    // libc!(checked_cast!(libc::bind(sockfd, addr, len), addr));
+    libc!(libc::bind(sockfd, addr.cast(), len));
 
     let addr = match convert_res(SocketAddrAny::read(addr, len.try_into().unwrap())) {
         Some(addr) => addr,
@@ -762,7 +773,10 @@ unsafe extern "C" fn connect(
     addr: *const SocketAddrStorage,
     len: libc::socklen_t,
 ) -> c_int {
-    libc!(libc::connect(sockfd, same_ptr(addr), len));
+    // FIXME: layout of addr doesn't match signature on i686
+    // uncomment once it does:
+    // libc!(checked_cast!(libc::connect(sockfd, addr, len), addr));
+    libc!(libc::connect(sockfd, addr.cast(), len));
 
     let addr = match convert_res(SocketAddrAny::read(addr, len.try_into().unwrap())) {
         Some(addr) => addr,
@@ -788,7 +802,10 @@ unsafe extern "C" fn getpeername(
     addr: *mut SocketAddrStorage,
     len: *mut libc::socklen_t,
 ) -> c_int {
-    libc!(libc::getpeername(fd, same_ptr_mut(addr), len));
+    // FIXME: layout of addr doesn't match signature on i686
+    // uncomment once it does:
+    // libc!(checked_cast!(libc::getpeername(fd, addr, len), addr));
+    libc!(libc::getpeername(fd, addr.cast(), len));
 
     match convert_res(rustix::net::getpeername(&BorrowedFd::borrow_raw_fd(fd))) {
         Some(from) => {
@@ -807,7 +824,10 @@ unsafe extern "C" fn getsockname(
     addr: *mut SocketAddrStorage,
     len: *mut libc::socklen_t,
 ) -> c_int {
-    libc!(libc::getsockname(fd, same_ptr_mut(addr), len));
+    // FIXME: layout of addr doesn't match signature on i686
+    // uncomment once it does:
+    // libc!(checked_cast!(libc::getsockname(fd, addr, len), addr));
+    libc!(libc::getsockname(fd, addr.cast(), len));
 
     match convert_res(rustix::net::getsockname(&BorrowedFd::borrow_raw_fd(fd))) {
         Some(from) => {
@@ -1089,12 +1109,7 @@ unsafe extern "C" fn getaddrinfo(
     hints: *const libc::addrinfo,
     res: *mut *mut libc::addrinfo,
 ) -> c_int {
-    libc!(libc::getaddrinfo(
-        node,
-        service,
-        same_ptr(hints),
-        same_ptr_mut(res)
-    ));
+    libc!(libc::getaddrinfo(node, service, hints, res));
 
     assert!(service.is_null(), "service lookups not supported yet");
     assert!(!node.is_null(), "only name lookups are supported corrently");
@@ -1186,7 +1201,7 @@ unsafe extern "C" fn getaddrinfo(
 #[cfg(feature = "sync-resolve")]
 #[no_mangle]
 unsafe extern "C" fn freeaddrinfo(mut res: *mut libc::addrinfo) {
-    libc!(libc::freeaddrinfo(same_ptr_mut(res)));
+    libc!(checked_cast!(libc::freeaddrinfo(res), res));
 
     let layout = alloc::alloc::Layout::new::<libc::addrinfo>();
     let addr_layout = alloc::alloc::Layout::new::<SocketAddrStorage>();
@@ -1271,14 +1286,19 @@ unsafe extern "C" fn recvfrom(
     from: *mut SocketAddrStorage,
     from_len: *mut libc::socklen_t,
 ) -> isize {
-    libc!(libc::recvfrom(
+    // FIXME: layout of from doesn't match signature on i686
+    // uncomment once it does:
+    /*
+    libc!(checked_cast!(libc::recvfrom(
         fd,
         buf,
         len,
         flags,
-        same_ptr_mut(from),
+        from,
         from_len
-    ));
+    ), from));
+    */
+    libc!(libc::recvfrom(fd, buf, len, flags, from.cast(), from_len));
 
     let flags = RecvFlags::from_bits(flags as _).unwrap();
     match convert_res(rustix::net::recvfrom(
@@ -1321,7 +1341,10 @@ unsafe extern "C" fn sendto(
     to: *const SocketAddrStorage,
     to_len: libc::socklen_t,
 ) -> isize {
-    libc!(libc::sendto(fd, buf, len, flags, same_ptr(to), to_len));
+    // FIXME: layout of to doesn't match signature on i686
+    // uncomment once it does:
+    //libc!(checked_cast!(libc::sendto(fd, buf, len, flags, to, to_len), to));
+    libc!(libc::sendto(fd, buf, len, flags, to.cast(), to_len));
 
     let flags = SendFlags::from_bits(flags as _).unwrap();
     let addr = match convert_res(SocketAddrAny::read(to, to_len.try_into().unwrap())) {
@@ -1438,7 +1461,7 @@ unsafe extern "C" fn write(fd: c_int, ptr: *const c_void, len: usize) -> isize {
 
 #[no_mangle]
 unsafe extern "C" fn writev(fd: c_int, iov: *const rustix::io::IoSlice, iovcnt: c_int) -> isize {
-    libc!(libc::writev(fd, same_ptr(iov), iovcnt));
+    libc!(checked_cast!(libc::writev(fd, iov, iovcnt), iov));
 
     if iovcnt < 0 {
         set_errno(Errno(libc::EINVAL));
@@ -1469,7 +1492,7 @@ unsafe extern "C" fn read(fd: c_int, ptr: *mut c_void, len: usize) -> isize {
 
 #[no_mangle]
 unsafe extern "C" fn readv(fd: c_int, iov: *const rustix::io::IoSliceMut, iovcnt: c_int) -> isize {
-    libc!(libc::readv(fd, same_ptr(iov), iovcnt));
+    libc!(checked_cast!(libc::readv(fd, iov, iovcnt), iov));
 
     if iovcnt < 0 {
         set_errno(Errno(libc::EINVAL));
@@ -1515,7 +1538,7 @@ unsafe extern "C" fn pwrite64(fd: c_int, ptr: *const c_void, len: usize, offset:
 
 #[no_mangle]
 unsafe extern "C" fn poll(fds: *mut rustix::io::PollFd, nfds: c_ulong, timeout: c_int) -> c_int {
-    libc!(libc::poll(same_ptr_mut(fds), nfds, timeout));
+    libc!(checked_cast!(libc::poll(fds, nfds, timeout), fds));
 
     let fds = slice::from_raw_parts_mut(fds, nfds.try_into().unwrap());
     match convert_res(rustix::io::poll(fds, timeout)) {
@@ -1650,7 +1673,7 @@ unsafe extern "C" fn epoll_ctl(
     _fd: c_int,
     _event: *mut libc::epoll_event,
 ) -> c_int {
-    libc!(libc::epoll_ctl(_epfd, _op, _fd, same_ptr_mut(_event)));
+    libc!(libc::epoll_ctl(_epfd, _op, _fd, _event));
     unimplemented!("epoll_ctl")
 }
 
@@ -1662,12 +1685,7 @@ unsafe extern "C" fn epoll_wait(
     _maxevents: c_int,
     _timeout: c_int,
 ) -> c_int {
-    libc!(libc::epoll_wait(
-        _epfd,
-        same_ptr_mut(_events),
-        _maxevents,
-        _timeout
-    ));
+    libc!(libc::epoll_wait(_epfd, _events, _maxevents, _timeout));
     unimplemented!("epoll_wait")
 }
 
@@ -2586,7 +2604,10 @@ unsafe extern "C" fn posix_spawn_file_actions_init(_ptr: *const c_void) -> c_int
 
 #[no_mangle]
 unsafe extern "C" fn clock_gettime(id: c_int, tp: *mut rustix::time::Timespec) -> c_int {
-    libc!(libc::clock_gettime(id, same_ptr_mut(tp)));
+    // FIXME: layout of tp doesn't match signature on i686
+    // uncomment once it does:
+    // libc!(checked_cast!(libc::clock_gettime(id, tp), tp));
+    libc!(libc::clock_gettime(id, tp.cast()));
 
     let id = match id {
         libc::CLOCK_MONOTONIC => rustix::time::ClockId::Monotonic,
@@ -2599,7 +2620,7 @@ unsafe extern "C" fn clock_gettime(id: c_int, tp: *mut rustix::time::Timespec) -
 
 #[no_mangle]
 unsafe extern "C" fn nanosleep(req: *const libc::timespec, rem: *mut libc::timespec) -> c_int {
-    libc!(libc::nanosleep(same_ptr(req), same_ptr_mut(rem)));
+    libc!(libc::nanosleep(req, rem));
 
     let req = rustix::time::Timespec {
         tv_sec: (*req).tv_sec.into(),
@@ -3573,7 +3594,9 @@ unsafe extern "C" fn pthread_self() -> PthreadT {
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_getattr_np(thread: PthreadT, attr: *mut PthreadAttrT) -> c_int {
-    libc!(libc::pthread_getattr_np(thread, same_ptr_mut(attr)));
+    // FIXME: layout of attr doesn't match signature on aarch64
+    // uncomment once it does:
+    // libc!(checked_cast!(libc::pthread_getattr_np(thread, attr), attr));
     let (stack_addr, stack_size, guard_size) = origin::thread_stack(thread as *mut Thread);
     ptr::write(
         attr,
@@ -3597,7 +3620,9 @@ unsafe extern "C" fn pthread_getattr_np(thread: PthreadT, attr: *mut PthreadAttr
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_attr_init(attr: *mut PthreadAttrT) -> c_int {
-    libc!(libc::pthread_attr_init(same_ptr_mut(attr)));
+    // FIXME: layout of attr doesn't match signature on aarch64
+    // uncomment once it does:
+    // libc!(checked_cast!(libc::pthread_attr_init(attr), attr));
     ptr::write(attr, PthreadAttrT::default());
     0
 }
@@ -3605,7 +3630,9 @@ unsafe extern "C" fn pthread_attr_init(attr: *mut PthreadAttrT) -> c_int {
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_attr_destroy(attr: *mut PthreadAttrT) -> c_int {
-    libc!(libc::pthread_attr_destroy(same_ptr_mut(attr)));
+    // FIXME: layout of attr doesn't match signature on aarch64
+    // uncomment once it does:
+    // libc!(checked_cast!(libc::pthread_attr_destroy(attr), attr));
     ptr::drop_in_place(attr);
     0
 }
@@ -3617,11 +3644,14 @@ unsafe extern "C" fn pthread_attr_getstack(
     stackaddr: *mut *mut c_void,
     stacksize: *mut usize,
 ) -> c_int {
-    libc!(libc::pthread_attr_getstack(
-        same_ptr(attr),
-        stackaddr,
-        stacksize
+    // FIXME: layout of attr doesn't match signature on aarch64
+    // uncomment once it does:
+    /*
+    libc!(checked_cast!(
+        libc::pthread_attr_getstack(attr, stackaddr, stacksize),
+        attr
     ));
+    */
     *stackaddr = (*attr).stack_addr;
     *stacksize = (*attr).stack_size;
     0
@@ -3666,7 +3696,9 @@ unsafe extern "C" fn pthread_key_delete() -> c_int {
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_mutexattr_destroy(attr: *mut PthreadMutexattrT) -> c_int {
-    libc!(libc::pthread_mutexattr_destroy(same_ptr_mut(attr)));
+    // FIXME: layout of attr doesn't match signature on aarch64
+    // uncomment once it does:
+    // libc!(checked_cast!(libc::pthread_mutexattr_destroy(attr), attr));
     ptr::drop_in_place(attr);
     0
 }
@@ -3674,7 +3706,9 @@ unsafe extern "C" fn pthread_mutexattr_destroy(attr: *mut PthreadMutexattrT) -> 
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_mutexattr_init(attr: *mut PthreadMutexattrT) -> c_int {
-    libc!(libc::pthread_mutexattr_init(same_ptr_mut(attr)));
+    // FIXME: layout of attr doesn't match signature on aarch64
+    // uncomment once it does:
+    // libc!(checked_cast!(libc::pthread_mutexattr_init(attr), attr));
     ptr::write(
         attr,
         PthreadMutexattrT {
@@ -3687,7 +3721,14 @@ unsafe extern "C" fn pthread_mutexattr_init(attr: *mut PthreadMutexattrT) -> c_i
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_mutexattr_settype(attr: *mut PthreadMutexattrT, kind: c_int) -> c_int {
-    libc!(libc::pthread_mutexattr_settype(same_ptr_mut(attr), kind));
+    // FIXME: layout of attr doesn't match signature on aarch64
+    // uncomment once it does:
+    /*
+    libc!(checked_cast!(
+        libc::pthread_mutexattr_settype(attr, kind),
+        attr
+    ));
+    */
     (*attr).kind = AtomicU32::new(kind as u32);
     0
 }
@@ -3695,7 +3736,9 @@ unsafe extern "C" fn pthread_mutexattr_settype(attr: *mut PthreadMutexattrT, kin
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_mutex_destroy(mutex: *mut PthreadMutexT) -> c_int {
-    libc!(libc::pthread_mutex_destroy(same_ptr_mut(mutex)));
+    // FIXME: layout of mutex doesn't match signature on aarch64
+    // uncomment once it does:
+    // libc!(checked_cast!(libc::pthread_mutex_destroy(mutex), mutex));
     match (*mutex).kind.load(SeqCst) as i32 {
         libc::PTHREAD_MUTEX_NORMAL => ptr::drop_in_place(&mut (*mutex).u.normal),
         libc::PTHREAD_MUTEX_RECURSIVE => ptr::drop_in_place(&mut (*mutex).u.reentrant),
@@ -3712,10 +3755,15 @@ unsafe extern "C" fn pthread_mutex_init(
     mutex: *mut PthreadMutexT,
     mutexattr: *const PthreadMutexattrT,
 ) -> c_int {
-    libc!(libc::pthread_mutex_init(
-        same_ptr_mut(mutex),
-        same_ptr(mutexattr)
+    // FIXME: layout of mutex and attr doesn't match signature on aarch64
+    // uncomment once it does:
+    /*
+    libc!(checked_cast!(
+        libc::pthread_mutex_init(mutex, mutexattr),
+        mutex,
+        mutexattr
     ));
+    */
     let kind = (*mutexattr).kind.load(SeqCst);
     match kind as i32 {
         libc::PTHREAD_MUTEX_NORMAL => ptr::write(&mut (*mutex).u.normal, RawMutex::INIT),
@@ -3733,7 +3781,9 @@ unsafe extern "C" fn pthread_mutex_init(
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_mutex_lock(mutex: *mut PthreadMutexT) -> c_int {
-    libc!(libc::pthread_mutex_lock(same_ptr_mut(mutex)));
+    // FIXME: layout of mutex doesn't match signature on aarch64
+    // uncomment once it does:
+    // libc!(checked_cast!(libc::pthread_mutex_lock(mutex), mutex));
     match (*mutex).kind.load(SeqCst) as i32 {
         libc::PTHREAD_MUTEX_NORMAL => (*mutex).u.normal.lock(),
         libc::PTHREAD_MUTEX_RECURSIVE => (*mutex).u.reentrant.lock(),
@@ -3746,7 +3796,9 @@ unsafe extern "C" fn pthread_mutex_lock(mutex: *mut PthreadMutexT) -> c_int {
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_mutex_trylock(mutex: *mut PthreadMutexT) -> c_int {
-    libc!(libc::pthread_mutex_trylock(same_ptr_mut(mutex)));
+    // FIXME: layout of mutex doesn't match signature on aarch64
+    // uncomment once it does:
+    // libc!(checked_cast!(libc::pthread_mutex_trylock(mutex), mutex));
     if match (*mutex).kind.load(SeqCst) as i32 {
         libc::PTHREAD_MUTEX_NORMAL => (*mutex).u.normal.try_lock(),
         libc::PTHREAD_MUTEX_RECURSIVE => (*mutex).u.reentrant.try_lock(),
@@ -3762,7 +3814,9 @@ unsafe extern "C" fn pthread_mutex_trylock(mutex: *mut PthreadMutexT) -> c_int {
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_mutex_unlock(mutex: *mut PthreadMutexT) -> c_int {
-    libc!(libc::pthread_mutex_unlock(same_ptr_mut(mutex)));
+    // FIXME: layout of mutex doesn't match signature on aarch64
+    // uncomment once it does:
+    // libc!(checked_cast!(libc::pthread_mutex_unlock(mutex), mutex));
     match (*mutex).kind.load(SeqCst) as i32 {
         libc::PTHREAD_MUTEX_NORMAL => (*mutex).u.normal.unlock(),
         libc::PTHREAD_MUTEX_RECURSIVE => (*mutex).u.reentrant.unlock(),
@@ -3775,7 +3829,10 @@ unsafe extern "C" fn pthread_mutex_unlock(mutex: *mut PthreadMutexT) -> c_int {
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_rwlock_tryrdlock(rwlock: *mut PthreadRwlockT) -> c_int {
-    libc!(libc::pthread_rwlock_tryrdlock(same_ptr_mut(rwlock)));
+    libc!(checked_cast!(
+        libc::pthread_rwlock_tryrdlock(rwlock),
+        rwlock
+    ));
     let result = (*rwlock).lock.try_lock_shared();
     if result {
         (*rwlock).exclusive.store(false, SeqCst);
@@ -3788,7 +3845,10 @@ unsafe extern "C" fn pthread_rwlock_tryrdlock(rwlock: *mut PthreadRwlockT) -> c_
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_rwlock_trywrlock(rwlock: *mut PthreadRwlockT) -> c_int {
-    libc!(libc::pthread_rwlock_trywrlock(same_ptr_mut(rwlock)));
+    libc!(checked_cast!(
+        libc::pthread_rwlock_trywrlock(rwlock),
+        rwlock
+    ));
     let result = (*rwlock).lock.try_lock_exclusive();
     if result {
         (*rwlock).exclusive.store(true, SeqCst);
@@ -3801,7 +3861,7 @@ unsafe extern "C" fn pthread_rwlock_trywrlock(rwlock: *mut PthreadRwlockT) -> c_
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_rwlock_rdlock(rwlock: *mut PthreadRwlockT) -> c_int {
-    libc!(libc::pthread_rwlock_rdlock(same_ptr_mut(rwlock)));
+    libc!(checked_cast!(libc::pthread_rwlock_rdlock(rwlock), rwlock));
     (*rwlock).lock.lock_shared();
     (*rwlock).exclusive.store(false, SeqCst);
     0
@@ -3810,7 +3870,7 @@ unsafe extern "C" fn pthread_rwlock_rdlock(rwlock: *mut PthreadRwlockT) -> c_int
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_rwlock_unlock(rwlock: *mut PthreadRwlockT) -> c_int {
-    libc!(libc::pthread_rwlock_unlock(same_ptr_mut(rwlock)));
+    libc!(checked_cast!(libc::pthread_rwlock_unlock(rwlock), rwlock));
     if (*rwlock).exclusive.load(SeqCst) {
         (*rwlock).lock.unlock_exclusive();
     } else {
@@ -3837,7 +3897,14 @@ unsafe extern "C" fn pthread_attr_getguardsize(
     attr: *const PthreadAttrT,
     guardsize: *mut usize,
 ) -> c_int {
-    libc!(libc::pthread_attr_getguardsize(same_ptr(attr), guardsize));
+    // FIXME: layout of attr doesn't match signature on aarch64
+    // uncomment once it does:
+    /*
+    libc!(checked_cast!(
+        libc::pthread_attr_getguardsize(attr, guardsize),
+        attr
+    ));
+    */
     *guardsize = (*attr).guard_size;
     0
 }
@@ -3889,7 +3956,7 @@ libc_type!(PthreadCondattrT, pthread_condattr_t);
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_condattr_destroy(attr: *mut PthreadCondattrT) -> c_int {
-    libc!(libc::pthread_condattr_destroy(same_ptr_mut(attr)));
+    libc!(checked_cast!(libc::pthread_condattr_destroy(attr), attr));
     let _ = attr;
     rustix::io::write(
         &rustix::io::stderr(),
@@ -3902,7 +3969,7 @@ unsafe extern "C" fn pthread_condattr_destroy(attr: *mut PthreadCondattrT) -> c_
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_condattr_init(attr: *mut PthreadCondattrT) -> c_int {
-    libc!(libc::pthread_condattr_init(same_ptr_mut(attr)));
+    libc!(checked_cast!(libc::pthread_condattr_init(attr), attr));
     let _ = attr;
     rustix::io::write(
         &rustix::io::stderr(),
@@ -3918,9 +3985,9 @@ unsafe extern "C" fn pthread_condattr_setclock(
     attr: *mut PthreadCondattrT,
     clock_id: c_int,
 ) -> c_int {
-    libc!(libc::pthread_condattr_setclock(
-        same_ptr_mut(attr),
-        clock_id
+    libc!(checked_cast!(
+        libc::pthread_condattr_setclock(attr, clock_id),
+        attr
     ));
     let _ = (attr, clock_id);
     rustix::io::write(
@@ -3934,7 +4001,7 @@ unsafe extern "C" fn pthread_condattr_setclock(
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_cond_broadcast(cond: *mut PthreadCondT) -> c_int {
-    libc!(libc::pthread_cond_broadcast(same_ptr_mut(cond)));
+    libc!(checked_cast!(libc::pthread_cond_broadcast(cond), cond));
     let _ = cond;
     rustix::io::write(
         &rustix::io::stderr(),
@@ -3947,7 +4014,7 @@ unsafe extern "C" fn pthread_cond_broadcast(cond: *mut PthreadCondT) -> c_int {
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_cond_destroy(cond: *mut PthreadCondT) -> c_int {
-    libc!(libc::pthread_cond_destroy(same_ptr_mut(cond)));
+    libc!(checked_cast!(libc::pthread_cond_destroy(cond), cond));
     let _ = cond;
     rustix::io::write(
         &rustix::io::stderr(),
@@ -3963,7 +4030,11 @@ unsafe extern "C" fn pthread_cond_init(
     cond: *mut PthreadCondT,
     attr: *const PthreadCondattrT,
 ) -> c_int {
-    libc!(libc::pthread_cond_init(same_ptr_mut(cond), same_ptr(attr)));
+    libc!(checked_cast!(
+        libc::pthread_cond_init(cond, attr),
+        cond,
+        attr
+    ));
     let _ = (cond, attr);
     rustix::io::write(&rustix::io::stderr(), b"unimplemented: pthread_cond_init\n").ok();
     0
@@ -3972,7 +4043,7 @@ unsafe extern "C" fn pthread_cond_init(
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_cond_signal(cond: *mut PthreadCondT) -> c_int {
-    libc!(libc::pthread_cond_signal(same_ptr_mut(cond)));
+    libc!(checked_cast!(libc::pthread_cond_signal(cond), cond));
     let _ = cond;
     rustix::io::write(
         &rustix::io::stderr(),
@@ -3985,10 +4056,15 @@ unsafe extern "C" fn pthread_cond_signal(cond: *mut PthreadCondT) -> c_int {
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_cond_wait(cond: *mut PthreadCondT, lock: *mut PthreadMutexT) -> c_int {
-    libc!(libc::pthread_cond_wait(
-        same_ptr_mut(cond),
-        same_ptr_mut(lock)
+    // FIXME: layout of lock doesn't match signature on aarch64
+    // uncomment once it does:
+    /*
+    libc!(checked_cast!(
+        libc::pthread_cond_wait(cond, lock),
+        cond,
+        lock
     ));
+    */
     let _ = (cond, lock);
     rustix::io::write(&rustix::io::stderr(), b"unimplemented: pthread_cond_wait\n").ok();
     0
@@ -4001,11 +4077,15 @@ unsafe extern "C" fn pthread_cond_timedwait(
     lock: *mut PthreadMutexT,
     abstime: *const libc::timespec,
 ) -> c_int {
-    libc!(libc::pthread_cond_timedwait(
-        same_ptr_mut(cond),
-        same_ptr_mut(lock),
-        same_ptr(abstime),
+    // FIXME: layout of mutex doesn't match signature on aarch64
+    // uncomment once it does:
+    /*
+    libc!(checked_cast!(
+        libc::pthread_cond_timedwait(cond, lock, abstime,),
+        cond,
+        lock
     ));
+    */
     let _ = (cond, lock, abstime);
     rustix::io::write(
         &rustix::io::stderr(),
@@ -4018,7 +4098,7 @@ unsafe extern "C" fn pthread_cond_timedwait(
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_rwlock_destroy(rwlock: *mut PthreadRwlockT) -> c_int {
-    libc!(libc::pthread_rwlock_destroy(same_ptr_mut(rwlock)));
+    libc!(checked_cast!(libc::pthread_rwlock_destroy(rwlock), rwlock));
     ptr::drop_in_place(rwlock);
     0
 }
@@ -4026,7 +4106,7 @@ unsafe extern "C" fn pthread_rwlock_destroy(rwlock: *mut PthreadRwlockT) -> c_in
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_rwlock_wrlock(rwlock: *mut PthreadRwlockT) -> c_int {
-    libc!(libc::pthread_rwlock_wrlock(same_ptr_mut(rwlock)));
+    libc!(checked_cast!(libc::pthread_rwlock_wrlock(rwlock), rwlock));
     (*rwlock).lock.lock_exclusive();
     (*rwlock).exclusive.store(true, SeqCst);
     0
@@ -4042,7 +4122,14 @@ unsafe extern "C" fn pthread_create(
     fn_: extern "C" fn(*mut c_void) -> *mut c_void,
     arg: *mut c_void,
 ) -> c_int {
-    libc!(libc::pthread_create(pthread, same_ptr(attr), fn_, arg));
+    // FIXME: layout of attr doesn't match signature on aarch64
+    // uncomment once it does:
+    /*
+    libc!(checked_cast!(
+        libc::pthread_create(pthread, attr, fn_, arg),
+        attr
+    ));
+    */
     let PthreadAttrT {
         stack_addr,
         stack_size,
@@ -4110,10 +4197,14 @@ unsafe extern "C" fn pthread_sigmask() -> c_int {
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_attr_setstacksize(attr: *mut PthreadAttrT, stacksize: usize) -> c_int {
-    libc!(libc::pthread_attr_setstacksize(
-        same_ptr_mut(attr),
-        stacksize
+    // FIXME: layout of attr doesn't match signature on aarch64
+    // uncomment once it does:
+    /*
+    libc!(checked_cast!(
+        libc::pthread_attr_setstacksize(attr, stacksize),
+        attr
     ));
+    */
     (*attr).stack_size = stacksize;
     0
 }

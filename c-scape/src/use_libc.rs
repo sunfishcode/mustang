@@ -54,18 +54,6 @@ macro_rules! libc_type {
     };
 }
 
-pub(crate) fn same_ptr<T, U>(t: *const T) -> *const U {
-    assert_eq!(core::mem::size_of::<T>(), core::mem::size_of::<U>());
-    assert_eq!(core::mem::align_of::<T>(), core::mem::align_of::<U>());
-    t.cast::<U>()
-}
-
-pub(crate) fn same_ptr_mut<T, U>(t: *mut T) -> *mut U {
-    assert_eq!(core::mem::size_of::<T>(), core::mem::size_of::<U>());
-    assert_eq!(core::mem::align_of::<T>(), core::mem::align_of::<U>());
-    t.cast::<U>()
-}
-
 // based of the rules of C struct alignment:
 // align_of<Pad<T>> == max(align_of<T>, align_of<u8>) == align_of<T>,
 // size_of<Pad<T>> / align_of<Pad<T>>
