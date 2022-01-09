@@ -25,12 +25,11 @@ use tinyvec::ArrayVec;
 
 /// The entrypoint where Rust code is first executed on a new thread.
 ///
-/// This calls `func`, passing it `arg`, on the new thread. When `func`
-/// returns, the thread exits.
+/// This calls `fn_` on the new thread. When `fn_` returns, the thread exits.
 ///
 /// # Safety
 ///
-/// After calling `func`, this terminates the thread.
+/// After calling `fn_`, this terminates the thread.
 pub(super) unsafe extern "C" fn entry(fn_: *mut Box<dyn FnOnce() -> Option<Box<dyn Any>>>) -> ! {
     let fn_ = Box::from_raw(fn_);
 
