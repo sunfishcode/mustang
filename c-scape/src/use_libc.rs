@@ -54,15 +54,14 @@ macro_rules! libc_type {
     };
 }
 
+// a struct that adds align_of<T> padding bytes to type T
+//
 // based of the rules of C struct alignment:
 // align_of<Pad<T>> == max(align_of<T>, align_of<u8>) == align_of<T>,
 // size_of<Pad<T>> / align_of<Pad<T>>
 // == ciel( (size_of<T> + size_of<u8>) / align_of<Pad<T>>)
 // and size_of<T> is divisible by align_of<T>
-//
 // therefore size_of<Pad<T>> == size_of<T> + align_of<T>
-// so if size_of<T> == size_of<U> and size_of<<T>> == size_of<Pad<U>>
-// it follows that align_of<T> == align_of<U>
 #[repr(C)]
 pub(crate) struct Pad<T> {
     field: T,
@@ -76,6 +75,10 @@ impl<T> Pad<T> {
             force_padding: 0,
         }
     }
-    pub fn compare_size(&self, _ptr: T) {}
+    // used to check that size_of<T> == size_of<U> using transmute,
+    pub fn compare_size(&self, _v: T) {}
+    // used to check that size_of<Pad<T>> == size_of<Pad<U>> using transmute,
+    // and since size_of<Pad<T>> == size_of<T> + align_of<T>,
+    // if size_of<T> == size_of<U> then align_of<T> == align_of<U>
     pub fn compare_alignment(&self, _pad: Pad<T>) {}
 }
