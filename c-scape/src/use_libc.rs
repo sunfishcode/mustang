@@ -1,27 +1,21 @@
 //! Utilities to check against C signatures, when enabled.
 
-/// casts the given list of pointers to the type used by the given expression,
+/// casts the given pointer to another type, similarly to calling `cast()` on it,
 /// while verifying that the layout of the pointee stays the same after the cast
 macro_rules! checked_cast {
-    ($expr:expr, $ptr:ident $( , $next:ident )* ) => {{
-        let result;
-        let target_ptr = {
-            let $ptr = $ptr.cast();
-            result = checked_cast!($expr $( , $next )* );
-            $ptr
-        };
+    ($ptr:ident) => {{
+        let target_ptr = $ptr.cast();
+        let target = Pad::new(core::ptr::read(target_ptr));
+
         // uses the fact that the compiler checks for size equality,
         // when transmuting between types
-        let target = Pad::new(core::ptr::read(target_ptr));
         let size_check = core::mem::transmute(core::ptr::read($ptr));
         target.compare_size(size_check);
         let align_check = core::mem::transmute(Pad::new(core::ptr::read($ptr)));
         target.compare_alignment(align_check);
-        result
+
+        target_ptr
     }};
-    ($expr:expr) => {
-        $expr
-    }
 }
 
 macro_rules! libc {
