@@ -12,7 +12,7 @@ edition = "2018"
 
 [dependencies]
 libm = "0.2.1"
-rustix = { version = "0.31.0", default-features = false, features = ["itoa"] }
+rustix = { version = "0.32.0", default-features = false, features = ["itoa"] }
 memoffset = "0.6"
 realpath-ext = { version = "0.1.0", default-features = false }
 memchr = { version = "2.4.1", default-features = false }
