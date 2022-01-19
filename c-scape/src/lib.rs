@@ -111,11 +111,11 @@ unsafe extern "C" fn __xpg_strerror_r(errnum: c_int, buf: *mut c_char, buflen: u
 // fs
 
 #[no_mangle]
-unsafe extern "C" fn open64(pathname: *const c_char, flags: c_int, mode: c_int) -> c_int {
+unsafe extern "C" fn open64(pathname: *const c_char, flags: c_int, mode: libc::mode_t) -> c_int {
     libc!(libc::open64(pathname, flags, mode));
 
     let flags = OFlags::from_bits(flags as _).unwrap();
-    let mode = Mode::from_bits(mode as _).unwrap();
+    let mode = Mode::from_bits((mode & !libc::S_IFMT) as _).unwrap();
     match convert_res(openat(&cwd(), ZStr::from_ptr(pathname.cast()), flags, mode)) {
         Some(fd) => fd.into_raw_fd(),
         None => -1,
@@ -295,10 +295,10 @@ unsafe extern "C" fn fcntl(fd: c_int, cmd: c_int, mut args: ...) -> c_int {
 }
 
 #[no_mangle]
-unsafe extern "C" fn mkdir(pathname: *const c_char, mode: c_uint) -> c_int {
+unsafe extern "C" fn mkdir(pathname: *const c_char, mode: libc::mode_t) -> c_int {
     libc!(libc::mkdir(pathname, mode));
 
-    let mode = Mode::from_bits(mode as _).unwrap();
+    let mode = Mode::from_bits((mode & !libc::S_IFMT) as _).unwrap();
     match convert_res(rustix::fs::mkdirat(
         &cwd(),
         ZStr::from_ptr(pathname.cast()),
@@ -606,7 +606,7 @@ unsafe extern "C" fn copy_file_range(
 unsafe extern "C" fn chmod(pathname: *const c_char, mode: c_uint) -> c_int {
     libc!(libc::chmod(pathname, mode));
 
-    let mode = Mode::from_bits(mode as _).unwrap();
+    let mode = Mode::from_bits((mode & !libc::S_IFMT) as _).unwrap();
     match convert_res(rustix::fs::chmodat(
         &cwd(),
         ZStr::from_ptr(pathname.cast()),
@@ -622,7 +622,7 @@ unsafe extern "C" fn chmod(pathname: *const c_char, mode: c_uint) -> c_int {
 unsafe extern "C" fn fchmod(fd: c_int, mode: c_uint) -> c_int {
     libc!(libc::fchmod(fd, mode));
 
-    let mode = Mode::from_bits(mode as _).unwrap();
+    let mode = Mode::from_bits((mode & !libc::S_IFMT) as _).unwrap();
     match convert_res(rustix::fs::fchmod(&BorrowedFd::borrow_raw_fd(fd), mode)) {
         Some(()) => 0,
         None => -1,
@@ -1493,9 +1493,12 @@ unsafe extern "C" fn readv(fd: c_int, iov: *const rustix::io::IoSliceMut, iovcnt
         return -1;
     }
 
+    // Note that rustix's `readv` takes a `&mut`, however it doesn't
+    // mutate the `IoSliceMut` instances themselves, so it's safe to
+    // cast away the `const` here.
     match convert_res(rustix::io::readv(
         &BorrowedFd::borrow_raw_fd(fd),
-        slice::from_raw_parts(iov, iovcnt as usize),
+        slice::from_raw_parts_mut(iov as *mut _, iovcnt as usize),
     )) {
         Some(nread) => nread as isize,
         None => -1,
