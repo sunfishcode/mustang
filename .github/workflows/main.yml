@@ -132,7 +132,7 @@ jobs:
 
     - name: cargo test
       run: |
-        cargo +nightly test --verbose -Z build-std --target=specs/${{ matrix.mustang_target }}.json -- ${{ matrix.test_args }}
+        cargo +nightly test --verbose -Z build-std --target=specs/${{ matrix.mustang_target }}.json -- ${{ matrix.test_args }} -- --nocapture
       env:
         RUST_BACKTRACE: 1
 
