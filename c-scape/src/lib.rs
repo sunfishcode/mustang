@@ -63,7 +63,7 @@ use parking_lot::lock_api::{RawMutex as _, RawRwLock};
 use parking_lot::RawMutex;
 use rustix::fd::{AsFd, AsRawFd, BorrowedFd, FromRawFd, IntoRawFd};
 use rustix::ffi::ZStr;
-use rustix::fs::{cwd, openat, AtFlags, FdFlags, Mode, OFlags};
+use rustix::fs::{cwd, AtFlags, FdFlags, Mode, OFlags};
 #[cfg(any(target_os = "android", target_os = "linux"))]
 use rustix::io::EventfdFlags;
 use rustix::io::OwnedFd;
@@ -111,12 +111,40 @@ unsafe extern "C" fn __xpg_strerror_r(errnum: c_int, buf: *mut c_char, buflen: u
 // fs
 
 #[no_mangle]
+unsafe extern "C" fn openat(
+    fd: c_int,
+    pathname: *const c_char,
+    flags: c_int,
+    mode: c_int,
+) -> c_int {
+    libc!(libc::openat(fd, pathname, flags, mode));
+
+    let fd = BorrowedFd::borrow_raw_fd(fd);
+    let flags = OFlags::from_bits(flags as _).unwrap();
+    let mode = Mode::from_bits(mode as _).unwrap();
+    match convert_res(rustix::fs::openat(
+        &fd,
+        ZStr::from_ptr(pathname.cast()),
+        flags,
+        mode,
+    )) {
+        Some(fd) => fd.into_raw_fd(),
+        None => -1,
+    }
+}
+
+#[no_mangle]
 unsafe extern "C" fn open64(pathname: *const c_char, flags: c_int, mode: libc::mode_t) -> c_int {
     libc!(libc::open64(pathname, flags, mode));
 
     let flags = OFlags::from_bits(flags as _).unwrap();
     let mode = Mode::from_bits((mode & !libc::S_IFMT) as _).unwrap();
-    match convert_res(openat(&cwd(), ZStr::from_ptr(pathname.cast()), flags, mode)) {
+    match convert_res(rustix::fs::openat(
+        &cwd(),
+        ZStr::from_ptr(pathname.cast()),
+        flags,
+        mode,
+    )) {
         Some(fd) => fd.into_raw_fd(),
         None => -1,
     }
@@ -388,6 +416,22 @@ unsafe extern "C" fn rmdir(pathname: *const c_char) -> c_int {
         &cwd(),
         ZStr::from_ptr(pathname.cast()),
         AtFlags::REMOVEDIR,
+    )) {
+        Some(()) => 0,
+        None => -1,
+    }
+}
+
+#[no_mangle]
+unsafe extern "C" fn unlinkat(fd: c_int, pathname: *const c_char, flags: c_int) -> c_int {
+    libc!(libc::unlinkat(fd, pathname, flags));
+
+    let fd = BorrowedFd::borrow_raw_fd(fd);
+    let flags = AtFlags::from_bits(flags as _).unwrap();
+    match convert_res(rustix::fs::unlinkat(
+        &fd,
+        ZStr::from_ptr(pathname.cast()),
+        flags,
     )) {
         Some(()) => 0,
         None => -1,
@@ -2672,7 +2716,7 @@ unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> 
     for dir in path.to_bytes().split(|byte| *byte == b':') {
         // Open the directory and use `execveat` to avoid needing to
         // dynamically allocate a combined path string ourselves.
-        let result = openat(
+        let result = rustix::fs::openat(
             &cwd,
             dir,
             OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC | OFlags::NOCTTY,
@@ -2691,7 +2735,7 @@ unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> 
             // allocating. This trusts /proc/self/fd.
             #[cfg(any(target_os = "android", target_os = "linux"))]
             if let rustix::io::Error::NOSYS = error {
-                let fd = openat(
+                let fd = rustix::fs::openat(
                     &dirfd,
                     file,
                     OFlags::PATH | OFlags::CLOEXEC | OFlags::NOCTTY,
