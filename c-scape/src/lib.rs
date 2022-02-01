@@ -489,6 +489,11 @@ unsafe extern "C" fn lstat64(pathname: *const c_char, stat_: *mut rustix::fs::St
     }
 }
 
+struct MustangDir {
+    dir: rustix::fs::Dir,
+    dirent: libc::dirent64,
+}
+
 #[no_mangle]
 unsafe extern "C" fn opendir(pathname: *const c_char) -> *mut c_void {
     libc!(libc::opendir(pathname).cast());
@@ -509,7 +514,11 @@ unsafe extern "C" fn fdopendir(fd: c_int) -> *mut c_void {
     libc!(libc::fdopendir(fd).cast());
 
     match convert_res(rustix::fs::Dir::from(OwnedFd::from_raw_fd(fd))) {
-        Some(dir) => Box::into_raw(Box::new(dir)).cast(),
+        Some(dir) => Box::into_raw(Box::new(MustangDir {
+            dir,
+            dirent: zeroed(),
+        }))
+        .cast(),
         None => null_mut(),
     }
 }
@@ -527,8 +536,9 @@ unsafe extern "C" fn readdir64_r(
         checked_cast!(ptr)
     ));
 
-    let dir = dir.cast::<rustix::fs::Dir>();
-    match (*dir).read() {
+    let mustang_dir = dir.cast::<MustangDir>();
+    let dir = &mut (*mustang_dir).dir;
+    match dir.read() {
         None => {
             *ptr = null_mut();
             0
@@ -562,11 +572,52 @@ unsafe extern "C" fn readdir64_r(
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
+#[no_mangle]
+unsafe extern "C" fn readdir64(dir: *mut c_void) -> *mut libc::dirent64 {
+    libc!(libc::readdir64(dir.cast(),));
+
+    let mustang_dir = dir.cast::<MustangDir>();
+    let dir = &mut (*mustang_dir).dir;
+    match dir.read() {
+        None => null_mut(),
+        Some(Ok(e)) => {
+            let file_type = match e.file_type() {
+                rustix::fs::FileType::RegularFile => libc::DT_REG,
+                rustix::fs::FileType::Directory => libc::DT_DIR,
+                rustix::fs::FileType::Symlink => libc::DT_LNK,
+                rustix::fs::FileType::Fifo => libc::DT_FIFO,
+                rustix::fs::FileType::Socket => libc::DT_SOCK,
+                rustix::fs::FileType::CharacterDevice => libc::DT_CHR,
+                rustix::fs::FileType::BlockDevice => libc::DT_BLK,
+                rustix::fs::FileType::Unknown => libc::DT_UNKNOWN,
+            };
+            (*mustang_dir).dirent = libc::dirent64 {
+                d_ino: e.ino(),
+                d_off: 0, // We don't implement `seekdir` yet anyway.
+                d_reclen: (offset_of!(libc::dirent64, d_name) + e.file_name().to_bytes().len() + 1)
+                    .try_into()
+                    .unwrap(),
+                d_type: file_type,
+                d_name: [0; 256],
+            };
+            let len = core::cmp::min(256, e.file_name().to_bytes().len());
+            (*mustang_dir).dirent.d_name[..len]
+                .copy_from_slice(transmute(e.file_name().to_bytes()));
+            &mut (*mustang_dir).dirent
+        }
+        Some(Err(err)) => {
+            set_errno(Errno(err.raw_os_error()));
+            null_mut()
+        }
+    }
+}
+
 #[no_mangle]
 unsafe extern "C" fn closedir(dir: *mut c_void) -> c_int {
     libc!(libc::closedir(dir.cast()));
 
-    drop(Box::<rustix::fs::Dir>::from_raw(dir.cast()));
+    drop(Box::<MustangDir>::from_raw(dir.cast()));
     0
 }
 
@@ -574,8 +625,8 @@ unsafe extern "C" fn closedir(dir: *mut c_void) -> c_int {
 unsafe extern "C" fn dirfd(dir: *mut c_void) -> c_int {
     libc!(libc::dirfd(dir.cast()));
 
-    let dir = dir.cast::<rustix::fs::Dir>();
-    (*dir).as_fd().as_raw_fd()
+    let dir = dir.cast::<MustangDir>();
+    (*dir).dir.as_fd().as_raw_fd()
 }
 
 #[no_mangle]
