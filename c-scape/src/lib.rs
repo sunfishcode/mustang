@@ -121,7 +121,11 @@ unsafe extern "C" fn openat(
 
     let fd = BorrowedFd::borrow_raw_fd(fd);
     let flags = OFlags::from_bits(flags as _).unwrap();
-    let mode = Mode::from_bits((mode & !libc::S_IFMT) as _).unwrap();
+    let mode = if flags.contains(OFlags::CREATE) {
+        Mode::from_bits((mode & !libc::S_IFMT) as _).unwrap()
+    } else {
+        Mode::empty()
+    };
     match convert_res(rustix::fs::openat(
         &fd,
         ZStr::from_ptr(pathname.cast()),
