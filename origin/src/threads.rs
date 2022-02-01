@@ -815,12 +815,12 @@ unsafe extern "C" fn __aeabi_read_tp() -> *mut c_void {
 // using it for.
 bitflags::bitflags! {
     struct CloneFlags: u32 {
-        const NEWTIME        = linux_raw_sys::v5_11::general::CLONE_NEWTIME; // since Linux 5.6
+        const NEWTIME        = linux_raw_sys::general::CLONE_NEWTIME; // since Linux 5.6
         const VM             = linux_raw_sys::general::CLONE_VM;
         const FS             = linux_raw_sys::general::CLONE_FS;
         const FILES          = linux_raw_sys::general::CLONE_FILES;
         const SIGHAND        = linux_raw_sys::general::CLONE_SIGHAND;
-        const PIDFD          = linux_raw_sys::v5_4::general::CLONE_PIDFD; // since Linux 5.2
+        const PIDFD          = linux_raw_sys::general::CLONE_PIDFD; // since Linux 5.2
         const PTRACE         = linux_raw_sys::general::CLONE_PTRACE;
         const VFORK          = linux_raw_sys::general::CLONE_VFORK;
         const PARENT         = linux_raw_sys::general::CLONE_PARENT;
@@ -833,7 +833,7 @@ bitflags::bitflags! {
         const DETACHED       = linux_raw_sys::general::CLONE_DETACHED;
         const UNTRACED       = linux_raw_sys::general::CLONE_UNTRACED;
         const CHILD_SETTID   = linux_raw_sys::general::CLONE_CHILD_SETTID;
-        const NEWCGROUP      = linux_raw_sys::v5_4::general::CLONE_NEWCGROUP; // since Linux 4.6
+        const NEWCGROUP      = linux_raw_sys::general::CLONE_NEWCGROUP; // since Linux 4.6
         const NEWUTS         = linux_raw_sys::general::CLONE_NEWUTS;
         const NEWIPC         = linux_raw_sys::general::CLONE_NEWIPC;
         const NEWUSER        = linux_raw_sys::general::CLONE_NEWUSER;
