@@ -63,7 +63,7 @@ use parking_lot::lock_api::{RawMutex as _, RawRwLock};
 use parking_lot::RawMutex;
 use rustix::fd::{AsFd, AsRawFd, BorrowedFd, FromRawFd, IntoRawFd};
 use rustix::ffi::ZStr;
-use rustix::fs::{cwd, openat, AtFlags, FdFlags, Mode, OFlags};
+use rustix::fs::{cwd, AtFlags, FdFlags, Mode, OFlags};
 #[cfg(any(target_os = "android", target_os = "linux"))]
 use rustix::io::EventfdFlags;
 use rustix::io::OwnedFd;
@@ -111,12 +111,44 @@ unsafe extern "C" fn __xpg_strerror_r(errnum: c_int, buf: *mut c_char, buflen: u
 // fs
 
 #[no_mangle]
+unsafe extern "C" fn openat(
+    fd: c_int,
+    pathname: *const c_char,
+    flags: c_int,
+    mode: libc::mode_t,
+) -> c_int {
+    libc!(libc::openat(fd, pathname, flags, mode));
+
+    let fd = BorrowedFd::borrow_raw_fd(fd);
+    let flags = OFlags::from_bits(flags as _).unwrap();
+    let mode = if flags.contains(OFlags::CREATE) {
+        Mode::from_bits((mode & !libc::S_IFMT) as _).unwrap()
+    } else {
+        Mode::empty()
+    };
+    match convert_res(rustix::fs::openat(
+        &fd,
+        ZStr::from_ptr(pathname.cast()),
+        flags,
+        mode,
+    )) {
+        Some(fd) => fd.into_raw_fd(),
+        None => -1,
+    }
+}
+
+#[no_mangle]
 unsafe extern "C" fn open64(pathname: *const c_char, flags: c_int, mode: libc::mode_t) -> c_int {
     libc!(libc::open64(pathname, flags, mode));
 
     let flags = OFlags::from_bits(flags as _).unwrap();
     let mode = Mode::from_bits((mode & !libc::S_IFMT) as _).unwrap();
-    match convert_res(openat(&cwd(), ZStr::from_ptr(pathname.cast()), flags, mode)) {
+    match convert_res(rustix::fs::openat(
+        &cwd(),
+        ZStr::from_ptr(pathname.cast()),
+        flags,
+        mode,
+    )) {
         Some(fd) => fd.into_raw_fd(),
         None => -1,
     }
@@ -395,6 +427,22 @@ unsafe extern "C" fn rmdir(pathname: *const c_char) -> c_int {
 }
 
 #[no_mangle]
+unsafe extern "C" fn unlinkat(fd: c_int, pathname: *const c_char, flags: c_int) -> c_int {
+    libc!(libc::unlinkat(fd, pathname, flags));
+
+    let fd = BorrowedFd::borrow_raw_fd(fd);
+    let flags = AtFlags::from_bits(flags as _).unwrap();
+    match convert_res(rustix::fs::unlinkat(
+        &fd,
+        ZStr::from_ptr(pathname.cast()),
+        flags,
+    )) {
+        Some(()) => 0,
+        None => -1,
+    }
+}
+
+#[no_mangle]
 unsafe extern "C" fn unlink(pathname: *const c_char) -> c_int {
     libc!(libc::unlink(pathname));
 
@@ -441,6 +489,11 @@ unsafe extern "C" fn lstat64(pathname: *const c_char, stat_: *mut rustix::fs::St
     }
 }
 
+struct MustangDir {
+    dir: rustix::fs::Dir,
+    dirent: libc::dirent64,
+}
+
 #[no_mangle]
 unsafe extern "C" fn opendir(pathname: *const c_char) -> *mut c_void {
     libc!(libc::opendir(pathname).cast());
@@ -461,7 +514,11 @@ unsafe extern "C" fn fdopendir(fd: c_int) -> *mut c_void {
     libc!(libc::fdopendir(fd).cast());
 
     match convert_res(rustix::fs::Dir::from(OwnedFd::from_raw_fd(fd))) {
-        Some(dir) => Box::into_raw(Box::new(dir)).cast(),
+        Some(dir) => Box::into_raw(Box::new(MustangDir {
+            dir,
+            dirent: zeroed(),
+        }))
+        .cast(),
         None => null_mut(),
     }
 }
@@ -479,8 +536,9 @@ unsafe extern "C" fn readdir64_r(
         checked_cast!(ptr)
     ));
 
-    let dir = dir.cast::<rustix::fs::Dir>();
-    match (*dir).read() {
+    let mustang_dir = dir.cast::<MustangDir>();
+    let dir = &mut (*mustang_dir).dir;
+    match dir.read() {
         None => {
             *ptr = null_mut();
             0
@@ -514,11 +572,52 @@ unsafe extern "C" fn readdir64_r(
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
+#[no_mangle]
+unsafe extern "C" fn readdir64(dir: *mut c_void) -> *mut libc::dirent64 {
+    libc!(libc::readdir64(dir.cast(),));
+
+    let mustang_dir = dir.cast::<MustangDir>();
+    let dir = &mut (*mustang_dir).dir;
+    match dir.read() {
+        None => null_mut(),
+        Some(Ok(e)) => {
+            let file_type = match e.file_type() {
+                rustix::fs::FileType::RegularFile => libc::DT_REG,
+                rustix::fs::FileType::Directory => libc::DT_DIR,
+                rustix::fs::FileType::Symlink => libc::DT_LNK,
+                rustix::fs::FileType::Fifo => libc::DT_FIFO,
+                rustix::fs::FileType::Socket => libc::DT_SOCK,
+                rustix::fs::FileType::CharacterDevice => libc::DT_CHR,
+                rustix::fs::FileType::BlockDevice => libc::DT_BLK,
+                rustix::fs::FileType::Unknown => libc::DT_UNKNOWN,
+            };
+            (*mustang_dir).dirent = libc::dirent64 {
+                d_ino: e.ino(),
+                d_off: 0, // We don't implement `seekdir` yet anyway.
+                d_reclen: (offset_of!(libc::dirent64, d_name) + e.file_name().to_bytes().len() + 1)
+                    .try_into()
+                    .unwrap(),
+                d_type: file_type,
+                d_name: [0; 256],
+            };
+            let len = core::cmp::min(256, e.file_name().to_bytes().len());
+            (*mustang_dir).dirent.d_name[..len]
+                .copy_from_slice(transmute(e.file_name().to_bytes()));
+            &mut (*mustang_dir).dirent
+        }
+        Some(Err(err)) => {
+            set_errno(Errno(err.raw_os_error()));
+            null_mut()
+        }
+    }
+}
+
 #[no_mangle]
 unsafe extern "C" fn closedir(dir: *mut c_void) -> c_int {
     libc!(libc::closedir(dir.cast()));
 
-    drop(Box::<rustix::fs::Dir>::from_raw(dir.cast()));
+    drop(Box::<MustangDir>::from_raw(dir.cast()));
     0
 }
 
@@ -526,8 +625,8 @@ unsafe extern "C" fn closedir(dir: *mut c_void) -> c_int {
 unsafe extern "C" fn dirfd(dir: *mut c_void) -> c_int {
     libc!(libc::dirfd(dir.cast()));
 
-    let dir = dir.cast::<rustix::fs::Dir>();
-    (*dir).as_fd().as_raw_fd()
+    let dir = dir.cast::<MustangDir>();
+    (*dir).dir.as_fd().as_raw_fd()
 }
 
 #[no_mangle]
@@ -2672,7 +2771,7 @@ unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> 
     for dir in path.to_bytes().split(|byte| *byte == b':') {
         // Open the directory and use `execveat` to avoid needing to
         // dynamically allocate a combined path string ourselves.
-        let result = openat(
+        let result = rustix::fs::openat(
             &cwd,
             dir,
             OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC | OFlags::NOCTTY,
@@ -2691,7 +2790,7 @@ unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> 
             // allocating. This trusts /proc/self/fd.
             #[cfg(any(target_os = "android", target_os = "linux"))]
             if let rustix::io::Error::NOSYS = error {
-                let fd = openat(
+                let fd = rustix::fs::openat(
                     &dirfd,
                     file,
                     OFlags::PATH | OFlags::CLOEXEC | OFlags::NOCTTY,
