@@ -799,8 +799,10 @@ unsafe extern "C" fn accept(
 
     match convert_res(rustix::net::acceptfrom(&BorrowedFd::borrow_raw_fd(fd))) {
         Some((accepted_fd, from)) => {
-            let encoded_len = from.write(addr);
-            *len = encoded_len.try_into().unwrap();
+            if let Some(from) = from {
+                let encoded_len = from.write(addr);
+                *len = encoded_len.try_into().unwrap();
+            }
             accepted_fd.into_raw_fd()
         }
         None => -1,
@@ -826,8 +828,10 @@ unsafe extern "C" fn accept4(
         flags,
     )) {
         Some((accepted_fd, from)) => {
-            let encoded_len = from.write(addr);
-            *len = encoded_len.try_into().unwrap();
+            if let Some(from) = from {
+                let encoded_len = from.write(addr);
+                *len = encoded_len.try_into().unwrap();
+            }
             accepted_fd.into_raw_fd()
         }
         None => -1,
@@ -906,8 +910,10 @@ unsafe extern "C" fn getpeername(
 
     match convert_res(rustix::net::getpeername(&BorrowedFd::borrow_raw_fd(fd))) {
         Some(from) => {
-            let encoded_len = from.write(addr);
-            *len = encoded_len.try_into().unwrap();
+            if let Some(from) = from {
+                let encoded_len = from.write(addr);
+                *len = encoded_len.try_into().unwrap();
+            }
             0
         }
         None => -1,
@@ -1400,8 +1406,10 @@ unsafe extern "C" fn recvfrom(
         flags,
     )) {
         Some((nread, addr)) => {
-            let encoded_len = addr.write(from);
-            *from_len = encoded_len.try_into().unwrap();
+            if let Some(addr) = addr {
+                let encoded_len = addr.write(from);
+                *from_len = encoded_len.try_into().unwrap();
+            }
             nread as isize
         }
         None => -1,
