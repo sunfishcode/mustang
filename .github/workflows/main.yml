@@ -110,6 +110,8 @@ jobs:
         cd
         curl https://download.qemu.org/qemu-6.1.0.tar.xz | tar xJf -
         cd qemu-6.1.0
+        patch -p1 < $GITHUB_WORKSPACE/ci/translate-errno.patch
+        patch -p1 < $GITHUB_WORKSPACE/ci/getsockopt-timeouts.patch
         ./configure --target-list=${{ matrix.qemu_target }} --prefix=$HOME/qemu --disable-tools --disable-slirp --disable-fdt --disable-capstone --disable-docs
         make -j$(nproc) install
 
