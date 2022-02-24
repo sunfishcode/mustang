@@ -22,6 +22,8 @@ jobs:
   test:
     name: Test
     runs-on: ${{ matrix.os }}
+    env:
+      QEMU_BUILD_VERSION: 6.1.0
     strategy:
       matrix:
         build: [ubuntu, ubuntu-18.04, i686-linux, aarch64-linux, riscv64-linux]
@@ -75,8 +77,15 @@ jobs:
 
     - name: Configure Cargo target
       run: |
+        echo CARGO_BUILD_TARGET=${{ matrix.target }} >> $GITHUB_ENV
         rustup target add ${{ matrix.target }}
       if: matrix.target != ''
+
+    - uses: actions/cache@v2
+      with:
+        path: ${{ runner.tool_cache }}/qemu
+        key: qemu-${{ matrix.target }}-${{ env.QEMU_BUILD_VERSION }}-patched
+      if: matrix.target != '' && matrix.os == 'ubuntu-latest'
 
     - name: Install cross-compilation tools
       run: |
@@ -103,24 +112,30 @@ jobs:
     - name: Install qemu
       run: |
         set -ex
+
+        # Configure Cargo for cross compilation and tell it how it can run
+        # cross executables
+        upcase=$(echo ${{ matrix.host_target }} | awk '{ print toupper($0) }' | sed 's/-/_/g')
+        echo CARGO_TARGET_${upcase}_RUNNER=${{ runner.tool_cache }}/qemu/bin/${{ matrix.qemu }} >> $GITHUB_ENV
+        upcase=$(echo ${{ matrix.mustang_target }} | awk '{ print toupper($0) }' | sed 's/-/_/g')
+        echo CARGO_TARGET_${upcase}_RUNNER=${{ runner.tool_cache }}/qemu/bin/${{ matrix.qemu }} >> $GITHUB_ENV
+
+        # See if qemu is already in the cache
+        if [ -f ${{ runner.tool_cache }}/qemu/bin/${{ matrix.qemu }} ]; then
+          exit 0
+        fi
+
         # Download and build qemu from source since the most recent release is
         # way faster at arm emulation than the current version github actions'
         # ubuntu image uses. Disable as much as we can to get it to build
         # quickly.
         cd
-        curl https://download.qemu.org/qemu-6.1.0.tar.xz | tar xJf -
-        cd qemu-6.1.0
+        curl https://download.qemu.org/qemu-$QEMU_BUILD_VERSION.tar.xz | tar xJf -
+        cd qemu-$QEMU_BUILD_VERSION
         patch -p1 < $GITHUB_WORKSPACE/ci/translate-errno.patch
         patch -p1 < $GITHUB_WORKSPACE/ci/getsockopt-timeouts.patch
-        ./configure --target-list=${{ matrix.qemu_target }} --prefix=$HOME/qemu --disable-tools --disable-slirp --disable-fdt --disable-capstone --disable-docs
-        make -j$(nproc) install
-
-        # Configure Cargo for cross compilation and tell it how it can run
-        # cross executables
-        upcase=$(echo ${{ matrix.host_target }} | awk '{ print toupper($0) }' | sed 's/-/_/g')
-        echo CARGO_TARGET_${upcase}_RUNNER=$HOME/qemu/bin/${{ matrix.qemu }} >> $GITHUB_ENV
-        upcase=$(echo ${{ matrix.mustang_target }} | awk '{ print toupper($0) }' | sed 's/-/_/g')
-        echo CARGO_TARGET_${upcase}_RUNNER=$HOME/qemu/bin/${{ matrix.qemu }} >> $GITHUB_ENV
+        ./configure --target-list=${{ matrix.qemu_target }} --prefix=${{ runner.tool_cache }}/qemu --disable-tools --disable-slirp --disable-fdt --disable-capstone --disable-docs
+        ninja -C build install
       if: matrix.qemu != '' && matrix.os == 'ubuntu-latest'
 
     - name: Install rust-src
