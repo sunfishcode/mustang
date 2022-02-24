@@ -2687,6 +2687,13 @@ unsafe extern "C" fn posix_spawn_file_actions_adddup2() {
 
 #[cfg(not(target_os = "wasi"))]
 #[no_mangle]
+unsafe extern "C" fn posix_spawn_file_actions_addchdir_np() {
+    //libc!(libc::posix_spawn_file_actions_addchdir_np());
+    unimplemented!("posix_spawn_file_actions_addchdir_np")
+}
+
+#[cfg(not(target_os = "wasi"))]
+#[no_mangle]
 unsafe extern "C" fn posix_spawn_file_actions_destroy(_ptr: *const c_void) -> c_int {
     //libc!(libc::posix_spawn_file_actions_destroy(ptr));
     rustix::io::write(
