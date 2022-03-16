@@ -856,9 +856,7 @@ unsafe extern "C" fn bind(
     match convert_res(match addr {
         SocketAddrAny::V4(v4) => rustix::net::bind_v4(&BorrowedFd::borrow_raw(sockfd), &v4),
         SocketAddrAny::V6(v6) => rustix::net::bind_v6(&BorrowedFd::borrow_raw(sockfd), &v6),
-        SocketAddrAny::Unix(unix) => {
-            rustix::net::bind_unix(&BorrowedFd::borrow_raw(sockfd), &unix)
-        }
+        SocketAddrAny::Unix(unix) => rustix::net::bind_unix(&BorrowedFd::borrow_raw(sockfd), &unix),
         _ => panic!("unrecognized SocketAddrAny kind"),
     }) {
         Some(()) => 0,
