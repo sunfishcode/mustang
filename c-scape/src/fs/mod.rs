@@ -1,20 +1,26 @@
 mod lseek;
+mod mkdir;
 mod open;
+mod opendir;
 mod readlink;
+mod realpath;
+mod remove;
 mod stat;
 mod truncate;
 
-use rustix::fd::{AsFd, AsRawFd, BorrowedFd, FromRawFd, OwnedFd, IntoRawFd};
+use rustix::fd::{AsFd, AsRawFd, BorrowedFd, IntoRawFd};
 use rustix::ffi::ZStr;
-use rustix::fs::{AtFlags, cwd, FdFlags, Mode, OFlags};
+use rustix::fs::{AtFlags, cwd, FdFlags, Mode};
 
 use libc::{c_char, c_int, c_void, c_uint};
 use errno::{set_errno, Errno};
-use std::{convert::TryInto, mem::{transmute, zeroed}, ptr::null_mut, slice};
+use std::{convert::TryInto, mem::{transmute}, ptr::null_mut};
 #[cfg(not(target_os = "wasi"))]
 use memoffset::offset_of;
 
-use crate::{convert_res, malloc, memcpy};
+use crate::fs::opendir::MustangDir;
+
+use crate::convert_res;
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
 #[no_mangle]
@@ -45,43 +51,6 @@ unsafe extern "C" fn statx(
             0
         }
         None => -1,
-    }
-}
-
-#[no_mangle]
-unsafe extern "C" fn realpath(path: *const c_char, resolved_path: *mut c_char) -> *mut c_char {
-    libc!(libc::realpath(path, resolved_path));
-
-    let mut buf = [0; libc::PATH_MAX as usize];
-    match realpath_ext::realpath_raw(
-        ZStr::from_ptr(path.cast()).to_bytes(),
-        &mut buf,
-        realpath_ext::RealpathFlags::empty(),
-    ) {
-        Ok(len) => {
-            if resolved_path.is_null() {
-                let ptr = malloc(len + 1).cast::<u8>();
-                if ptr.is_null() {
-                    set_errno(Errno(libc::ENOMEM));
-                    return null_mut();
-                }
-                slice::from_raw_parts_mut(ptr, len).copy_from_slice(&buf[..len]);
-                *ptr.add(len) = b'\0';
-                ptr.cast::<c_char>()
-            } else {
-                memcpy(
-                    resolved_path.cast::<c_void>(),
-                    buf[..len].as_ptr().cast::<c_void>(),
-                    len,
-                );
-                *resolved_path.add(len) = b'\0' as _;
-                resolved_path
-            }
-        }
-        Err(err) => {
-            set_errno(Errno(err));
-            null_mut()
-        }
     }
 }
 
@@ -123,21 +92,6 @@ unsafe extern "C" fn fcntl(fd: c_int, cmd: c_int, mut args: ...) -> c_int {
 }
 
 #[no_mangle]
-unsafe extern "C" fn mkdir(pathname: *const c_char, mode: libc::mode_t) -> c_int {
-    libc!(libc::mkdir(pathname, mode));
-
-    let mode = Mode::from_bits((mode & !libc::S_IFMT) as _).unwrap();
-    match convert_res(rustix::fs::mkdirat(
-        &cwd(),
-        ZStr::from_ptr(pathname.cast()),
-        mode,
-    )) {
-        Some(()) => 0,
-        None => -1,
-    }
-}
-
-#[no_mangle]
 unsafe extern "C" fn fdatasync(fd: c_int) -> c_int {
     libc!(libc::fdatasync(fd));
 
@@ -169,84 +123,6 @@ unsafe extern "C" fn rename(old: *const c_char, new: *const c_char) -> c_int {
     )) {
         Some(()) => 0,
         None => -1,
-    }
-}
-
-#[no_mangle]
-unsafe extern "C" fn rmdir(pathname: *const c_char) -> c_int {
-    libc!(libc::rmdir(pathname));
-
-    match convert_res(rustix::fs::unlinkat(
-        &cwd(),
-        ZStr::from_ptr(pathname.cast()),
-        AtFlags::REMOVEDIR,
-    )) {
-        Some(()) => 0,
-        None => -1,
-    }
-}
-
-#[no_mangle]
-unsafe extern "C" fn unlinkat(fd: c_int, pathname: *const c_char, flags: c_int) -> c_int {
-    libc!(libc::unlinkat(fd, pathname, flags));
-
-    let fd = BorrowedFd::borrow_raw(fd);
-    let flags = AtFlags::from_bits(flags as _).unwrap();
-    match convert_res(rustix::fs::unlinkat(
-        &fd,
-        ZStr::from_ptr(pathname.cast()),
-        flags,
-    )) {
-        Some(()) => 0,
-        None => -1,
-    }
-}
-
-#[no_mangle]
-unsafe extern "C" fn unlink(pathname: *const c_char) -> c_int {
-    libc!(libc::unlink(pathname));
-
-    match convert_res(rustix::fs::unlinkat(
-        &cwd(),
-        ZStr::from_ptr(pathname.cast()),
-        AtFlags::empty(),
-    )) {
-        Some(()) => 0,
-        None => -1,
-    }
-}
-
-struct MustangDir {
-    dir: rustix::fs::Dir,
-    dirent: libc::dirent64,
-}
-
-#[no_mangle]
-unsafe extern "C" fn opendir(pathname: *const c_char) -> *mut c_void {
-    libc!(libc::opendir(pathname).cast());
-
-    match convert_res(rustix::fs::openat(
-        &cwd(),
-        ZStr::from_ptr(pathname.cast()),
-        OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC,
-        Mode::empty(),
-    )) {
-        Some(fd) => fdopendir(fd.into_raw_fd()),
-        None => null_mut(),
-    }
-}
-
-#[no_mangle]
-unsafe extern "C" fn fdopendir(fd: c_int) -> *mut c_void {
-    libc!(libc::fdopendir(fd).cast());
-
-    match convert_res(rustix::fs::Dir::from(OwnedFd::from_raw_fd(fd))) {
-        Some(dir) => Box::into_raw(Box::new(MustangDir {
-            dir,
-            dirent: zeroed(),
-        }))
-        .cast(),
-        None => null_mut(),
     }
 }
 
@@ -338,14 +214,6 @@ unsafe extern "C" fn readdir64(dir: *mut c_void) -> *mut libc::dirent64 {
             null_mut()
         }
     }
-}
-
-#[no_mangle]
-unsafe extern "C" fn closedir(dir: *mut c_void) -> c_int {
-    libc!(libc::closedir(dir.cast()));
-
-    drop(Box::<MustangDir>::from_raw(dir.cast()));
-    0
 }
 
 #[no_mangle]
