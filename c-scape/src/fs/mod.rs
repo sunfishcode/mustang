@@ -1,3 +1,4 @@
+mod dirfd;
 mod lseek;
 mod mkdir;
 mod open;
@@ -5,10 +6,11 @@ mod opendir;
 mod readlink;
 mod realpath;
 mod remove;
+mod rename;
 mod stat;
 mod truncate;
 
-use rustix::fd::{AsFd, AsRawFd, BorrowedFd, IntoRawFd};
+use rustix::fd::{BorrowedFd, IntoRawFd};
 use rustix::ffi::ZStr;
 use rustix::fs::{AtFlags, cwd, FdFlags, Mode};
 
@@ -19,7 +21,6 @@ use std::{convert::TryInto, mem::{transmute}, ptr::null_mut};
 use memoffset::offset_of;
 
 use crate::fs::opendir::MustangDir;
-
 use crate::convert_res;
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
@@ -91,6 +92,7 @@ unsafe extern "C" fn fcntl(fd: c_int, cmd: c_int, mut args: ...) -> c_int {
     }
 }
 
+// This is a C SIO extension
 #[no_mangle]
 unsafe extern "C" fn fdatasync(fd: c_int) -> c_int {
     libc!(libc::fdatasync(fd));
@@ -101,26 +103,12 @@ unsafe extern "C" fn fdatasync(fd: c_int) -> c_int {
     }
 }
 
+// This is a C FSC extension
 #[no_mangle]
 unsafe extern "C" fn fsync(fd: c_int) -> c_int {
     libc!(libc::fsync(fd));
 
     match convert_res(rustix::fs::fdatasync(&BorrowedFd::borrow_raw(fd))) {
-        Some(()) => 0,
-        None => -1,
-    }
-}
-
-#[no_mangle]
-unsafe extern "C" fn rename(old: *const c_char, new: *const c_char) -> c_int {
-    libc!(libc::rename(old, new));
-
-    match convert_res(rustix::fs::renameat(
-        &cwd(),
-        ZStr::from_ptr(old.cast()),
-        &cwd(),
-        ZStr::from_ptr(new.cast()),
-    )) {
         Some(()) => 0,
         None => -1,
     }
@@ -214,14 +202,6 @@ unsafe extern "C" fn readdir64(dir: *mut c_void) -> *mut libc::dirent64 {
             null_mut()
         }
     }
-}
-
-#[no_mangle]
-unsafe extern "C" fn dirfd(dir: *mut c_void) -> c_int {
-    libc!(libc::dirfd(dir.cast()));
-
-    let dir = dir.cast::<MustangDir>();
-    (*dir).dir.as_fd().as_raw_fd()
 }
 
 #[no_mangle]
