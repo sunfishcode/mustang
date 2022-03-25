@@ -1,4 +1,5 @@
 mod dirfd;
+mod link;
 mod lseek;
 mod mkdir;
 mod open;
@@ -8,6 +9,8 @@ mod realpath;
 mod remove;
 mod rename;
 mod stat;
+mod symlink;
+mod sync;
 mod truncate;
 
 use rustix::fd::{BorrowedFd, IntoRawFd};
@@ -89,28 +92,6 @@ unsafe extern "C" fn fcntl(fd: c_int, cmd: c_int, mut args: ...) -> c_int {
             }
         }
         _ => panic!("unrecognized fnctl({})", cmd),
-    }
-}
-
-// This is a C SIO extension
-#[no_mangle]
-unsafe extern "C" fn fdatasync(fd: c_int) -> c_int {
-    libc!(libc::fdatasync(fd));
-
-    match convert_res(rustix::fs::fdatasync(&BorrowedFd::borrow_raw(fd))) {
-        Some(()) => 0,
-        None => -1,
-    }
-}
-
-// This is a C FSC extension
-#[no_mangle]
-unsafe extern "C" fn fsync(fd: c_int) -> c_int {
-    libc!(libc::fsync(fd));
-
-    match convert_res(rustix::fs::fdatasync(&BorrowedFd::borrow_raw(fd))) {
-        Some(()) => 0,
-        None => -1,
     }
 }
 
@@ -298,43 +279,6 @@ unsafe extern "C" fn fchmod(fd: c_int, mode: c_uint) -> c_int {
 
     let mode = Mode::from_bits((mode & !libc::S_IFMT) as _).unwrap();
     match convert_res(rustix::fs::fchmod(&BorrowedFd::borrow_raw(fd), mode)) {
-        Some(()) => 0,
-        None => -1,
-    }
-}
-
-#[no_mangle]
-unsafe extern "C" fn linkat(
-    olddirfd: c_int,
-    oldpath: *const c_char,
-    newdirfd: c_int,
-    newpath: *const c_char,
-    flags: c_int,
-) -> c_int {
-    libc!(libc::linkat(olddirfd, oldpath, newdirfd, newpath, flags));
-
-    let flags = AtFlags::from_bits(flags as _).unwrap();
-    match convert_res(rustix::fs::linkat(
-        &BorrowedFd::borrow_raw(olddirfd),
-        ZStr::from_ptr(oldpath.cast()),
-        &BorrowedFd::borrow_raw(newdirfd),
-        ZStr::from_ptr(newpath.cast()),
-        flags,
-    )) {
-        Some(()) => 0,
-        None => -1,
-    }
-}
-
-#[no_mangle]
-unsafe extern "C" fn symlink(target: *const c_char, linkpath: *const c_char) -> c_int {
-    libc!(libc::symlink(target, linkpath));
-
-    match convert_res(rustix::fs::symlinkat(
-        ZStr::from_ptr(target.cast()),
-        &cwd(),
-        ZStr::from_ptr(linkpath.cast()),
-    )) {
         Some(()) => 0,
         None => -1,
     }
