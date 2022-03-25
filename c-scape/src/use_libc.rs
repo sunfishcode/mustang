@@ -5,13 +5,13 @@
 macro_rules! checked_cast {
     ($ptr:ident) => {{
         let target_ptr = $ptr.cast();
-        let target = Pad::new(core::ptr::read(target_ptr));
+        let target = crate::use_libc::Pad::new(core::ptr::read(target_ptr));
 
         // Uses the fact that the compiler checks for size equality,
         // when transmuting between types.
         let size_check = core::mem::transmute(core::ptr::read($ptr));
         target.compare_size(size_check);
-        let align_check = core::mem::transmute(Pad::new(core::ptr::read($ptr)));
+        let align_check = core::mem::transmute(crate::use_libc::Pad::new(core::ptr::read($ptr)));
         target.compare_alignment(align_check);
 
         target_ptr
