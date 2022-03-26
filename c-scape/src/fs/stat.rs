@@ -1,14 +1,16 @@
-use rustix::fd::{BorrowedFd};
+use rustix::fd::BorrowedFd;
 use rustix::ffi::ZStr;
-use rustix::fs::{AtFlags};
+use rustix::fs::AtFlags;
 
-use libc::{c_char, c_int, c_long, time_t};
 use errno::{set_errno, Errno};
+use libc::{c_char, c_int, c_long, time_t};
 use std::convert::TryInto;
 
 use crate::convert_res;
 
-fn rustix_stat_to_libc_stat(rustix_stat: rustix::fs::Stat) -> Result<libc::stat, std::num::TryFromIntError> {
+fn rustix_stat_to_libc_stat(
+    rustix_stat: rustix::fs::Stat,
+) -> Result<libc::stat, std::num::TryFromIntError> {
     // SAFETY: libc structs can be zero-initalized freely
     let mut stat: libc::stat = unsafe { std::mem::zeroed() };
     stat.st_dev = rustix_stat.st_dev;
@@ -47,7 +49,7 @@ unsafe extern "C" fn stat64(pathname: *const c_char, stat_: *mut libc::stat64) -
 #[no_mangle]
 unsafe extern "C" fn lstat(pathname: *const c_char, stat_: *mut libc::stat) -> c_int {
     libc!(libc::lstat(pathname, stat_));
-    
+
     fstatat(libc::AT_FDCWD, pathname, stat_, libc::AT_SYMLINK_NOFOLLOW)
 }
 
@@ -66,7 +68,7 @@ unsafe extern "C" fn fstatat(
     flags: c_int,
 ) -> c_int {
     libc!(libc::fstatat(fd, pathname, stat_, flags));
-    
+
     let flags = AtFlags::from_bits(flags as _).unwrap();
     let rustix_stat = match convert_res(rustix::fs::statat(
         &BorrowedFd::borrow_raw(fd),
@@ -117,7 +119,7 @@ unsafe extern "C" fn fstatat64(
 #[no_mangle]
 unsafe extern "C" fn fstat(fd: c_int, stat_: *mut libc::stat) -> c_int {
     libc!(libc::fstat(fd, stat_));
-    
+
     let rustix_stat = match convert_res(rustix::fs::fstat(&BorrowedFd::borrow_raw(fd))) {
         Some(r) => r,
         None => return -1,

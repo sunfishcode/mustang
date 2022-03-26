@@ -1,7 +1,7 @@
 use rustix::fd::{BorrowedFd, IntoRawFd};
 use rustix::fs::{FdFlags, OFlags};
 
-use libc::{c_int};
+use libc::c_int;
 
 use crate::convert_res;
 

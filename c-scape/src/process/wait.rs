@@ -18,10 +18,7 @@ unsafe extern "C" fn waitpid(pid: c_int, status: *mut c_int, options: c_int) -> 
             Some(None) => return 0,
             None => return -1,
         },
-        pid => match convert_res(rustix::process::waitpid(
-            Pid::from_raw(pid as _),
-            options,
-        )) {
+        pid => match convert_res(rustix::process::waitpid(Pid::from_raw(pid as _), options)) {
             Some(Some(new_status)) => {
                 ret_pid = if pid == 0 {
                     rustix::process::getpid().as_raw_nonzero().get() as c_int

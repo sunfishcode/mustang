@@ -14,18 +14,18 @@ mod symlink;
 mod sync;
 mod truncate;
 
-use rustix::fd::{BorrowedFd};
+use rustix::fd::BorrowedFd;
 use rustix::ffi::ZStr;
-use rustix::fs::{AtFlags};
+use rustix::fs::AtFlags;
 
-use libc::{c_char, c_int, c_void, c_uint};
 use errno::{set_errno, Errno};
-use std::{convert::TryInto, mem::{transmute}, ptr::null_mut};
+use libc::{c_char, c_int, c_uint, c_void};
 #[cfg(not(target_os = "wasi"))]
 use memoffset::offset_of;
+use std::{convert::TryInto, mem::transmute, ptr::null_mut};
 
-use crate::fs::opendir::MustangDir;
 use crate::convert_res;
+use crate::fs::opendir::MustangDir;
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
 #[no_mangle]

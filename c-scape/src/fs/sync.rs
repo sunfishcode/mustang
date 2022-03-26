@@ -1,6 +1,6 @@
-use rustix::fd::{BorrowedFd};
+use rustix::fd::BorrowedFd;
 
-use libc::{c_int};
+use libc::c_int;
 
 use crate::convert_res;
 

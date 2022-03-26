@@ -1,6 +1,6 @@
-use rustix::fd::{BorrowedFd};
+use rustix::fd::BorrowedFd;
 use rustix::ffi::ZStr;
-use rustix::fs::{AtFlags};
+use rustix::fs::AtFlags;
 
 use libc::{c_char, c_int};
 

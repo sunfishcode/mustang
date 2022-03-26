@@ -1,4 +1,4 @@
-use rustix::fd::{BorrowedFd};
+use rustix::fd::BorrowedFd;
 use rustix::ffi::ZStr;
 
 use libc::{c_char, c_int};
@@ -13,7 +13,12 @@ unsafe extern "C" fn rename(old: *const c_char, new: *const c_char) -> c_int {
 }
 
 #[no_mangle]
-unsafe extern "C" fn renameat(old_fd: c_int, old: *const c_char, new_fd: c_int, new: *const c_char) -> c_int {
+unsafe extern "C" fn renameat(
+    old_fd: c_int,
+    old: *const c_char,
+    new_fd: c_int,
+    new: *const c_char,
+) -> c_int {
     libc!(libc::renameat(old_fd, old, new_fd, new));
 
     match convert_res(rustix::fs::renameat(

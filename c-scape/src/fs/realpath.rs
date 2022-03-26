@@ -1,7 +1,7 @@
 use rustix::ffi::ZStr;
 
-use libc::{c_char, c_void};
 use errno::{set_errno, Errno};
+use libc::{c_char, c_void};
 use std::ptr::null_mut;
 
 use crate::{malloc, memcpy};

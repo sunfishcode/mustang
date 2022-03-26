@@ -1,4 +1,4 @@
-use rustix::fd::{BorrowedFd};
+use rustix::fd::BorrowedFd;
 use rustix::ffi::ZStr;
 
 use libc::{c_char, c_int};
@@ -13,7 +13,12 @@ unsafe extern "C" fn readlink(pathname: *const c_char, buf: *mut c_char, bufsiz:
 }
 
 #[no_mangle]
-unsafe extern "C" fn readlinkat(fd: c_int, pathname: *const c_char, buf: *mut c_char, bufsiz: usize) -> isize {
+unsafe extern "C" fn readlinkat(
+    fd: c_int,
+    pathname: *const c_char,
+    buf: *mut c_char,
+    bufsiz: usize,
+) -> isize {
     libc!(libc::readlink(pathname, buf, bufsiz));
 
     let path = match convert_res(rustix::fs::readlinkat(

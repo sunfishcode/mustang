@@ -1,16 +1,13 @@
-use rustix::fd::{BorrowedFd};
+use rustix::fd::BorrowedFd;
 use rustix::ffi::ZStr;
-use rustix::fs::{AtFlags};
+use rustix::fs::AtFlags;
 
 use libc::{c_char, c_int};
 
 use crate::convert_res;
 
 #[no_mangle]
-unsafe extern "C" fn link(
-    oldpath: *const c_char,
-    newpath: *const c_char,
-) -> c_int {
+unsafe extern "C" fn link(oldpath: *const c_char, newpath: *const c_char) -> c_int {
     libc!(libc::link(oldpath, newpath));
 
     linkat(libc::AT_FDCWD, oldpath, libc::AT_FDCWD, newpath, 0)

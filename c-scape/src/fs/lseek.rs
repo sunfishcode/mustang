@@ -1,7 +1,7 @@
-use rustix::fd::{BorrowedFd};
+use rustix::fd::BorrowedFd;
 
-use libc::{c_int, off_t, off64_t};
 use errno::{set_errno, Errno};
+use libc::{c_int, off64_t, off_t};
 use std::convert::TryInto;
 
 use crate::convert_res;
@@ -31,7 +31,7 @@ unsafe extern "C" fn lseek64(fd: c_int, offset: off64_t, whence: c_int) -> off64
             // TODO: we're missing some stuff here
             set_errno(Errno(libc::EINVAL));
             return -1;
-        },
+        }
     };
     match convert_res(rustix::fs::seek(&BorrowedFd::borrow_raw(fd), seek_from)) {
         Some(offset) => offset as off64_t,
