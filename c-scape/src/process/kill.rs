@@ -36,5 +36,11 @@ unsafe extern "C" fn kill(pid: pid_t, sig: c_int) -> c_int {
 #[no_mangle]
 unsafe extern "C" fn killpg(pgid: pid_t, sig: c_int) -> c_int {
     libc!(libc::killpg(pgid, sig));
+
+    if pgid < 0 {
+        set_errno(Errno(libc::EINVAL));
+        return -1;
+    }
+    
     kill(-pgid, sig)
 }
