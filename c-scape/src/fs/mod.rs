@@ -1,3 +1,4 @@
+mod chmod;
 mod dirfd;
 mod fcntl;
 mod link;

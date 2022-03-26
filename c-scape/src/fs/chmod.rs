@@ -1,8 +1,8 @@
-use rustix::fd::{BorrowedFd};
+use rustix::fd::BorrowedFd;
 use rustix::ffi::ZStr;
 use rustix::fs::{cwd, Mode};
 
-use libc::{c_char, c_int, c_void, c_uint};
+use libc::{c_char, c_int, c_uint};
 
 use crate::convert_res;
 

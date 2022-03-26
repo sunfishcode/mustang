@@ -1,5 +1,4 @@
 use libc::uid_t;
-use rustix::process::Uid;
 
 #[no_mangle]
 unsafe extern "C" fn getuid() -> uid_t {

@@ -4,6 +4,7 @@ mod groups;
 mod kill;
 mod pid;
 mod sid;
+mod uid;
 mod wait;
 
 // this entire module is
