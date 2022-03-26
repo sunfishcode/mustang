@@ -73,8 +73,6 @@ use rustix::net::{
     AcceptFlags, AddressFamily, Ipv4Addr, Ipv6Addr, Protocol, RecvFlags, SendFlags, Shutdown,
     SocketAddrAny, SocketAddrStorage, SocketFlags, SocketType,
 };
-#[cfg(not(target_os = "wasi"))]
-use rustix::process::{Pid, WaitOptions};
 #[cfg(feature = "sync-resolve")]
 use {
     rustix::net::{IpAddr, SocketAddrV4, SocketAddrV6},
@@ -83,6 +81,10 @@ use {
 
 // fs
 mod fs;
+
+// process
+#[cfg(not(target_os = "wasi"))]
+mod process;
 
 // errno
 
@@ -1750,62 +1752,6 @@ unsafe extern "C" fn prctl(
 
 #[cfg(not(target_os = "wasi"))]
 #[no_mangle]
-unsafe extern "C" fn setgid() {
-    //libc!(libc::setgid());
-    unimplemented!("setgid")
-}
-
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn setgroups() {
-    //libc!(libc::setgroups());
-    unimplemented!("setgroups")
-}
-
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn setuid() {
-    //libc!(libc::setuid());
-    unimplemented!("setuid")
-}
-
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn getpid() -> c_int {
-    libc!(libc::getpid());
-    rustix::process::getpid().as_raw_nonzero().get() as _
-}
-
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn getppid() -> c_int {
-    libc!(libc::getppid());
-    Pid::as_raw(rustix::process::getppid()) as _
-}
-
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn getuid() -> c_uint {
-    libc!(libc::getuid());
-    rustix::process::getuid().as_raw()
-}
-
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn getgid() -> c_uint {
-    libc!(libc::getgid());
-    rustix::process::getgid().as_raw()
-}
-
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn setpgid(pid: c_int, pgid: c_int) -> c_int {
-    libc!(libc::setpgid(pid, pgid));
-    unimplemented!("setpgid")
-}
-
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
 unsafe extern "C" fn kill(_pid: c_int, _sig: c_int) -> c_int {
     libc!(libc::kill(_pid, _sig));
     unimplemented!("kill")
@@ -2216,44 +2162,6 @@ unsafe extern "C" fn __register_atfork(
 unsafe extern "C" fn clone3() {
     //libc!(libc::clone3());
     unimplemented!("clone3")
-}
-
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn waitpid(pid: c_int, status: *mut c_int, options: c_int) -> c_int {
-    libc!(libc::waitpid(pid, status, options));
-    let options = WaitOptions::from_bits(options as _).unwrap();
-    let ret_pid;
-    let ret_status;
-    match pid {
-        -1 => match convert_res(rustix::process::wait(options)) {
-            Some(Some((new_pid, new_status))) => {
-                ret_pid = new_pid.as_raw_nonzero().get() as c_int;
-                ret_status = new_status.as_raw() as c_int;
-            }
-            Some(None) => return 0,
-            None => return -1,
-        },
-        pid => match convert_res(rustix::process::waitpid(
-            rustix::process::Pid::from_raw(pid as _),
-            options,
-        )) {
-            Some(Some(new_status)) => {
-                ret_pid = if pid == 0 {
-                    rustix::process::getpid().as_raw_nonzero().get() as c_int
-                } else {
-                    pid
-                };
-                ret_status = new_status.as_raw() as c_int;
-            }
-            Some(None) => return 0,
-            None => return -1,
-        },
-    }
-    if !status.is_null() {
-        status.write(ret_status);
-    }
-    return ret_pid;
 }
 
 // setjmp

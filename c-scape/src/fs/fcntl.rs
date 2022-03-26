@@ -1,9 +1,7 @@
 use rustix::fd::{BorrowedFd, IntoRawFd};
-use rustix::fs::{FdFlags};
+use rustix::fs::{FdFlags, OFlags};
 
 use libc::{c_int};
-use errno::{set_errno, Errno};
-use std::{convert::TryInto, mem::{transmute}, ptr::null_mut};
 
 use crate::convert_res;
 
@@ -24,7 +22,7 @@ unsafe extern "C" fn fcntl(fd: c_int, cmd: c_int, mut args: ...) -> c_int {
             let fd = BorrowedFd::borrow_raw(fd);
             match convert_res(rustix::fs::fcntl_setfl(
                 &fd,
-                FdFlags::from_bits(flags as _).unwrap(),
+                OFlags::from_bits(flags as _).unwrap(),
             )) {
                 Some(()) => 0,
                 None => -1,

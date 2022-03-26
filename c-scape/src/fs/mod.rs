@@ -14,9 +14,9 @@ mod symlink;
 mod sync;
 mod truncate;
 
-use rustix::fd::{BorrowedFd, IntoRawFd};
+use rustix::fd::{BorrowedFd};
 use rustix::ffi::ZStr;
-use rustix::fs::{AtFlags, FdFlags};
+use rustix::fs::{AtFlags};
 
 use libc::{c_char, c_int, c_void, c_uint};
 use errno::{set_errno, Errno};
