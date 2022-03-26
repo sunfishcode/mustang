@@ -30,7 +30,7 @@ unsafe extern "C" fn linkat(
     match convert_res(rustix::fs::linkat(
         &BorrowedFd::borrow_raw(olddirfd),
         ZStr::from_ptr(oldpath.cast()),
-        &BorroewdFd::borrow_raw(newdirfd),
+        &BorrowedFd::borrow_raw(newdirfd),
         ZStr::from_ptr(newpath.cast()),
         flags,
     )) {

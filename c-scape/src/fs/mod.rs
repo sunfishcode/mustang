@@ -1,4 +1,5 @@
 mod dirfd;
+mod fcntl;
 mod link;
 mod lseek;
 mod mkdir;
@@ -15,7 +16,7 @@ mod truncate;
 
 use rustix::fd::{BorrowedFd, IntoRawFd};
 use rustix::ffi::ZStr;
-use rustix::fs::{AtFlags, cwd, FdFlags, Mode};
+use rustix::fs::{AtFlags, FdFlags};
 
 use libc::{c_char, c_int, c_void, c_uint};
 use errno::{set_errno, Errno};
@@ -55,43 +56,6 @@ unsafe extern "C" fn statx(
             0
         }
         None => -1,
-    }
-}
-
-#[no_mangle]
-unsafe extern "C" fn fcntl(fd: c_int, cmd: c_int, mut args: ...) -> c_int {
-    match cmd {
-        libc::F_GETFL => {
-            libc!(libc::fcntl(fd, libc::F_GETFL));
-            let fd = BorrowedFd::borrow_raw(fd);
-            match convert_res(rustix::fs::fcntl_getfl(&fd)) {
-                Some(flags) => flags.bits() as _,
-                None => -1,
-            }
-        }
-        libc::F_SETFD => {
-            let flags = args.arg::<c_int>();
-            libc!(libc::fcntl(fd, libc::F_SETFD, flags));
-            let fd = BorrowedFd::borrow_raw(fd);
-            match convert_res(rustix::fs::fcntl_setfd(
-                &fd,
-                FdFlags::from_bits(flags as _).unwrap(),
-            )) {
-                Some(()) => 0,
-                None => -1,
-            }
-        }
-        #[cfg(not(target_os = "wasi"))]
-        libc::F_DUPFD_CLOEXEC => {
-            let arg = args.arg::<c_int>();
-            libc!(libc::fcntl(fd, libc::F_DUPFD_CLOEXEC, arg));
-            let fd = BorrowedFd::borrow_raw(fd);
-            match convert_res(rustix::fs::fcntl_dupfd_cloexec(&fd, arg)) {
-                Some(fd) => fd.into_raw_fd(),
-                None => -1,
-            }
-        }
-        _ => panic!("unrecognized fnctl({})", cmd),
     }
 }
 
@@ -252,34 +216,6 @@ unsafe extern "C" fn copy_file_range(
         len as u64,
     )) {
         Some(n) => n as _,
-        None => -1,
-    }
-}
-
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn chmod(pathname: *const c_char, mode: c_uint) -> c_int {
-    libc!(libc::chmod(pathname, mode));
-
-    let mode = Mode::from_bits((mode & !libc::S_IFMT) as _).unwrap();
-    match convert_res(rustix::fs::chmodat(
-        &cwd(),
-        ZStr::from_ptr(pathname.cast()),
-        mode,
-    )) {
-        Some(()) => 0,
-        None => -1,
-    }
-}
-
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn fchmod(fd: c_int, mode: c_uint) -> c_int {
-    libc!(libc::fchmod(fd, mode));
-
-    let mode = Mode::from_bits((mode & !libc::S_IFMT) as _).unwrap();
-    match convert_res(rustix::fs::fchmod(&BorrowedFd::borrow_raw(fd), mode)) {
-        Some(()) => 0,
         None => -1,
     }
 }
