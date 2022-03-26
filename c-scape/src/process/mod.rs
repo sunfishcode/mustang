@@ -1,5 +1,7 @@
+mod chdir;
 mod gid;
 mod groups;
+mod kill;
 mod pid;
 mod sid;
 mod wait;

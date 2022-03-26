@@ -1558,17 +1558,6 @@ unsafe extern "C" fn getcwd(buf: *mut c_char, len: usize) -> *mut c_char {
     }
 }
 
-#[no_mangle]
-unsafe extern "C" fn chdir(path: *const c_char) -> c_int {
-    libc!(libc::chdir(path));
-
-    let path = ZStr::from_ptr(path.cast());
-    match convert_res(rustix::process::chdir(path)) {
-        Some(()) => 0,
-        None => -1,
-    }
-}
-
 // `getauxval` usually returns `unsigned long`, but we make it a pointer type
 // so that it preserves provenance.
 #[no_mangle]
@@ -1748,13 +1737,6 @@ unsafe extern "C" fn prctl(
         }
         _ => unimplemented!("unrecognized prctl op {}", option),
     }
-}
-
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn kill(_pid: c_int, _sig: c_int) -> c_int {
-    libc!(libc::kill(_pid, _sig));
-    unimplemented!("kill")
 }
 
 #[cfg(not(target_os = "wasi"))]
