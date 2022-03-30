@@ -1,5 +1,6 @@
 use rustix::fd::BorrowedFd;
 
+use errno::{set_errno, Errno};
 use libc::c_int;
 
 #[no_mangle]

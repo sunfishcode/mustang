@@ -4,7 +4,6 @@ mod euid;
 mod getcwd;
 mod gid;
 mod groups;
-mod isatty;
 mod kill;
 mod pid;
 mod sid;
