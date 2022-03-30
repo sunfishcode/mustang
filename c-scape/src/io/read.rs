@@ -70,7 +70,12 @@ unsafe extern "C" fn preadv(fd: c_int, iov: *const iovec, iovcnt: c_int, offset:
 }
 
 #[no_mangle]
-unsafe extern "C" fn preadv64(fd: c_int, iov: *const iovec, iovcnt: c_int, offset: off64_t) -> isize {
+unsafe extern "C" fn preadv64(
+    fd: c_int,
+    iov: *const iovec,
+    iovcnt: c_int,
+    offset: off64_t,
+) -> isize {
     libc!(libc::preadv64(fd, iov, iovcnt, offset));
 
     let iov: *const IoSliceMut = checked_cast!(iov);

@@ -64,7 +64,12 @@ unsafe extern "C" fn pwritev(fd: c_int, iov: *const iovec, iovcnt: c_int, offset
 }
 
 #[no_mangle]
-unsafe extern "C" fn pwritev64(fd: c_int, iov: *const iovec, iovcnt: c_int, offset: off64_t) -> isize {
+unsafe extern "C" fn pwritev64(
+    fd: c_int,
+    iov: *const iovec,
+    iovcnt: c_int,
+    offset: off64_t,
+) -> isize {
     libc!(libc::pwritev64(fd, iov, iovcnt, offset));
 
     match convert_res(rustix::io::pwritev(

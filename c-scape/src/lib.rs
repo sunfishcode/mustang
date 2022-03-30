@@ -40,7 +40,6 @@ use alloc::boxed::Box;
 use alloc::format;
 #[cfg(feature = "sync-resolve")]
 use alloc::string::ToString;
-use alloc::vec::Vec;
 use core::convert::TryInto;
 use core::ffi::c_void;
 #[cfg(not(target_arch = "riscv64"))]
@@ -1404,26 +1403,6 @@ unsafe extern "C" fn sysconf(name: c_int) -> c_long {
         #[cfg(any(target_os = "android", target_os = "linux", target_os = "wasi"))]
         libc::_SC_SYMLOOP_MAX => 40,
         _ => panic!("unrecognized sysconf({})", name),
-    }
-}
-
-#[no_mangle]
-unsafe extern "C" fn getcwd(buf: *mut c_char, len: usize) -> *mut c_char {
-    libc!(libc::getcwd(buf, len));
-
-    match convert_res(rustix::process::getcwd(Vec::new())) {
-        Some(path) => {
-            let path = path.as_bytes();
-            if path.len() + 1 <= len {
-                memcpy(buf.cast(), path.as_ptr().cast(), path.len());
-                *buf.add(path.len()) = 0;
-                buf
-            } else {
-                set_errno(Errno(libc::ERANGE));
-                null_mut()
-            }
-        }
-        None => null_mut(),
     }
 }
 
