@@ -1,4 +1,6 @@
 mod chdir;
+mod egid;
+mod euid;
 mod gid;
 mod groups;
 mod kill;

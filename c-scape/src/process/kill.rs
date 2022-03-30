@@ -41,6 +41,6 @@ unsafe extern "C" fn killpg(pgid: pid_t, sig: c_int) -> c_int {
         set_errno(Errno(libc::EINVAL));
         return -1;
     }
-    
+
     kill(-pgid, sig)
 }
