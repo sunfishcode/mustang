@@ -8,7 +8,7 @@ use crate::convert_res;
 unsafe extern "C" fn fsync(fd: c_int) -> c_int {
     libc!(libc::fsync(fd));
 
-    match convert_res(rustix::fs::fdatasync(&BorrowedFd::borrow_raw(fd))) {
+    match convert_res(rustix::fs::fsync(&BorrowedFd::borrow_raw(fd))) {
         Some(()) => 0,
         None => -1,
     }

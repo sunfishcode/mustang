@@ -60,14 +60,13 @@ use libc::{c_char, c_int, c_long, c_uint, c_ulong};
 use parking_lot::lock_api::{RawMutex as _, RawRwLock};
 #[cfg(feature = "threads")]
 use parking_lot::RawMutex;
-use rustix::fd::{BorrowedFd, FromRawFd, IntoRawFd};
+use rustix::fd::{BorrowedFd, IntoRawFd};
 use rustix::ffi::ZStr;
 use rustix::fs::{AtFlags, Mode, OFlags};
 #[cfg(any(target_os = "android", target_os = "linux"))]
 use rustix::io::EventfdFlags;
-use rustix::io::OwnedFd;
 #[cfg(not(target_os = "wasi"))]
-use rustix::io::{MapFlags, MprotectFlags, MremapFlags, PipeFlags, ProtFlags};
+use rustix::io::{MapFlags, MprotectFlags, MremapFlags, ProtFlags};
 #[cfg(feature = "net")]
 use rustix::net::{
     AcceptFlags, AddressFamily, Ipv4Addr, Ipv6Addr, Protocol, RecvFlags, SendFlags, Shutdown,
@@ -85,6 +84,9 @@ mod fs;
 // process
 #[cfg(not(target_os = "wasi"))]
 mod process;
+
+// io
+mod io;
 
 // errno
 
@@ -873,100 +875,6 @@ unsafe extern "C" fn __res_init() -> c_int {
 }
 
 // io
-
-#[no_mangle]
-unsafe extern "C" fn write(fd: c_int, ptr: *const c_void, len: usize) -> isize {
-    libc!(libc::write(fd, ptr, len));
-
-    match convert_res(rustix::io::write(
-        &BorrowedFd::borrow_raw(fd),
-        slice::from_raw_parts(ptr.cast::<u8>(), len),
-    )) {
-        Some(nwritten) => nwritten as isize,
-        None => -1,
-    }
-}
-
-#[no_mangle]
-unsafe extern "C" fn writev(fd: c_int, iov: *const rustix::io::IoSlice, iovcnt: c_int) -> isize {
-    libc!(libc::writev(fd, checked_cast!(iov), iovcnt));
-
-    if iovcnt < 0 {
-        set_errno(Errno(libc::EINVAL));
-        return -1;
-    }
-
-    match convert_res(rustix::io::writev(
-        &BorrowedFd::borrow_raw(fd),
-        slice::from_raw_parts(iov, iovcnt as usize),
-    )) {
-        Some(nwritten) => nwritten as isize,
-        None => -1,
-    }
-}
-
-#[no_mangle]
-unsafe extern "C" fn read(fd: c_int, ptr: *mut c_void, len: usize) -> isize {
-    libc!(libc::read(fd, ptr, len));
-
-    match convert_res(rustix::io::read(
-        &BorrowedFd::borrow_raw(fd),
-        slice::from_raw_parts_mut(ptr.cast::<u8>(), len),
-    )) {
-        Some(nread) => nread as isize,
-        None => -1,
-    }
-}
-
-#[no_mangle]
-unsafe extern "C" fn readv(fd: c_int, iov: *const rustix::io::IoSliceMut, iovcnt: c_int) -> isize {
-    libc!(libc::readv(fd, checked_cast!(iov), iovcnt));
-
-    if iovcnt < 0 {
-        set_errno(Errno(libc::EINVAL));
-        return -1;
-    }
-
-    // Note that rustix's `readv` takes a `&mut`, however it doesn't
-    // mutate the `IoSliceMut` instances themselves, so it's safe to
-    // cast away the `const` here.
-    match convert_res(rustix::io::readv(
-        &BorrowedFd::borrow_raw(fd),
-        slice::from_raw_parts_mut(iov as *mut _, iovcnt as usize),
-    )) {
-        Some(nread) => nread as isize,
-        None => -1,
-    }
-}
-
-#[no_mangle]
-unsafe extern "C" fn pread64(fd: c_int, ptr: *mut c_void, len: usize, offset: i64) -> isize {
-    libc!(libc::pread64(fd, ptr, len, offset));
-
-    match convert_res(rustix::io::pread(
-        &BorrowedFd::borrow_raw(fd),
-        slice::from_raw_parts_mut(ptr.cast::<u8>(), len),
-        offset as u64,
-    )) {
-        Some(nread) => nread as isize,
-        None => -1,
-    }
-}
-
-#[no_mangle]
-unsafe extern "C" fn pwrite64(fd: c_int, ptr: *const c_void, len: usize, offset: i64) -> isize {
-    libc!(libc::pwrite64(fd, ptr, len, offset));
-
-    match convert_res(rustix::io::pwrite(
-        &BorrowedFd::borrow_raw(fd),
-        slice::from_raw_parts(ptr.cast::<u8>(), len),
-        offset as u64,
-    )) {
-        Some(nwritten) => nwritten as isize,
-        None => -1,
-    }
-}
-
 #[no_mangle]
 unsafe extern "C" fn poll(fds: *mut rustix::io::PollFd, nfds: c_ulong, timeout: c_int) -> c_int {
     libc!(libc::poll(checked_cast!(fds), nfds, timeout));
@@ -975,30 +883,6 @@ unsafe extern "C" fn poll(fds: *mut rustix::io::PollFd, nfds: c_ulong, timeout: 
     match convert_res(rustix::io::poll(fds, timeout)) {
         Some(num) => num.try_into().unwrap(),
         None => -1,
-    }
-}
-
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn dup2(fd: c_int, to: c_int) -> c_int {
-    libc!(libc::dup2(fd, to));
-
-    let to = OwnedFd::from_raw_fd(to).into();
-    match convert_res(rustix::io::dup2(&BorrowedFd::borrow_raw(fd), &to)) {
-        Some(()) => OwnedFd::from(to).into_raw_fd(),
-        None => -1,
-    }
-}
-
-#[no_mangle]
-unsafe extern "C" fn isatty(fd: c_int) -> c_int {
-    libc!(libc::isatty(fd));
-
-    if rustix::io::isatty(&BorrowedFd::borrow_raw(fd)) {
-        1
-    } else {
-        set_errno(Errno(libc::ENOTTY));
-        0
     }
 }
 
@@ -1042,21 +926,6 @@ unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
             }
         }
         _ => panic!("unrecognized ioctl({})", request),
-    }
-}
-
-#[no_mangle]
-unsafe extern "C" fn pipe2(pipefd: *mut c_int, flags: c_int) -> c_int {
-    libc!(libc::pipe2(pipefd, flags));
-
-    let flags = PipeFlags::from_bits(flags as _).unwrap();
-    match convert_res(rustix::io::pipe_with(flags)) {
-        Some((a, b)) => {
-            *pipefd = a.into_raw_fd();
-            *pipefd.add(1) = b.into_raw_fd();
-            0
-        }
-        None => -1,
     }
 }
 

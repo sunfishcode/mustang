@@ -6,7 +6,6 @@ use libc::{c_char, c_int, c_uint};
 
 use crate::convert_res;
 
-#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn chmod(pathname: *const c_char, mode: c_uint) -> c_int {
     libc!(libc::chmod(pathname, mode));
@@ -22,7 +21,6 @@ unsafe extern "C" fn chmod(pathname: *const c_char, mode: c_uint) -> c_int {
     }
 }
 
-#[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn fchmod(fd: c_int, mode: c_uint) -> c_int {
     libc!(libc::fchmod(fd, mode));
@@ -32,4 +30,10 @@ unsafe extern "C" fn fchmod(fd: c_int, mode: c_uint) -> c_int {
         Some(()) => 0,
         None => -1,
     }
+}
+
+#[no_mangle]
+unsafe extern "C" fn fchmodat() {
+    // libc!(libc::fchmodat());
+    unimplemented!("fchmodat")
 }

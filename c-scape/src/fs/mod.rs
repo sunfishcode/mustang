@@ -1,3 +1,5 @@
+mod access;
+#[cfg(not(target_os = "wasi"))]
 mod chmod;
 mod dirfd;
 mod fcntl;
