@@ -951,42 +951,6 @@ unsafe extern "C" fn recvmsg() {
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
 #[no_mangle]
-unsafe extern "C" fn epoll_create1(_flags: c_int) -> c_int {
-    libc!(libc::epoll_create1(_flags));
-    unimplemented!("epoll_create1")
-}
-
-#[cfg(any(target_os = "android", target_os = "linux"))]
-#[no_mangle]
-unsafe extern "C" fn epoll_ctl(
-    _epfd: c_int,
-    _op: c_int,
-    _fd: c_int,
-    _event: *mut libc::epoll_event,
-) -> c_int {
-    libc!(libc::epoll_ctl(_epfd, _op, _fd, checked_cast!(_event)));
-    unimplemented!("epoll_ctl")
-}
-
-#[cfg(any(target_os = "android", target_os = "linux"))]
-#[no_mangle]
-unsafe extern "C" fn epoll_wait(
-    _epfd: c_int,
-    _events: *mut libc::epoll_event,
-    _maxevents: c_int,
-    _timeout: c_int,
-) -> c_int {
-    libc!(libc::epoll_wait(
-        _epfd,
-        checked_cast!(_events),
-        _maxevents,
-        _timeout
-    ));
-    unimplemented!("epoll_wait")
-}
-
-#[cfg(any(target_os = "android", target_os = "linux"))]
-#[no_mangle]
 unsafe extern "C" fn eventfd(initval: c_uint, flags: c_int) -> c_int {
     libc!(libc::eventfd(initval, flags));
     let flags = EventfdFlags::from_bits(flags.try_into().unwrap()).unwrap();
