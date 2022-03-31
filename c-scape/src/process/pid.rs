@@ -7,6 +7,7 @@ unsafe extern "C" fn getpid() -> pid_t {
     rustix::process::getpid().as_raw_nonzero().get() as _
 }
 
+#[no_mangle]
 unsafe extern "C" fn setpid() {
     unimplemented!("setpid");
 }
