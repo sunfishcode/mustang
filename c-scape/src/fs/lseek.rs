@@ -10,7 +10,7 @@ use crate::convert_res;
 unsafe extern "C" fn lseek(fd: c_int, offset: off_t, whence: c_int) -> off_t {
     libc!(libc::lseek(fd, offset, whence));
 
-    match lseek64(fd, offset, whence).try_into() {
+    match lseek64(fd, offset as off64_t, whence).try_into() {
         Ok(v) => v,
         Err(_) => {
             set_errno(Errno(libc::EOVERFLOW));
