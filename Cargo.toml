@@ -42,3 +42,9 @@ members = [
   "origin",
   "c-scape",
 ]
+
+[profile.dev.package.c-scape]
+codegen-units = 1
+
+[profile.test.package.c-scape]
+codegen-units = 1
