@@ -1,9 +1,9 @@
 use rustix::fd::BorrowedFd;
 use rustix::io::IoSliceMut;
 
+use core::slice;
 use errno::{set_errno, Errno};
 use libc::{c_int, c_void, iovec, off64_t, off_t};
-use std::slice;
 
 use crate::convert_res;
 

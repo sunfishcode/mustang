@@ -1,8 +1,8 @@
 use rustix::fd::BorrowedFd;
 
+use core::convert::TryInto;
 use errno::{set_errno, Errno};
 use libc::{c_int, off64_t, off_t};
-use std::convert::TryInto;
 
 use crate::convert_res;
 

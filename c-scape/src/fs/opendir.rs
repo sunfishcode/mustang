@@ -2,8 +2,8 @@ use rustix::fd::{FromRawFd, IntoRawFd, OwnedFd};
 use rustix::ffi::ZStr;
 use rustix::fs::{cwd, Mode, OFlags};
 
+use core::{mem::zeroed, ptr::null_mut};
 use libc::{c_char, c_int, c_void};
-use std::{mem::zeroed, ptr::null_mut};
 
 use crate::convert_res;
 

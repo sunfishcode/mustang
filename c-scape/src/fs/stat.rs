@@ -2,9 +2,9 @@ use rustix::fd::BorrowedFd;
 use rustix::ffi::ZStr;
 use rustix::fs::AtFlags;
 
+use core::convert::TryInto;
 use errno::{set_errno, Errno};
 use libc::{c_char, c_int, c_long, time_t};
-use std::convert::TryInto;
 
 use crate::convert_res;
 

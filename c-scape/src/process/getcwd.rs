@@ -1,7 +1,7 @@
-use alloc::vec::Vec;
 use errno::{set_errno, Errno};
 use libc::c_char;
-use std::ptr::null_mut;
+use alloc::vec::Vec;
+use core::ptr::null_mut;
 
 use crate::{convert_res, memcpy};
 
