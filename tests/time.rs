@@ -66,7 +66,7 @@ fn instant_monotonic_concurrent() -> std::thread::Result<()> {
 #[test]
 fn instant_elapsed() {
     let a = Instant::now();
-    a.elapsed();
+    let _ = a.elapsed();
 }
 
 #[test]
@@ -108,21 +108,6 @@ fn instant_math_is_associative() {
     // Changing the order of instant math shouldn't change the results,
     // especially when the expression reduces to X + identity.
     assert_eq!((now + offset) - now, (now - now) + offset);
-}
-
-#[test]
-#[cfg_attr(
-    all(
-        any(target_arch = "aarch64", target_arch = "arm", target_arch = "riscv64"),
-        not(feature = "unwinding")
-    ),
-    ignore
-)]
-#[cfg_attr(all(target_vendor = "mustang", not(target_arch = "x86-64")), ignore)] // FIXME(mustang): triggers segfault
-#[should_panic]
-fn instant_duration_since_panic() {
-    let a = Instant::now();
-    (a - Duration::SECOND).duration_since(a);
 }
 
 #[test]

@@ -31,6 +31,6 @@ unsafe extern "C" fn readlinkat(
     };
     let bytes = path.as_bytes();
     let min = core::cmp::min(bytes.len(), bufsiz);
-    std::slice::from_raw_parts_mut(buf.cast(), min).copy_from_slice(bytes);
+    core::slice::from_raw_parts_mut(buf.cast(), min).copy_from_slice(bytes);
     min as isize
 }

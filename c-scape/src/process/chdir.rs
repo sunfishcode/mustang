@@ -21,7 +21,7 @@ unsafe extern "C" fn fchdir(fd: c_int) -> c_int {
     libc!(libc::fchdir(fd));
 
     let fd = BorrowedFd::borrow_raw(fd);
-    match convert_res(rustix::process::fchdir(&fd)) {
+    match convert_res(rustix::process::fchdir(fd)) {
         Some(()) => 0,
         None => -1,
     }

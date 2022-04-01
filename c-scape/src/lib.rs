@@ -62,10 +62,6 @@ use parking_lot::RawMutex;
 use rustix::fd::{BorrowedFd, IntoRawFd};
 use rustix::ffi::ZStr;
 use rustix::fs::{AtFlags, Mode, OFlags};
-#[cfg(any(target_os = "android", target_os = "linux"))]
-use rustix::io::EventfdFlags;
-#[cfg(not(target_os = "wasi"))]
-use rustix::io::{MapFlags, MprotectFlags, MremapFlags, ProtFlags};
 #[cfg(feature = "net")]
 use rustix::net::{
     AcceptFlags, AddressFamily, Ipv4Addr, Ipv6Addr, Protocol, RecvFlags, SendFlags, Shutdown,
@@ -86,6 +82,10 @@ mod process;
 
 // io
 mod io;
+
+// mmap
+#[cfg(not(target_os = "wasi"))]
+mod mmap;
 
 // errno
 
@@ -873,93 +873,6 @@ unsafe extern "C" fn __res_init() -> c_int {
     0
 }
 
-// io
-#[no_mangle]
-unsafe extern "C" fn poll(fds: *mut rustix::io::PollFd, nfds: c_ulong, timeout: c_int) -> c_int {
-    libc!(libc::poll(checked_cast!(fds), nfds, timeout));
-
-    let fds = slice::from_raw_parts_mut(fds, nfds.try_into().unwrap());
-    match convert_res(rustix::io::poll(fds, timeout)) {
-        Some(num) => num.try_into().unwrap(),
-        None => -1,
-    }
-}
-
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
-    const TCGETS: c_long = libc::TCGETS as c_long;
-    const FIONBIO: c_long = libc::FIONBIO as c_long;
-    const TIOCGWINSZ: c_long = libc::TIOCGWINSZ as c_long;
-    match request {
-        TCGETS => {
-            libc!(libc::ioctl(fd, libc::TCGETS));
-            let fd = BorrowedFd::borrow_raw(fd);
-            match convert_res(rustix::io::ioctl_tcgets(&fd)) {
-                Some(x) => {
-                    args.arg::<*mut rustix::io::Termios>().write(x);
-                    0
-                }
-                None => -1,
-            }
-        }
-        FIONBIO => {
-            libc!(libc::ioctl(fd, libc::FIONBIO));
-            let fd = BorrowedFd::borrow_raw(fd);
-            let ptr = args.arg::<*mut c_int>();
-            let value = *ptr != 0;
-            match convert_res(rustix::io::ioctl_fionbio(&fd, value)) {
-                Some(()) => 0,
-                None => -1,
-            }
-        }
-        TIOCGWINSZ => {
-            libc!(libc::ioctl(fd, libc::TIOCGWINSZ));
-            let fd = BorrowedFd::borrow_raw(fd);
-            match convert_res(rustix::io::ioctl_tiocgwinsz(&fd)) {
-                Some(x) => {
-                    args.arg::<*mut rustix::io::Winsize>().write(x);
-                    0
-                }
-                None => -1,
-            }
-        }
-        _ => panic!("unrecognized ioctl({})", request),
-    }
-}
-
-#[cfg(any(target_os = "android", target_os = "linux"))]
-#[no_mangle]
-unsafe extern "C" fn sendfile() {
-    //libc!(libc::sendfile());
-    unimplemented!("sendfile")
-}
-
-#[cfg(feature = "net")]
-#[no_mangle]
-unsafe extern "C" fn sendmsg() {
-    //libc!(libc::sendmsg());
-    unimplemented!("sendmsg")
-}
-
-#[cfg(feature = "net")]
-#[no_mangle]
-unsafe extern "C" fn recvmsg() {
-    //libc!(libc::recvmsg());
-    unimplemented!("recvmsg")
-}
-
-#[cfg(any(target_os = "android", target_os = "linux"))]
-#[no_mangle]
-unsafe extern "C" fn eventfd(initval: c_uint, flags: c_int) -> c_int {
-    libc!(libc::eventfd(initval, flags));
-    let flags = EventfdFlags::from_bits(flags.try_into().unwrap()).unwrap();
-    match convert_res(rustix::io::eventfd(initval, flags)) {
-        Some(fd) => fd.into_raw_fd(),
-        None => -1,
-    }
-}
-
 // malloc
 
 #[repr(C)]
@@ -1172,137 +1085,6 @@ unsafe extern "C" fn strlen(mut s: *const c_char) -> usize {
         s = s.add(1);
     }
     len
-}
-
-// mmap
-
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn mmap(
-    addr: *mut c_void,
-    length: usize,
-    prot: c_int,
-    flags: c_int,
-    fd: c_int,
-    offset: c_long,
-) -> *mut c_void {
-    libc!(libc::mmap(addr, length, prot, flags, fd, offset));
-
-    let anon = flags & libc::MAP_ANONYMOUS == libc::MAP_ANONYMOUS;
-    let prot = ProtFlags::from_bits(prot as _).unwrap();
-    let flags = MapFlags::from_bits((flags & !libc::MAP_ANONYMOUS) as _).unwrap();
-    match convert_res(if anon {
-        rustix::io::mmap_anonymous(addr, length, prot, flags)
-    } else {
-        rustix::io::mmap(
-            addr,
-            length,
-            prot,
-            flags,
-            &BorrowedFd::borrow_raw(fd),
-            offset as _,
-        )
-    }) {
-        Some(ptr) => ptr,
-        None => libc::MAP_FAILED,
-    }
-}
-
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn mmap64(
-    addr: *mut c_void,
-    length: usize,
-    prot: c_int,
-    flags: c_int,
-    fd: c_int,
-    offset: i64,
-) -> *mut c_void {
-    libc!(libc::mmap64(addr, length, prot, flags, fd, offset));
-
-    let anon = flags & libc::MAP_ANONYMOUS == libc::MAP_ANONYMOUS;
-    let prot = ProtFlags::from_bits(prot as _).unwrap();
-    let flags = MapFlags::from_bits((flags & !libc::MAP_ANONYMOUS) as _).unwrap();
-    match convert_res(if anon {
-        rustix::io::mmap_anonymous(addr, length, prot, flags)
-    } else {
-        rustix::io::mmap(
-            addr,
-            length,
-            prot,
-            flags,
-            &BorrowedFd::borrow_raw(fd),
-            offset as _,
-        )
-    }) {
-        Some(ptr) => ptr,
-        None => libc::MAP_FAILED,
-    }
-}
-
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn munmap(ptr: *mut c_void, len: usize) -> c_int {
-    libc!(libc::munmap(ptr, len));
-
-    match convert_res(rustix::io::munmap(ptr, len)) {
-        Some(()) => 0,
-        None => -1,
-    }
-}
-
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn mremap(
-    old_address: *mut c_void,
-    old_size: usize,
-    new_size: usize,
-    flags: c_int,
-    mut args: ...
-) -> *mut c_void {
-    if (flags & libc::MREMAP_FIXED) == libc::MREMAP_FIXED {
-        let new_address = args.arg::<*mut c_void>();
-        libc!(libc::mremap(
-            old_address,
-            old_size,
-            new_size,
-            flags,
-            new_address
-        ));
-
-        let flags = flags & !libc::MREMAP_FIXED;
-        let flags = MremapFlags::from_bits(flags as _).unwrap();
-        match convert_res(rustix::io::mremap_fixed(
-            old_address,
-            old_size,
-            new_size,
-            flags,
-            new_address,
-        )) {
-            Some(new_address) => new_address,
-            None => libc::MAP_FAILED,
-        }
-    } else {
-        libc!(libc::mremap(old_address, old_size, new_size, flags));
-
-        let flags = MremapFlags::from_bits(flags as _).unwrap();
-        match convert_res(rustix::io::mremap(old_address, old_size, new_size, flags)) {
-            Some(new_address) => new_address,
-            None => libc::MAP_FAILED,
-        }
-    }
-}
-
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn mprotect(addr: *mut c_void, length: usize, prot: c_int) -> c_int {
-    libc!(libc::mprotect(addr, length, prot));
-
-    let prot = MprotectFlags::from_bits(prot as _).unwrap();
-    match convert_res(rustix::io::mprotect(addr, length, prot)) {
-        Some(()) => 0,
-        None => -1,
-    }
 }
 
 // rand

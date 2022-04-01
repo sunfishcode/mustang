@@ -4,7 +4,7 @@ use rustix::fs::AtFlags;
 
 use core::convert::TryInto;
 use errno::{set_errno, Errno};
-use libc::{c_char, c_int, c_long, time_t};
+use libc::{c_char, c_int, time_t};
 
 use crate::convert_res;
 
@@ -13,22 +13,22 @@ fn rustix_stat_to_libc_stat(
 ) -> Result<libc::stat, std::num::TryFromIntError> {
     // SAFETY: libc structs can be zero-initalized freely
     let mut stat: libc::stat = unsafe { std::mem::zeroed() };
-    stat.st_dev = rustix_stat.st_dev as libc::dev_t;
+    stat.st_dev = rustix_stat.st_dev.try_into()?;
     stat.st_ino = rustix_stat.st_ino.try_into()?;
-    stat.st_nlink = rustix_stat.st_nlink as libc::nlink_t;
-    stat.st_mode = rustix_stat.st_mode as libc::mode_t;
-    stat.st_uid = rustix_stat.st_uid as libc::uid_t;
-    stat.st_gid = rustix_stat.st_gid as libc::gid_t;
-    stat.st_rdev = rustix_stat.st_rdev as libc::dev_t;
+    stat.st_nlink = rustix_stat.st_nlink.try_into()?;
+    stat.st_mode = rustix_stat.st_mode.try_into()?;
+    stat.st_uid = rustix_stat.st_uid.try_into()?;
+    stat.st_gid = rustix_stat.st_gid.try_into()?;
+    stat.st_rdev = rustix_stat.st_rdev.try_into()?;
     stat.st_size = rustix_stat.st_size.try_into()?;
-    stat.st_blksize = rustix_stat.st_blksize as libc::blksize_t;
+    stat.st_blksize = rustix_stat.st_blksize.try_into()?;
     stat.st_blocks = rustix_stat.st_blocks.try_into()?;
-    stat.st_atime = rustix_stat.st_atime as time_t;
-    stat.st_atime_nsec = rustix_stat.st_atime_nsec as c_long;
-    stat.st_mtime = rustix_stat.st_mtime as time_t;
-    stat.st_mtime_nsec = rustix_stat.st_mtime_nsec as c_long;
+    stat.st_atime = rustix_stat.st_atime.try_into()?;
+    stat.st_atime_nsec = rustix_stat.st_atime_nsec.try_into()?;
+    stat.st_mtime = rustix_stat.st_mtime.try_into()?;
+    stat.st_mtime_nsec = rustix_stat.st_mtime_nsec.try_into()?;
     stat.st_ctime = rustix_stat.st_ctime as time_t;
-    stat.st_ctime_nsec = rustix_stat.st_ctime_nsec as c_long;
+    stat.st_ctime_nsec = rustix_stat.st_ctime_nsec.try_into()?;
     Ok(stat)
 }
 
