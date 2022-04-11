@@ -6,6 +6,7 @@
 #![feature(rustc_private)] // for compiler-builtins
 #![feature(untagged_unions)] // for `PthreadMutexT`
 #![feature(atomic_mut_ptr)] // for `RawMutex`
+#![feature(strict_provenance)]
 
 extern crate alloc;
 extern crate compiler_builtins;
@@ -2247,18 +2248,20 @@ unsafe extern "C" fn chdir(path: *const c_char) -> c_int {
     }
 }
 
+// `getauxval` usually returns `unsigned long`, but we make it a pointer type
+// so that it preserves provenance.
 #[no_mangle]
-unsafe extern "C" fn getauxval(type_: c_ulong) -> c_ulong {
-    libc!(libc::getauxval(type_));
+unsafe extern "C" fn getauxval(type_: c_ulong) -> *mut c_void {
+    libc!(ptr::from_exposed_addr(libc::getauxval(type_) as _));
     unimplemented!("unrecognized getauxval {}", type_)
 }
 
 #[cfg(target_arch = "aarch64")]
 #[no_mangle]
-unsafe extern "C" fn __getauxval(type_: c_ulong) -> c_ulong {
-    libc!(libc::getauxval(type_));
+unsafe extern "C" fn __getauxval(type_: c_ulong) -> *mut c_void {
+    //libc!(ptr::from_exposed_addr(libc::__getauxval(type_) as _));
     match type_ {
-        libc::AT_HWCAP => rustix::process::linux_hwcap().0 as c_ulong,
+        libc::AT_HWCAP => ptr::invalid_mut(rustix::process::linux_hwcap().0),
         _ => unimplemented!("unrecognized __getauxval {}", type_),
     }
 }
@@ -2284,7 +2287,7 @@ unsafe extern "C" fn dl_iterate_phdr(
 
     let (phdr, phnum) = rustix::runtime::exe_phdrs();
     let mut info = libc::dl_phdr_info {
-        dlpi_addr: &mut __executable_start as *mut _ as c_ulong,
+        dlpi_addr: (&mut __executable_start as *mut c_void).expose_addr() as _,
         dlpi_name: b"/proc/self/exe\0".as_ptr().cast(),
         dlpi_phdr: phdr.cast(),
         dlpi_phnum: phnum.try_into().unwrap(),
@@ -2556,15 +2559,19 @@ unsafe extern "C" fn sigemptyset(_sigset: *mut c_void) -> c_int {
 
 // syscall
 
+// `syscall` usually returns `long`, but we make it a pointer type so that it
+// preserves provenance.
 #[cfg(not(target_os = "wasi"))]
 #[no_mangle]
-unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
+unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> *mut c_void {
     match number {
         libc::SYS_getrandom => {
             let buf = args.arg::<*mut c_void>();
             let len = args.arg::<usize>();
             let flags = args.arg::<u32>();
-            libc!(libc::syscall(libc::SYS_getrandom, buf, len, flags));
+            libc!(ptr::invalid_mut(
+                libc::syscall(libc::SYS_getrandom, buf, len, flags) as _
+            ));
             getrandom(buf, len, flags) as _
         }
         #[cfg(feature = "threads")]
@@ -2577,7 +2584,7 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
             let timeout = args.arg::<*const libc::timespec>();
             let uaddr2 = args.arg::<*mut u32>();
             let val3 = args.arg::<u32>();
-            libc!(libc::syscall(
+            libc!(ptr::invalid_mut(libc::syscall(
                 libc::SYS_futex,
                 uaddr,
                 futex_op,
@@ -2585,7 +2592,7 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
                 timeout,
                 uaddr2,
                 val3
-            ));
+            ) as _));
             let flags = FutexFlags::from_bits_truncate(futex_op as _);
             let op = match futex_op & (!flags.bits() as i32) {
                 libc::FUTEX_WAIT => FutexOperation::Wait,
@@ -2618,13 +2625,13 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
             };
             match convert_res(futex(uaddr, op, flags, val, new_timespec, uaddr2, val3)) {
                 Some(result) => result as _,
-                None => -1,
+                None => ptr::invalid_mut(!0),
             }
         }
         libc::SYS_clone3 => {
             // ensure std::process uses fork as fallback code on linux
             set_errno(Errno(libc::ENOSYS));
-            -1
+            ptr::invalid_mut(!0)
         }
         _ => unimplemented!("syscall({:?})", number),
     }
@@ -3535,7 +3542,8 @@ unsafe fn _getenv(key: &ZStr) -> *mut c_char {
         while *c != (b'=' as c_char) {
             c = c.add(1);
         }
-        if key.to_bytes() == slice::from_raw_parts(env.cast::<u8>(), (c as usize) - (env as usize))
+        if key.to_bytes()
+            == slice::from_raw_parts(env.cast::<u8>(), c.offset_from(env).try_into().unwrap())
         {
             return c.add(1);
         }
@@ -4254,7 +4262,7 @@ unsafe extern "C" fn pthread_create(
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_detach(pthread: PthreadT) -> c_int {
-    libc!(libc::pthread_detach(pthread as _));
+    libc!(libc::pthread_detach(pthread.expose_addr() as _));
     origin::detach_thread(pthread as *mut Thread);
     0
 }
