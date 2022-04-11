@@ -2252,7 +2252,7 @@ unsafe extern "C" fn chdir(path: *const c_char) -> c_int {
 // so that it preserves provenance.
 #[no_mangle]
 unsafe extern "C" fn getauxval(type_: c_ulong) -> *mut c_void {
-    libc!(ptr::from_exposed_addr(libc::getauxval(type_) as _));
+    libc!(ptr::from_exposed_addr_mut(libc::getauxval(type_) as _));
     unimplemented!("unrecognized getauxval {}", type_)
 }
 
