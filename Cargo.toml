@@ -43,7 +43,6 @@ members = [
   "c-scape",
 ]
 
-
 # These profile settings make rustc emit all of c-scape's code as one single
 # object file, eliminating unused symbol errors from the linker simply not
 # choosing to link in the object file containing needed symbols.
