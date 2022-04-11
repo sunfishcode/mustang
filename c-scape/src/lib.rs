@@ -2280,8 +2280,7 @@ unsafe extern "C" fn dl_iterate_phdr(
         static mut __executable_start: c_void;
     }
 
-    // Disabled for now, as our `dl_phdr_info` has fewer fields than libc's.
-    //libc!(libc::dl_iterate_phdr(callback, data));
+    libc!(libc::dl_iterate_phdr(callback, data));
 
     let (phdr, phnum) = rustix::runtime::exe_phdrs();
     let mut info = libc::dl_phdr_info {
