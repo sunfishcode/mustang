@@ -2474,6 +2474,13 @@ unsafe extern "C" fn getgid() -> c_uint {
 
 #[cfg(not(target_os = "wasi"))]
 #[no_mangle]
+unsafe extern "C" fn setpgid(pid: c_int, pgid: c_int) -> c_int {
+    libc!(libc::setpgid(pid, pgid));
+    unimplemented!("setpgid")
+}
+
+#[cfg(not(target_os = "wasi"))]
+#[no_mangle]
 unsafe extern "C" fn kill(_pid: c_int, _sig: c_int) -> c_int {
     libc!(libc::kill(_pid, _sig));
     unimplemented!("kill")
@@ -2673,6 +2680,13 @@ unsafe extern "C" fn posix_spawnattr_setsigdefault() {
 unsafe extern "C" fn posix_spawnattr_setsigmask() {
     //libc!(libc::posix_spawnattr_setsigmask());
     unimplemented!("posix_spawnsetsigmask")
+}
+
+#[cfg(not(target_os = "wasi"))]
+#[no_mangle]
+unsafe extern "C" fn posix_spawnattr_setpgroup(_ptr: *mut c_void, _pgroup: c_int) -> c_int {
+    //libc!(libc::posix_spawnattr_setpgroup(ptr, pgroup));
+    unimplemented!("posix_spawnattr_setpgroup")
 }
 
 #[cfg(not(target_os = "wasi"))]
