@@ -2400,14 +2400,16 @@ unsafe extern "C" fn sched_getaffinity(
     }
 }
 
+// In Linux, `prctl`'s arguments are described as `unsigned long`, however we
+// use pointer types in order to preserve provenance.
 #[cfg(any(target_os = "android", target_os = "linux"))]
 #[no_mangle]
 unsafe extern "C" fn prctl(
     option: c_int,
-    arg2: c_ulong,
-    _arg3: c_ulong,
-    _arg4: c_ulong,
-    _arg5: c_ulong,
+    arg2: *mut c_void,
+    _arg3: *mut c_void,
+    _arg4: *mut c_void,
+    _arg5: *mut c_void,
 ) -> c_int {
     libc!(libc::prctl(option, arg2, _arg3, _arg4, _arg5));
     match option {
@@ -3616,9 +3618,11 @@ unsafe impl parking_lot::lock_api::GetThreadId for GetThreadId {
     }
 }
 
+// In Linux, `pthread_t` is usually `unsigned long`, but we make it a pointer
+// type so that it preserves provenance.
 #[cfg(feature = "threads")]
 #[allow(non_camel_case_types)]
-type PthreadT = c_ulong;
+type PthreadT = *mut c_void;
 #[cfg(feature = "threads")]
 libc_type!(PthreadT, pthread_t);
 
@@ -3714,7 +3718,7 @@ libc_type!(PthreadMutexattrT, pthread_mutexattr_t);
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_self() -> PthreadT {
-    libc!(libc::pthread_self());
+    libc!(libc::pthread_self() as _);
     origin::current_thread() as PthreadT
 }
 
@@ -4250,7 +4254,7 @@ unsafe extern "C" fn pthread_create(
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_detach(pthread: PthreadT) -> c_int {
-    libc!(libc::pthread_detach(pthread));
+    libc!(libc::pthread_detach(pthread as _));
     origin::detach_thread(pthread as *mut Thread);
     0
 }
@@ -4258,7 +4262,7 @@ unsafe extern "C" fn pthread_detach(pthread: PthreadT) -> c_int {
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_join(pthread: PthreadT, retval: *mut *mut c_void) -> c_int {
-    libc!(libc::pthread_join(pthread, retval));
+    libc!(libc::pthread_join(pthread as _, retval));
     assert!(
         retval.is_null(),
         "pthread_join return values not supported yet"
