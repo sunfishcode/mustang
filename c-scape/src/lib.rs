@@ -56,8 +56,6 @@ use libc::{c_char, c_int, c_long, c_uint, c_ulong};
 #[cfg(not(target_os = "wasi"))]
 use memoffset::offset_of;
 #[cfg(feature = "threads")]
-use origin::Thread;
-#[cfg(feature = "threads")]
 use parking_lot::lock_api::{RawMutex as _, RawRwLock};
 #[cfg(feature = "threads")]
 use parking_lot::RawMutex;
@@ -3726,8 +3724,8 @@ libc_type!(PthreadMutexattrT, pthread_mutexattr_t);
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_self() -> PthreadT {
-    libc!(libc::pthread_self() as _);
-    origin::current_thread() as PthreadT
+    libc!(ptr::from_exposed_addr_mut(libc::pthread_self() as _));
+    origin::current_thread().cast()
 }
 
 #[cfg(feature = "threads")]
@@ -3736,7 +3734,7 @@ unsafe extern "C" fn pthread_getattr_np(thread: PthreadT, attr: *mut PthreadAttr
     // FIXME(#95) layout of attr doesn't match signature on aarch64
     // uncomment once it does:
     // libc!(libc::pthread_getattr_np(thread, checked_cast!(attr)));
-    let (stack_addr, stack_size, guard_size) = origin::thread_stack(thread as *mut Thread);
+    let (stack_addr, stack_size, guard_size) = origin::thread_stack(thread.cast());
     ptr::write(
         attr,
         PthreadAttrT {
@@ -4255,7 +4253,7 @@ unsafe extern "C" fn pthread_create(
         Err(e) => return e.raw_os_error(),
     };
 
-    pthread.write(thread as PthreadT);
+    pthread.write(thread.cast());
     0
 }
 
@@ -4263,20 +4261,20 @@ unsafe extern "C" fn pthread_create(
 #[no_mangle]
 unsafe extern "C" fn pthread_detach(pthread: PthreadT) -> c_int {
     libc!(libc::pthread_detach(pthread.expose_addr() as _));
-    origin::detach_thread(pthread as *mut Thread);
+    origin::detach_thread(pthread.cast());
     0
 }
 
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_join(pthread: PthreadT, retval: *mut *mut c_void) -> c_int {
-    libc!(libc::pthread_join(pthread as _, retval));
+    libc!(libc::pthread_join(pthread.expose_addr() as _, retval));
     assert!(
         retval.is_null(),
         "pthread_join return values not supported yet"
     );
 
-    origin::join_thread(pthread as *mut Thread);
+    origin::join_thread(pthread.cast());
     0
 }
 
