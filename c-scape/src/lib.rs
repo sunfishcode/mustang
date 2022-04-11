@@ -4373,8 +4373,11 @@ unsafe extern "C" fn __cxa_atexit(
     arg: *mut c_void,
     _dso: *mut c_void,
 ) -> c_int {
-    let arg = arg as usize;
-    origin::at_exit(Box::new(move || func(arg as *mut c_void)));
+    struct SendSync(*mut c_void);
+    unsafe impl Send for SendSync {}
+    unsafe impl Sync for SendSync {}
+    let arg = SendSync(arg);
+    origin::at_exit(Box::new(move || func(arg.0)));
     0
 }
 

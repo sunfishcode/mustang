@@ -7,6 +7,7 @@
 #![feature(naked_functions)]
 #![feature(link_llvm_intrinsics)]
 #![feature(atomic_mut_ptr)]
+#![feature(strict_provenance)]
 #![no_std]
 
 #[cfg(not(feature = "rustc-dep-of-std"))]

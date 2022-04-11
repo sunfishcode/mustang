@@ -389,7 +389,7 @@ pub(super) unsafe fn initialize_main_thread(mem: *mut c_void) {
     // See <https://lwn.net/Articles/631631/> for details.
     let execfn = linux_execfn().to_bytes_with_nul();
     let stack_base = execfn.as_ptr().add(execfn.len());
-    let stack_base = round_up(stack_base as usize, page_size()) as *mut c_void;
+    let stack_base = stack_base.map_addr(|ptr| round_up(ptr, page_size())) as *mut c_void;
 
     // We're running before any user code, so the startup soft stack limit is
     // the effective stack size. And Linux doesn't set up a guard page for the
@@ -450,7 +450,7 @@ pub(super) unsafe fn initialize_main_thread(mem: *mut c_void) {
 
     let tls_data = new.add(tls_data_bottom);
     let metadata: *mut Metadata = new.add(header).cast();
-    let newtls = (&mut (*metadata).abi) as *mut Abi;
+    let newtls: *mut Abi = &mut (*metadata).abi;
 
     // Initialize the thread metadata.
     ptr::write(
@@ -584,7 +584,7 @@ pub fn create_thread(
 
         let tls_data = map.add(tls_data_bottom);
         let metadata: *mut Metadata = map.add(header).cast();
-        let newtls = (&mut (*metadata).abi) as *mut Abi;
+        let newtls: *mut Abi = &mut (*metadata).abi;
 
         // Initialize the thread metadata.
         ptr::write(

@@ -110,8 +110,8 @@ pub(super) unsafe fn call_ctors(argc: c_int, argv: *mut *mut u8, envp: *mut *mut
 
     // Call the `.init_array` functions.
     type InitFn = fn(c_int, *mut *mut u8, *mut *mut u8);
-    let mut init = &__init_array_start as *const _ as usize as *const InitFn;
-    let init_end = &__init_array_end as *const _ as usize as *const InitFn;
+    let mut init = &__init_array_start as *const _ as *const InitFn;
+    let init_end = &__init_array_end as *const _ as *const InitFn;
     // Prevent the optimizer from optimizing the `!=` comparison to true;
     // `init` and `init_start` may have the same address.
     asm!("# {}", inout(reg) init);
@@ -187,8 +187,8 @@ pub fn exit(status: c_int) -> ! {
         }
 
         type InitFn = fn();
-        let mut fini: *const InitFn = &__fini_array_end as *const _ as usize as *const InitFn;
-        let fini_start: *const InitFn = &__fini_array_start as *const _ as usize as *const InitFn;
+        let mut fini: *const InitFn = &__fini_array_end as *const _ as *const InitFn;
+        let fini_start: *const InitFn = &__fini_array_start as *const _ as *const InitFn;
         // Prevent the optimizer from optimizing the `!=` comparison to true;
         // `fini` and `fini_start` may have the same address.
         asm!("# {}", inout(reg) fini);
