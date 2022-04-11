@@ -694,15 +694,23 @@ fn round_up(addr: usize, boundary: usize) -> usize {
 #[inline]
 pub unsafe fn detach_thread(thread: *mut Thread) {
     #[cfg(feature = "log")]
+    let thread_id = (*thread).thread_id.load(SeqCst);
+
+    #[cfg(feature = "log")]
     if log::log_enabled!(log::Level::Trace) {
         log::trace!(
-            "Thread[{:?}] marked as detached",
-            (*thread).thread_id.load(SeqCst)
+            "Thread[{:?}] marked as detached by Thread[{:?}]",
+            thread_id,
+            current_thread_id()
         );
     }
 
     if (*thread).detached.swap(DETACHED, SeqCst) == ABANDONED {
         wait_for_thread_exit(thread);
+
+        #[cfg(feature = "log")]
+        log_thread_to_be_freed(thread, thread_id);
+
         free_thread_memory(thread);
     }
 }
@@ -715,15 +723,23 @@ pub unsafe fn detach_thread(thread: *mut Thread) {
 /// been detached or joined.
 pub unsafe fn join_thread(thread: *mut Thread) {
     #[cfg(feature = "log")]
+    let thread_id = (*thread).thread_id.load(SeqCst);
+
+    #[cfg(feature = "log")]
     if log::log_enabled!(log::Level::Trace) {
         log::trace!(
-            "Thread[{:?}] is being joined",
-            (*thread).thread_id.load(SeqCst)
+            "Thread[{:?}] is being joined by Thread[{:?}]",
+            thread_id,
+            current_thread_id()
         );
     }
 
     wait_for_thread_exit(thread);
     debug_assert_eq!((*thread).detached.load(SeqCst), ABANDONED);
+
+    #[cfg(feature = "log")]
+    log_thread_to_be_freed(thread, thread_id);
+
     free_thread_memory(thread);
 }
 
@@ -756,6 +772,13 @@ unsafe fn wait_for_thread_exit(thread: *mut Thread) {
     }
 }
 
+#[cfg(feature = "log")]
+unsafe fn log_thread_to_be_freed(thread: *mut Thread, thread_id: u32) {
+    if log::log_enabled!(log::Level::Trace) {
+        log::trace!("Thread[{:?}] memory being freed", thread_id);
+    }
+}
+
 unsafe fn free_thread_memory(thread: *mut Thread) {
     use rustix::mm::munmap;
 
@@ -764,14 +787,6 @@ unsafe fn free_thread_memory(thread: *mut Thread) {
     let map_size = (*thread).map_size;
     let stack_addr = (*thread).stack_addr;
     let guard_size = (*thread).guard_size;
-
-    #[cfg(feature = "log")]
-    if log::log_enabled!(log::Level::Trace) {
-        log::trace!(
-            "Thread[{:?}] memory being freed",
-            (*thread).thread_id.load(SeqCst)
-        );
-    }
 
     // Deallocate the `Thread`.
     drop_in_place(thread);
