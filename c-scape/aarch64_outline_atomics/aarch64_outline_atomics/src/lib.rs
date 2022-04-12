@@ -1,3 +1,7 @@
+#![feature(strict_provenance)]
+#![deny(fuzzy_provenance_casts)]
+#![deny(lossy_provenance_casts)]
+
 use core::sync::atomic::Ordering::{AcqRel, Acquire, Relaxed, Release};
 use core::sync::atomic::{AtomicU32, AtomicU64, AtomicU8};
 
