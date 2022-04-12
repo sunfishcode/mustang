@@ -7,6 +7,8 @@
 #![feature(untagged_unions)] // for `PthreadMutexT`
 #![feature(atomic_mut_ptr)] // for `RawMutex`
 #![feature(strict_provenance)]
+#![deny(fuzzy_provenance_casts)]
+#![deny(lossy_provenance_casts)]
 
 extern crate alloc;
 extern crate compiler_builtins;
@@ -2569,7 +2571,7 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> *mut c_void {
             libc!(ptr::invalid_mut(
                 libc::syscall(libc::SYS_getrandom, buf, len, flags) as _
             ));
-            getrandom(buf, len, flags) as _
+            ptr::invalid_mut(getrandom(buf, len, flags) as _)
         }
         #[cfg(feature = "threads")]
         libc::SYS_futex => {
@@ -2621,7 +2623,7 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> *mut c_void {
                 &new_timespec
             };
             match convert_res(futex(uaddr, op, flags, val, new_timespec, uaddr2, val3)) {
-                Some(result) => result as _,
+                Some(result) => ptr::invalid_mut(result as _),
                 None => ptr::invalid_mut(!0),
             }
         }

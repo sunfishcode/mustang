@@ -1,4 +1,7 @@
 #![doc = include_str!("../README.md")]
+#![feature(strict_provenance)]
+#![deny(fuzzy_provenance_casts)]
+#![deny(lossy_provenance_casts)]
 
 /// Declare that a program can be compiled and run by `mustang`.
 ///
