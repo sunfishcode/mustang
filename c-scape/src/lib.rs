@@ -6,6 +6,7 @@
 #![feature(rustc_private)] // for compiler-builtins
 #![feature(untagged_unions)] // for `PthreadMutexT`
 #![feature(atomic_mut_ptr)] // for `RawMutex`
+#![feature(strict_provenance)]
 
 extern crate alloc;
 extern crate compiler_builtins;
@@ -54,8 +55,6 @@ use error_str::error_str;
 use libc::{c_char, c_int, c_long, c_uint, c_ulong};
 #[cfg(not(target_os = "wasi"))]
 use memoffset::offset_of;
-#[cfg(feature = "threads")]
-use origin::Thread;
 #[cfg(feature = "threads")]
 use parking_lot::lock_api::{RawMutex as _, RawRwLock};
 #[cfg(feature = "threads")]
@@ -2247,18 +2246,20 @@ unsafe extern "C" fn chdir(path: *const c_char) -> c_int {
     }
 }
 
+// `getauxval` usually returns `unsigned long`, but we make it a pointer type
+// so that it preserves provenance.
 #[no_mangle]
-unsafe extern "C" fn getauxval(type_: c_ulong) -> c_ulong {
-    libc!(libc::getauxval(type_));
+unsafe extern "C" fn getauxval(type_: c_ulong) -> *mut c_void {
+    libc!(ptr::from_exposed_addr_mut(libc::getauxval(type_) as _));
     unimplemented!("unrecognized getauxval {}", type_)
 }
 
 #[cfg(target_arch = "aarch64")]
 #[no_mangle]
-unsafe extern "C" fn __getauxval(type_: c_ulong) -> c_ulong {
-    libc!(libc::getauxval(type_));
+unsafe extern "C" fn __getauxval(type_: c_ulong) -> *mut c_void {
+    //libc!(ptr::from_exposed_addr(libc::__getauxval(type_) as _));
     match type_ {
-        libc::AT_HWCAP => rustix::process::linux_hwcap().0 as c_ulong,
+        libc::AT_HWCAP => ptr::invalid_mut(rustix::process::linux_hwcap().0),
         _ => unimplemented!("unrecognized __getauxval {}", type_),
     }
 }
@@ -2279,12 +2280,11 @@ unsafe extern "C" fn dl_iterate_phdr(
         static mut __executable_start: c_void;
     }
 
-    // Disabled for now, as our `dl_phdr_info` has fewer fields than libc's.
-    //libc!(libc::dl_iterate_phdr(callback, data));
+    libc!(libc::dl_iterate_phdr(callback, data));
 
     let (phdr, phnum) = rustix::runtime::exe_phdrs();
     let mut info = libc::dl_phdr_info {
-        dlpi_addr: &mut __executable_start as *mut _ as c_ulong,
+        dlpi_addr: (&mut __executable_start as *mut c_void).expose_addr() as _,
         dlpi_name: b"/proc/self/exe\0".as_ptr().cast(),
         dlpi_phdr: phdr.cast(),
         dlpi_phnum: phnum.try_into().unwrap(),
@@ -2400,14 +2400,16 @@ unsafe extern "C" fn sched_getaffinity(
     }
 }
 
+// In Linux, `prctl`'s arguments are described as `unsigned long`, however we
+// use pointer types in order to preserve provenance.
 #[cfg(any(target_os = "android", target_os = "linux"))]
 #[no_mangle]
 unsafe extern "C" fn prctl(
     option: c_int,
-    arg2: c_ulong,
-    _arg3: c_ulong,
-    _arg4: c_ulong,
-    _arg5: c_ulong,
+    arg2: *mut c_void,
+    _arg3: *mut c_void,
+    _arg4: *mut c_void,
+    _arg5: *mut c_void,
 ) -> c_int {
     libc!(libc::prctl(option, arg2, _arg3, _arg4, _arg5));
     match option {
@@ -2554,15 +2556,19 @@ unsafe extern "C" fn sigemptyset(_sigset: *mut c_void) -> c_int {
 
 // syscall
 
+// `syscall` usually returns `long`, but we make it a pointer type so that it
+// preserves provenance.
 #[cfg(not(target_os = "wasi"))]
 #[no_mangle]
-unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
+unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> *mut c_void {
     match number {
         libc::SYS_getrandom => {
             let buf = args.arg::<*mut c_void>();
             let len = args.arg::<usize>();
             let flags = args.arg::<u32>();
-            libc!(libc::syscall(libc::SYS_getrandom, buf, len, flags));
+            libc!(ptr::invalid_mut(
+                libc::syscall(libc::SYS_getrandom, buf, len, flags) as _
+            ));
             getrandom(buf, len, flags) as _
         }
         #[cfg(feature = "threads")]
@@ -2575,7 +2581,7 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
             let timeout = args.arg::<*const libc::timespec>();
             let uaddr2 = args.arg::<*mut u32>();
             let val3 = args.arg::<u32>();
-            libc!(libc::syscall(
+            libc!(ptr::invalid_mut(libc::syscall(
                 libc::SYS_futex,
                 uaddr,
                 futex_op,
@@ -2583,7 +2589,7 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
                 timeout,
                 uaddr2,
                 val3
-            ));
+            ) as _));
             let flags = FutexFlags::from_bits_truncate(futex_op as _);
             let op = match futex_op & (!flags.bits() as i32) {
                 libc::FUTEX_WAIT => FutexOperation::Wait,
@@ -2616,13 +2622,13 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> c_long {
             };
             match convert_res(futex(uaddr, op, flags, val, new_timespec, uaddr2, val3)) {
                 Some(result) => result as _,
-                None => -1,
+                None => ptr::invalid_mut(!0),
             }
         }
         libc::SYS_clone3 => {
             // ensure std::process uses fork as fallback code on linux
             set_errno(Errno(libc::ENOSYS));
-            -1
+            ptr::invalid_mut(!0)
         }
         _ => unimplemented!("syscall({:?})", number),
     }
@@ -3533,7 +3539,8 @@ unsafe fn _getenv(key: &ZStr) -> *mut c_char {
         while *c != (b'=' as c_char) {
             c = c.add(1);
         }
-        if key.to_bytes() == slice::from_raw_parts(env.cast::<u8>(), (c as usize) - (env as usize))
+        if key.to_bytes()
+            == slice::from_raw_parts(env.cast::<u8>(), c.offset_from(env).try_into().unwrap())
         {
             return c.add(1);
         }
@@ -3616,9 +3623,11 @@ unsafe impl parking_lot::lock_api::GetThreadId for GetThreadId {
     }
 }
 
+// In Linux, `pthread_t` is usually `unsigned long`, but we make it a pointer
+// type so that it preserves provenance.
 #[cfg(feature = "threads")]
 #[allow(non_camel_case_types)]
-type PthreadT = c_ulong;
+type PthreadT = *mut c_void;
 #[cfg(feature = "threads")]
 libc_type!(PthreadT, pthread_t);
 
@@ -3714,8 +3723,8 @@ libc_type!(PthreadMutexattrT, pthread_mutexattr_t);
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_self() -> PthreadT {
-    libc!(libc::pthread_self());
-    origin::current_thread() as PthreadT
+    libc!(ptr::from_exposed_addr_mut(libc::pthread_self() as _));
+    origin::current_thread().cast()
 }
 
 #[cfg(feature = "threads")]
@@ -3724,7 +3733,7 @@ unsafe extern "C" fn pthread_getattr_np(thread: PthreadT, attr: *mut PthreadAttr
     // FIXME(#95) layout of attr doesn't match signature on aarch64
     // uncomment once it does:
     // libc!(libc::pthread_getattr_np(thread, checked_cast!(attr)));
-    let (stack_addr, stack_size, guard_size) = origin::thread_stack(thread as *mut Thread);
+    let (stack_addr, stack_size, guard_size) = origin::thread_stack(thread.cast());
     ptr::write(
         attr,
         PthreadAttrT {
@@ -4243,28 +4252,28 @@ unsafe extern "C" fn pthread_create(
         Err(e) => return e.raw_os_error(),
     };
 
-    pthread.write(thread as PthreadT);
+    pthread.write(thread.cast());
     0
 }
 
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_detach(pthread: PthreadT) -> c_int {
-    libc!(libc::pthread_detach(pthread));
-    origin::detach_thread(pthread as *mut Thread);
+    libc!(libc::pthread_detach(pthread.expose_addr() as _));
+    origin::detach_thread(pthread.cast());
     0
 }
 
 #[cfg(feature = "threads")]
 #[no_mangle]
 unsafe extern "C" fn pthread_join(pthread: PthreadT, retval: *mut *mut c_void) -> c_int {
-    libc!(libc::pthread_join(pthread, retval));
+    libc!(libc::pthread_join(pthread.expose_addr() as _, retval));
     assert!(
         retval.is_null(),
         "pthread_join return values not supported yet"
     );
 
-    origin::join_thread(pthread as *mut Thread);
+    origin::join_thread(pthread.cast());
     0
 }
 
@@ -4373,8 +4382,11 @@ unsafe extern "C" fn __cxa_atexit(
     arg: *mut c_void,
     _dso: *mut c_void,
 ) -> c_int {
-    let arg = arg as usize;
-    origin::at_exit(Box::new(move || func(arg as *mut c_void)));
+    struct SendSync(*mut c_void);
+    unsafe impl Send for SendSync {}
+    unsafe impl Sync for SendSync {}
+    let arg = SendSync(arg);
+    origin::at_exit(Box::new(move || func(arg.0)));
     0
 }
 

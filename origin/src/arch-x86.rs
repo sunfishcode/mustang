@@ -71,7 +71,7 @@ pub(super) unsafe fn clone(
         "pop esi",
 
         entry = sym super::threads::entry,
-        inout("eax") &[newtls as usize, __NR_clone as usize, fn_ as usize] => r0,
+        inout("eax") &[newtls as *mut c_void, __NR_clone as *mut c_void, fn_ as *mut c_void] => r0,
         in("ebx") flags,
         in("ecx") child_stack,
         in("edx") parent_tid,

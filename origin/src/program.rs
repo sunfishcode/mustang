@@ -6,6 +6,7 @@ use crate::threads::initialize_main_thread;
 use alloc::boxed::Box;
 #[cfg(target_vendor = "mustang")]
 use alloc::vec::Vec;
+#[cfg(target_vendor = "mustang")]
 use core::arch::asm;
 use core::ffi::c_void;
 #[cfg(not(target_vendor = "mustang"))]
@@ -41,23 +42,23 @@ pub(super) unsafe extern "C" fn entry(mem: *mut usize) -> ! {
 
         // Check that `mem` is where we expect it to be.
         debug_assert_ne!(mem, core::ptr::null_mut());
-        debug_assert_eq!(mem as usize & 0xf, 0);
-        debug_assert!((builtin_frame_address(0) as usize) <= mem as usize);
+        debug_assert_eq!(mem.addr() & 0xf, 0);
+        debug_assert!(builtin_frame_address(0).addr() <= mem.addr());
 
         // Check that the incoming stack pointer is where we expect it to be.
         debug_assert_eq!(builtin_return_address(0), core::ptr::null());
         debug_assert_ne!(builtin_frame_address(0), core::ptr::null());
         #[cfg(not(any(target_arch = "arm", target_arch = "x86")))]
-        debug_assert_eq!(builtin_frame_address(0) as usize & 0xf, 0);
+        debug_assert_eq!(builtin_frame_address(0).addr() & 0xf, 0);
         #[cfg(target_arch = "arm")]
-        debug_assert_eq!(builtin_frame_address(0) as usize & 0x7, 0);
+        debug_assert_eq!(builtin_frame_address(0).addr() & 0x7, 0);
         #[cfg(target_arch = "x86")]
-        debug_assert_eq!(builtin_frame_address(0) as usize & 0xf, 8);
+        debug_assert_eq!(builtin_frame_address(0).addr() & 0xf, 8);
         debug_assert_eq!(builtin_frame_address(1), core::ptr::null());
         #[cfg(target_arch = "aarch64")]
         debug_assert_ne!(builtin_sponentry(), core::ptr::null());
         #[cfg(target_arch = "aarch64")]
-        debug_assert_eq!(builtin_sponentry() as usize & 0xf, 0);
+        debug_assert_eq!(builtin_sponentry().addr() & 0xf, 0);
     }
 
     // Compute `argc`, `argv`, and `envp`.
@@ -110,8 +111,8 @@ pub(super) unsafe fn call_ctors(argc: c_int, argv: *mut *mut u8, envp: *mut *mut
 
     // Call the `.init_array` functions.
     type InitFn = fn(c_int, *mut *mut u8, *mut *mut u8);
-    let mut init = &__init_array_start as *const _ as usize as *const InitFn;
-    let init_end = &__init_array_end as *const _ as usize as *const InitFn;
+    let mut init = &__init_array_start as *const _ as *const InitFn;
+    let init_end = &__init_array_end as *const _ as *const InitFn;
     // Prevent the optimizer from optimizing the `!=` comparison to true;
     // `init` and `init_start` may have the same address.
     asm!("# {}", inout(reg) init);
@@ -187,8 +188,8 @@ pub fn exit(status: c_int) -> ! {
         }
 
         type InitFn = fn();
-        let mut fini: *const InitFn = &__fini_array_end as *const _ as usize as *const InitFn;
-        let fini_start: *const InitFn = &__fini_array_start as *const _ as usize as *const InitFn;
+        let mut fini: *const InitFn = &__fini_array_end as *const _ as *const InitFn;
+        let fini_start: *const InitFn = &__fini_array_start as *const _ as *const InitFn;
         // Prevent the optimizer from optimizing the `!=` comparison to true;
         // `fini` and `fini_start` may have the same address.
         asm!("# {}", inout(reg) fini);

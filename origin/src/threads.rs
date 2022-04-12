@@ -56,16 +56,16 @@ pub(super) unsafe extern "C" fn entry(fn_: *mut Box<dyn FnOnce() -> Option<Box<d
         debug_assert_eq!(builtin_return_address(0), core::ptr::null());
         debug_assert_ne!(builtin_frame_address(0), core::ptr::null());
         #[cfg(not(any(target_arch = "x86", target_arch = "arm")))]
-        debug_assert_eq!(builtin_frame_address(0) as usize & 0xf, 0);
+        debug_assert_eq!(builtin_frame_address(0).addr() & 0xf, 0);
         #[cfg(target_arch = "arm")]
-        debug_assert_eq!(builtin_frame_address(0) as usize & 0x3, 0);
+        debug_assert_eq!(builtin_frame_address(0).addr() & 0x3, 0);
         #[cfg(target_arch = "x86")]
-        debug_assert_eq!(builtin_frame_address(0) as usize & 0xf, 8);
+        debug_assert_eq!(builtin_frame_address(0).addr() & 0xf, 8);
         debug_assert_eq!(builtin_frame_address(1), core::ptr::null());
         #[cfg(target_arch = "aarch64")]
         debug_assert_ne!(builtin_sponentry(), core::ptr::null());
         #[cfg(target_arch = "aarch64")]
-        debug_assert_eq!(builtin_sponentry() as usize & 0xf, 0);
+        debug_assert_eq!(builtin_sponentry().addr() & 0xf, 0);
 
         // Check that `clone` stored our thread id as we expected.
         debug_assert_eq!(current_thread_id(), gettid());
@@ -389,7 +389,7 @@ pub(super) unsafe fn initialize_main_thread(mem: *mut c_void) {
     // See <https://lwn.net/Articles/631631/> for details.
     let execfn = linux_execfn().to_bytes_with_nul();
     let stack_base = execfn.as_ptr().add(execfn.len());
-    let stack_base = round_up(stack_base as usize, page_size()) as *mut c_void;
+    let stack_base = stack_base.map_addr(|ptr| round_up(ptr, page_size())) as *mut c_void;
 
     // We're running before any user code, so the startup soft stack limit is
     // the effective stack size. And Linux doesn't set up a guard page for the
@@ -446,11 +446,11 @@ pub(super) unsafe fn initialize_main_thread(mem: *mut c_void) {
     )
     .unwrap()
     .cast::<u8>();
-    debug_assert_eq!(new as usize % metadata_align, 0);
+    debug_assert_eq!(new.addr() % metadata_align, 0);
 
     let tls_data = new.add(tls_data_bottom);
     let metadata: *mut Metadata = new.add(header).cast();
-    let newtls = (&mut (*metadata).abi) as *mut Abi;
+    let newtls: *mut Abi = &mut (*metadata).abi;
 
     // Initialize the thread metadata.
     ptr::write(
@@ -584,7 +584,7 @@ pub fn create_thread(
 
         let tls_data = map.add(tls_data_bottom);
         let metadata: *mut Metadata = map.add(header).cast();
-        let newtls = (&mut (*metadata).abi) as *mut Abi;
+        let newtls: *mut Abi = &mut (*metadata).abi;
 
         // Initialize the thread metadata.
         ptr::write(
