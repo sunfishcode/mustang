@@ -6,6 +6,9 @@ use libc::{c_char, c_int};
 
 use crate::convert_res;
 
+// This has to be a macro because we can't delegate C varadic functions.
+// This allows us to reduce code duplication as all of the `open` variants
+// should morally delegate to openat64.
 macro_rules! openat_impl {
     ($fd: expr, $pathname: ident, $flags: ident, $args: ident) => {{
         let flags = OFlags::from_bits($flags as _).unwrap();

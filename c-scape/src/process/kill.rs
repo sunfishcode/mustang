@@ -17,14 +17,13 @@ unsafe extern "C" fn kill(pid: pid_t, sig: c_int) -> c_int {
     };
 
     let res = match pid {
-        0 => rustix::process::kill_current_process_group(sig),
         n if n > 0 => {
             rustix::process::kill_process(Pid::from_raw(pid.unsigned_abs()).unwrap(), sig)
         }
         n if n < 0 => {
             rustix::process::kill_process_group(Pid::from_raw(pid.unsigned_abs()).unwrap(), sig)
         }
-        _ => unreachable!(),
+        _ => rustix::process::kill_current_process_group(sig),
     };
 
     match convert_res(res) {
