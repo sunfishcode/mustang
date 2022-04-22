@@ -1,17 +1,15 @@
 use rustix::fd::BorrowedFd;
 
-use errno::{set_errno, Errno};
 use libc::c_int;
+
+use crate::convert_res;
 
 #[no_mangle]
 unsafe extern "C" fn isatty(fd: c_int) -> c_int {
     libc!(libc::isatty(fd));
 
-    // TODO: how does this handle the `EBADF`
-    if rustix::io::isatty(&BorrowedFd::borrow_raw(fd)) {
-        1
-    } else {
-        set_errno(Errno(libc::ENOTTY));
-        0
+    match convert_res(rustix::io::ioctl_tiocgwinsz(&BorrowedFd::borrow_raw(fd))) {
+        Some(_) => 1,
+        None => 0,
     }
 }

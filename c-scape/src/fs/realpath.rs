@@ -6,7 +6,6 @@ use libc::{c_char, c_void};
 
 use crate::{malloc, memcpy};
 
-//TODO: when can we use Box / when do we have to use malloc
 #[no_mangle]
 unsafe extern "C" fn realpath(path: *const c_char, resolved_path: *mut c_char) -> *mut c_char {
     libc!(libc::realpath(path, resolved_path));

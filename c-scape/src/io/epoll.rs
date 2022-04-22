@@ -1,6 +1,3 @@
-// This entire module is marked
-// #[cfg(any(target_os = "android", target_os = "linux"))]
-
 use rustix::fd::{FromRawFd, IntoRawFd, OwnedFd};
 use rustix::io::epoll::{CreateFlags, Epoll, Owning};
 
