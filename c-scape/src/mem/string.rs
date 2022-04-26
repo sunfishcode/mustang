@@ -282,19 +282,23 @@ unsafe extern "C" fn strtok(s: *mut c_char, m: *const c_char) -> *mut c_char {
 
     static STORAGE: SyncUnsafeCell<SyncCChar> = SyncUnsafeCell::new(SyncCChar(ptr::null_mut()));
 
-    strtok_r(s, m, SyncUnsafeCell::raw_get(ptr::addr_of!(STORAGE)) as *mut *mut c_char)
+    strtok_r(
+        s,
+        m,
+        SyncUnsafeCell::raw_get(ptr::addr_of!(STORAGE)) as *mut *mut c_char,
+    )
 }
 
 #[no_mangle]
-unsafe extern "C" fn strtok_r(s: *mut c_char, m: *const c_char, p: *mut *mut c_char) -> *mut c_char {
+unsafe extern "C" fn strtok_r(
+    s: *mut c_char,
+    m: *const c_char,
+    p: *mut *mut c_char,
+) -> *mut c_char {
     // Not defined in libc
     // libc!(libc::strtok_r(s, m, p));
-    
-    let mut s = if s.is_null() {
-        *p
-    } else {
-        s
-    };
+
+    let mut s = if s.is_null() { *p } else { s };
 
     if s.is_null() {
         return ptr::null_mut();
@@ -310,7 +314,7 @@ unsafe extern "C" fn strtok_r(s: *mut c_char, m: *const c_char, p: *mut *mut c_c
     if *t != NUL {
         *t = NUL;
         *p = t;
-    }   else {
+    } else {
         *p = ptr::null_mut();
     }
 
