@@ -7,6 +7,7 @@
 #![feature(untagged_unions)] // for `PthreadMutexT`
 #![feature(atomic_mut_ptr)] // for `RawMutex`
 #![feature(strict_provenance)]
+#![feature(sync_unsafe_cell)]
 #![deny(fuzzy_provenance_casts)]
 #![deny(lossy_provenance_casts)]
 #![feature(try_blocks)]
