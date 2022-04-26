@@ -282,11 +282,7 @@ unsafe extern "C" fn strtok(s: *mut c_char, m: *const c_char) -> *mut c_char {
 
     static STORAGE: SyncUnsafeCell<SyncCChar> = SyncUnsafeCell::new(SyncCChar(ptr::null_mut()));
 
-    strtok_r(
-        s,
-        m,
-        SyncUnsafeCell::raw_get(ptr::addr_of!(STORAGE)) as *mut *mut c_char,
-    )
+    strtok_r(s, m, SyncUnsafeCell::get(&STORAGE) as *mut *mut c_char)
 }
 
 #[no_mangle]
