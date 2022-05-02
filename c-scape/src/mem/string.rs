@@ -8,8 +8,7 @@ const NUL: c_char = 0;
 
 #[no_mangle]
 unsafe extern "C" fn stpcpy(mut d: *mut c_char, mut s: *const c_char) -> *mut c_char {
-    // Not defined in libc
-    // libc!(libc::stpcpy(d, s));
+    libc!(libc::stpcpy(d, s));
 
     loop {
         *d = *s;
@@ -31,8 +30,7 @@ unsafe extern "C" fn stpncpy(
     mut s: *const c_char,
     mut n: usize,
 ) -> *mut c_char {
-    // Not defined in libc
-    // libc!(libc::stpncpy(d, s, n));
+    libc!(libc::stpncpy(d, s, n));
 
     while n > 0 {
         n = n - 1;
@@ -291,8 +289,7 @@ unsafe extern "C" fn strtok_r(
     m: *const c_char,
     p: *mut *mut c_char,
 ) -> *mut c_char {
-    // Not defined in libc
-    // libc!(libc::strtok_r(s, m, p));
+    libc!(libc::strtok_r(s, m, p));
 
     let mut s = if s.is_null() { *p } else { s };
 
