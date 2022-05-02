@@ -1,6 +1,6 @@
 use core::cell::SyncUnsafeCell;
 use core::ptr;
-use libc::{c_char, c_int};
+use libc::{c_char, c_int, c_schar};
 
 use crate::{malloc, memcpy};
 
@@ -89,7 +89,7 @@ unsafe extern "C" fn strcmp(mut s1: *const c_char, mut s2: *const c_char) -> c_i
         s2 = s2.add(1);
     }
 
-    (*s1 - *s2) as c_int
+    *s1 as c_schar as c_int - *s2 as c_schar as c_int
 }
 
 #[no_mangle]
@@ -182,7 +182,7 @@ unsafe extern "C" fn strncmp(mut s1: *const c_char, mut s2: *const c_char, mut n
         s2 = s2.add(1);
     }
 
-    (*s1 - *s2) as c_int
+    *s1 as c_schar as c_int - *s2 as c_schar as c_int
 }
 
 #[no_mangle]
