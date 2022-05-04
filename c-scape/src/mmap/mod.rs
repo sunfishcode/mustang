@@ -6,9 +6,6 @@ use libc::{c_int, off64_t, off_t};
 
 use crate::convert_res;
 
-// this entire module is
-// #[cfg(not(target_os = "wasi"))]
-
 #[no_mangle]
 unsafe extern "C" fn mmap(
     addr: *mut c_void,
