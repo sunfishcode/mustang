@@ -19,7 +19,7 @@ unsafe extern "C" fn mkdirat(fd: c_int, pathname: *const c_char, mode: libc::mod
 
     let mode = Mode::from_bits((mode & !libc::S_IFMT) as _).unwrap();
     match convert_res(rustix::fs::mkdirat(
-        &BorrowedFd::borrow_raw(fd),
+        BorrowedFd::borrow_raw(fd),
         ZStr::from_ptr(pathname.cast()),
         mode,
     )) {

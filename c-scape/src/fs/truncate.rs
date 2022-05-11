@@ -16,7 +16,7 @@ unsafe extern "C" fn ftruncate64(fd: c_int, length: off64_t) -> c_int {
     libc!(libc::ftruncate64(fd, length));
 
     match convert_res(rustix::fs::ftruncate(
-        &BorrowedFd::borrow_raw(fd),
+        BorrowedFd::borrow_raw(fd),
         length as u64,
     )) {
         Some(()) => 0,

@@ -49,7 +49,7 @@ unsafe extern "C" fn statx(
     let flags = AtFlags::from_bits(flags as _).unwrap();
     let mask = rustix::fs::StatxFlags::from_bits(mask).unwrap();
     match convert_res(rustix::fs::statx(
-        &BorrowedFd::borrow_raw(dirfd_),
+        BorrowedFd::borrow_raw(dirfd_),
         ZStr::from_ptr(path.cast()),
         flags,
         mask,
@@ -212,9 +212,9 @@ unsafe extern "C" fn copy_file_range(
         Some(&mut *off_out.cast::<u64>())
     };
     match convert_res(rustix::fs::copy_file_range(
-        &BorrowedFd::borrow_raw(fd_in),
+        BorrowedFd::borrow_raw(fd_in),
         off_in,
-        &BorrowedFd::borrow_raw(fd_out),
+        BorrowedFd::borrow_raw(fd_out),
         off_out,
         len as u64,
     )) {

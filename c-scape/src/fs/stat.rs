@@ -71,7 +71,7 @@ unsafe extern "C" fn fstatat(
 
     let flags = AtFlags::from_bits(flags as _).unwrap();
     let rustix_stat = match convert_res(rustix::fs::statat(
-        &BorrowedFd::borrow_raw(fd),
+        BorrowedFd::borrow_raw(fd),
         ZStr::from_ptr(pathname.cast()),
         flags,
     )) {
@@ -104,7 +104,7 @@ unsafe extern "C" fn fstatat64(
 
     let flags = AtFlags::from_bits(flags as _).unwrap();
     match convert_res(rustix::fs::statat(
-        &BorrowedFd::borrow_raw(fd),
+        BorrowedFd::borrow_raw(fd),
         ZStr::from_ptr(pathname.cast()),
         flags,
     )) {
@@ -120,7 +120,7 @@ unsafe extern "C" fn fstatat64(
 unsafe extern "C" fn fstat(fd: c_int, stat_: *mut libc::stat) -> c_int {
     libc!(libc::fstat(fd, stat_));
 
-    let rustix_stat = match convert_res(rustix::fs::fstat(&BorrowedFd::borrow_raw(fd))) {
+    let rustix_stat = match convert_res(rustix::fs::fstat(BorrowedFd::borrow_raw(fd))) {
         Some(r) => r,
         None => return -1,
     };
@@ -143,7 +143,7 @@ unsafe extern "C" fn fstat64(fd: c_int, stat_: *mut libc::stat64) -> c_int {
 
     let stat_: *mut rustix::fs::Stat = checked_cast!(stat_);
 
-    match convert_res(rustix::fs::fstat(&BorrowedFd::borrow_raw(fd))) {
+    match convert_res(rustix::fs::fstat(BorrowedFd::borrow_raw(fd))) {
         Some(r) => {
             *stat_ = r;
             0

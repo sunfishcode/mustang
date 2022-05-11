@@ -17,7 +17,7 @@ unsafe extern "C" fn opendir(pathname: *const c_char) -> *mut c_void {
     libc!(libc::opendir(pathname).cast());
 
     match convert_res(rustix::fs::openat(
-        &cwd(),
+        cwd(),
         ZStr::from_ptr(pathname.cast()),
         OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC,
         Mode::empty(),

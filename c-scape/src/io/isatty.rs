@@ -8,7 +8,7 @@ use crate::convert_res;
 unsafe extern "C" fn isatty(fd: c_int) -> c_int {
     libc!(libc::isatty(fd));
 
-    match convert_res(rustix::io::ioctl_tiocgwinsz(&BorrowedFd::borrow_raw(fd))) {
+    match convert_res(rustix::io::ioctl_tiocgwinsz(BorrowedFd::borrow_raw(fd))) {
         Some(_) => 1,
         None => 0,
     }

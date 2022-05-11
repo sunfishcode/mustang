@@ -34,7 +34,7 @@ unsafe extern "C" fn accept(
     // libc!(libc::accept(fd, checked_cast!(addr), len));
     libc!(libc::accept(fd, addr.cast(), len));
 
-    match convert_res(rustix::net::acceptfrom(&BorrowedFd::borrow_raw(fd))) {
+    match convert_res(rustix::net::acceptfrom(BorrowedFd::borrow_raw(fd))) {
         Some((accepted_fd, from)) => {
             if let Some(from) = from {
                 let encoded_len = from.write(addr);
@@ -60,7 +60,7 @@ unsafe extern "C" fn accept4(
 
     let flags = AcceptFlags::from_bits(flags as _).unwrap();
     match convert_res(rustix::net::acceptfrom_with(
-        &BorrowedFd::borrow_raw(fd),
+        BorrowedFd::borrow_raw(fd),
         flags,
     )) {
         Some((accepted_fd, from)) => {
@@ -90,9 +90,9 @@ unsafe extern "C" fn bind(
         None => return -1,
     };
     match convert_res(match addr {
-        SocketAddrAny::V4(v4) => rustix::net::bind_v4(&BorrowedFd::borrow_raw(sockfd), &v4),
-        SocketAddrAny::V6(v6) => rustix::net::bind_v6(&BorrowedFd::borrow_raw(sockfd), &v6),
-        SocketAddrAny::Unix(unix) => rustix::net::bind_unix(&BorrowedFd::borrow_raw(sockfd), &unix),
+        SocketAddrAny::V4(v4) => rustix::net::bind_v4(BorrowedFd::borrow_raw(sockfd), &v4),
+        SocketAddrAny::V6(v6) => rustix::net::bind_v6(BorrowedFd::borrow_raw(sockfd), &v6),
+        SocketAddrAny::Unix(unix) => rustix::net::bind_unix(BorrowedFd::borrow_raw(sockfd), &unix),
         _ => panic!("unrecognized SocketAddrAny kind"),
     }) {
         Some(()) => 0,
@@ -116,10 +116,10 @@ unsafe extern "C" fn connect(
         None => return -1,
     };
     match convert_res(match addr {
-        SocketAddrAny::V4(v4) => rustix::net::connect_v4(&BorrowedFd::borrow_raw(sockfd), &v4),
-        SocketAddrAny::V6(v6) => rustix::net::connect_v6(&BorrowedFd::borrow_raw(sockfd), &v6),
+        SocketAddrAny::V4(v4) => rustix::net::connect_v4(BorrowedFd::borrow_raw(sockfd), &v4),
+        SocketAddrAny::V6(v6) => rustix::net::connect_v6(BorrowedFd::borrow_raw(sockfd), &v6),
         SocketAddrAny::Unix(unix) => {
-            rustix::net::connect_unix(&BorrowedFd::borrow_raw(sockfd), &unix)
+            rustix::net::connect_unix(BorrowedFd::borrow_raw(sockfd), &unix)
         }
         _ => panic!("unrecognized SocketAddrAny kind"),
     }) {
@@ -139,7 +139,7 @@ unsafe extern "C" fn getpeername(
     // libc!(libc::getpeername(fd, checked_cast!(addr), len));
     libc!(libc::getpeername(fd, addr.cast(), len));
 
-    match convert_res(rustix::net::getpeername(&BorrowedFd::borrow_raw(fd))) {
+    match convert_res(rustix::net::getpeername(BorrowedFd::borrow_raw(fd))) {
         Some(from) => {
             if let Some(from) = from {
                 let encoded_len = from.write(addr);
@@ -162,7 +162,7 @@ unsafe extern "C" fn getsockname(
     // libc!(libc::getsockname(fd, checked_cast!(addr), len));
     libc!(libc::getsockname(fd, addr.cast(), len));
 
-    match convert_res(rustix::net::getsockname(&BorrowedFd::borrow_raw(fd))) {
+    match convert_res(rustix::net::getsockname(BorrowedFd::borrow_raw(fd))) {
         Some(from) => {
             let encoded_len = from.write(addr);
             *len = encoded_len.try_into().unwrap();
@@ -240,7 +240,7 @@ unsafe extern "C" fn getsockopt(
 
     libc!(libc::getsockopt(fd, level, optname, optval, optlen));
 
-    let fd = &BorrowedFd::borrow_raw(fd);
+    let fd = BorrowedFd::borrow_raw(fd);
     let result = match level {
         libc::SOL_SOCKET => match optname {
             libc::SO_BROADCAST => write_bool(sockopt::get_socket_broadcast(fd), optval, optlen),
@@ -363,7 +363,7 @@ unsafe extern "C" fn setsockopt(
 
     libc!(libc::setsockopt(fd, level, optname, optval, optlen));
 
-    let fd = &BorrowedFd::borrow_raw(fd);
+    let fd = BorrowedFd::borrow_raw(fd);
     let result = match level {
         libc::SOL_SOCKET => match optname {
             libc::SO_REUSEADDR => sockopt::set_socket_reuseaddr(fd, read_bool(optval, optlen)),
@@ -589,7 +589,7 @@ unsafe extern "C" fn gethostname(name: *mut c_char, len: usize) -> c_int {
 unsafe extern "C" fn listen(fd: c_int, backlog: c_int) -> c_int {
     libc!(libc::listen(fd, backlog));
 
-    match convert_res(rustix::net::listen(&BorrowedFd::borrow_raw(fd), backlog)) {
+    match convert_res(rustix::net::listen(BorrowedFd::borrow_raw(fd), backlog)) {
         Some(()) => 0,
         None => -1,
     }
@@ -601,7 +601,7 @@ unsafe extern "C" fn recv(fd: c_int, ptr: *mut c_void, len: usize, flags: c_int)
 
     let flags = RecvFlags::from_bits(flags as _).unwrap();
     match convert_res(rustix::net::recv(
-        &BorrowedFd::borrow_raw(fd),
+        BorrowedFd::borrow_raw(fd),
         slice::from_raw_parts_mut(ptr.cast::<u8>(), len),
         flags,
     )) {
@@ -626,7 +626,7 @@ unsafe extern "C" fn recvfrom(
 
     let flags = RecvFlags::from_bits(flags as _).unwrap();
     match convert_res(rustix::net::recvfrom(
-        &BorrowedFd::borrow_raw(fd),
+        BorrowedFd::borrow_raw(fd),
         slice::from_raw_parts_mut(buf.cast::<u8>(), len),
         flags,
     )) {
@@ -647,7 +647,7 @@ unsafe extern "C" fn send(fd: c_int, buf: *const c_void, len: usize, flags: c_in
 
     let flags = SendFlags::from_bits(flags as _).unwrap();
     match convert_res(rustix::net::send(
-        &BorrowedFd::borrow_raw(fd),
+        BorrowedFd::borrow_raw(fd),
         slice::from_raw_parts(buf.cast::<u8>(), len),
         flags,
     )) {
@@ -677,19 +677,19 @@ unsafe extern "C" fn sendto(
     };
     match convert_res(match addr {
         SocketAddrAny::V4(v4) => rustix::net::sendto_v4(
-            &BorrowedFd::borrow_raw(fd),
+            BorrowedFd::borrow_raw(fd),
             slice::from_raw_parts(buf.cast::<u8>(), len),
             flags,
             &v4,
         ),
         SocketAddrAny::V6(v6) => rustix::net::sendto_v6(
-            &BorrowedFd::borrow_raw(fd),
+            BorrowedFd::borrow_raw(fd),
             slice::from_raw_parts(buf.cast::<u8>(), len),
             flags,
             &v6,
         ),
         SocketAddrAny::Unix(unix) => rustix::net::sendto_unix(
-            &BorrowedFd::borrow_raw(fd),
+            BorrowedFd::borrow_raw(fd),
             slice::from_raw_parts(buf.cast::<u8>(), len),
             flags,
             &unix,
@@ -711,7 +711,7 @@ unsafe extern "C" fn shutdown(fd: c_int, how: c_int) -> c_int {
         libc::SHUT_RDWR => Shutdown::ReadWrite,
         _ => panic!("unrecognized shutdown kind {}", how),
     };
-    match convert_res(rustix::net::shutdown(&BorrowedFd::borrow_raw(fd), how)) {
+    match convert_res(rustix::net::shutdown(BorrowedFd::borrow_raw(fd), how)) {
         Some(()) => 0,
         None => -1,
     }

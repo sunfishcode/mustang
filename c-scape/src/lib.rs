@@ -636,7 +636,7 @@ unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> 
         // Open the directory and use `execveat` to avoid needing to
         // dynamically allocate a combined path string ourselves.
         let result = rustix::fs::openat(
-            &cwd,
+            cwd,
             dir,
             OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC | OFlags::NOCTTY,
             Mode::empty(),

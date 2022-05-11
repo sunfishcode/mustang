@@ -12,7 +12,7 @@ unsafe extern "C" fn chmod(pathname: *const c_char, mode: c_uint) -> c_int {
 
     let mode = Mode::from_bits((mode & !libc::S_IFMT) as _).unwrap();
     match convert_res(rustix::fs::chmodat(
-        &cwd(),
+        cwd(),
         ZStr::from_ptr(pathname.cast()),
         mode,
     )) {
@@ -26,7 +26,7 @@ unsafe extern "C" fn fchmod(fd: c_int, mode: c_uint) -> c_int {
     libc!(libc::fchmod(fd, mode));
 
     let mode = Mode::from_bits((mode & !libc::S_IFMT) as _).unwrap();
-    match convert_res(rustix::fs::fchmod(&BorrowedFd::borrow_raw(fd), mode)) {
+    match convert_res(rustix::fs::fchmod(BorrowedFd::borrow_raw(fd), mode)) {
         Some(()) => 0,
         None => -1,
     }

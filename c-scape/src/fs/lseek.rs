@@ -29,7 +29,7 @@ unsafe extern "C" fn lseek64(fd: c_int, offset: off64_t, whence: c_int) -> off64
         libc::SEEK_END => rustix::io::SeekFrom::End(offset),
         _ => panic!("unrecognized whence({})", whence),
     };
-    match convert_res(rustix::fs::seek(&BorrowedFd::borrow_raw(fd), seek_from)) {
+    match convert_res(rustix::fs::seek(BorrowedFd::borrow_raw(fd), seek_from)) {
         Some(offset) => offset as off64_t,
         None => -1,
     }

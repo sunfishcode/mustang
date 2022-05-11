@@ -12,7 +12,7 @@ unsafe extern "C" fn read(fd: c_int, ptr: *mut c_void, len: usize) -> isize {
     libc!(libc::read(fd, ptr, len));
 
     match convert_res(rustix::io::read(
-        &BorrowedFd::borrow_raw(fd),
+        BorrowedFd::borrow_raw(fd),
         slice::from_raw_parts_mut(ptr.cast::<u8>(), len),
     )) {
         Some(nread) => nread as isize,
@@ -35,7 +35,7 @@ unsafe extern "C" fn readv(fd: c_int, iov: *const iovec, iovcnt: c_int) -> isize
     // mutate the `IoSliceMut` instances themselves, so it's safe to
     // cast away the `const` here.
     match convert_res(rustix::io::readv(
-        &BorrowedFd::borrow_raw(fd),
+        BorrowedFd::borrow_raw(fd),
         slice::from_raw_parts_mut(iov as *mut _, iovcnt as usize),
     )) {
         Some(nread) => nread as isize,
@@ -54,7 +54,7 @@ unsafe extern "C" fn pread64(fd: c_int, ptr: *mut c_void, len: usize, offset: of
     libc!(libc::pread64(fd, ptr, len, offset));
 
     match convert_res(rustix::io::pread(
-        &BorrowedFd::borrow_raw(fd),
+        BorrowedFd::borrow_raw(fd),
         slice::from_raw_parts_mut(ptr.cast::<u8>(), len),
         offset as u64,
     )) {
@@ -84,7 +84,7 @@ unsafe extern "C" fn preadv64(
     // mutate the `IoSliceMut` instances themselves, so it's safe to
     // cast away the `const` here.
     match convert_res(rustix::io::preadv(
-        &BorrowedFd::borrow_raw(fd),
+        BorrowedFd::borrow_raw(fd),
         slice::from_raw_parts_mut(iov as *mut _, iovcnt as usize),
         offset as u64,
     )) {

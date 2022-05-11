@@ -25,9 +25,9 @@ unsafe extern "C" fn linkat(
 
     let flags = AtFlags::from_bits(flags as _).unwrap();
     match convert_res(rustix::fs::linkat(
-        &BorrowedFd::borrow_raw(olddirfd),
+        BorrowedFd::borrow_raw(olddirfd),
         ZStr::from_ptr(oldpath.cast()),
-        &BorrowedFd::borrow_raw(newdirfd),
+        BorrowedFd::borrow_raw(newdirfd),
         ZStr::from_ptr(newpath.cast()),
         flags,
     )) {

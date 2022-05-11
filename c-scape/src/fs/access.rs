@@ -23,7 +23,7 @@ unsafe extern "C" fn faccessat(
     libc!(libc::faccessat(fd, pathname, amode, flags));
 
     match convert_res(rustix::fs::accessat(
-        &BorrowedFd::borrow_raw(fd),
+        BorrowedFd::borrow_raw(fd),
         ZStr::from_ptr(pathname.cast()),
         Access::from_bits(amode as _).unwrap(),
         AtFlags::from_bits(flags as _).unwrap(),
