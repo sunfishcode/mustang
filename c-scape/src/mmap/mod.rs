@@ -42,7 +42,7 @@ unsafe extern "C" fn mmap64(
             length,
             prot,
             flags,
-            &BorrowedFd::borrow_raw(fd),
+            BorrowedFd::borrow_raw(fd),
             offset as _,
         )
     }) {

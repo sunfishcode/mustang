@@ -22,7 +22,7 @@ unsafe extern "C" fn readlinkat(
     libc!(libc::readlink(pathname, buf, bufsiz));
 
     let path = match convert_res(rustix::fs::readlinkat(
-        &BorrowedFd::borrow_raw(fd),
+        BorrowedFd::borrow_raw(fd),
         ZStr::from_ptr(pathname.cast()),
         Vec::new(),
     )) {

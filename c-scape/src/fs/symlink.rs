@@ -22,7 +22,7 @@ unsafe extern "C" fn symlinkat(
 
     match convert_res(rustix::fs::symlinkat(
         ZStr::from_ptr(target.cast()),
-        &BorrowedFd::borrow_raw(linkdirfd),
+        BorrowedFd::borrow_raw(linkdirfd),
         ZStr::from_ptr(linkpath.cast()),
     )) {
         Some(()) => 0,

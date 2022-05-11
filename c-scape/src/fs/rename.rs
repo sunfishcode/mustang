@@ -22,9 +22,9 @@ unsafe extern "C" fn renameat(
     libc!(libc::renameat(old_fd, old, new_fd, new));
 
     match convert_res(rustix::fs::renameat(
-        &BorrowedFd::borrow_raw(old_fd),
+        BorrowedFd::borrow_raw(old_fd),
         ZStr::from_ptr(old.cast()),
-        &BorrowedFd::borrow_raw(new_fd),
+        BorrowedFd::borrow_raw(new_fd),
         ZStr::from_ptr(new.cast()),
     )) {
         Some(()) => 0,

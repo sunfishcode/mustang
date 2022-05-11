@@ -11,7 +11,7 @@ unsafe extern "C" fn write(fd: c_int, ptr: *const c_void, len: usize) -> isize {
     libc!(libc::write(fd, ptr, len));
 
     match convert_res(rustix::io::write(
-        &BorrowedFd::borrow_raw(fd),
+        BorrowedFd::borrow_raw(fd),
         slice::from_raw_parts(ptr.cast::<u8>(), len),
     )) {
         Some(nwritten) => nwritten as isize,
@@ -29,7 +29,7 @@ unsafe extern "C" fn writev(fd: c_int, iov: *const iovec, iovcnt: c_int) -> isiz
     }
 
     match convert_res(rustix::io::writev(
-        &BorrowedFd::borrow_raw(fd),
+        BorrowedFd::borrow_raw(fd),
         slice::from_raw_parts(checked_cast!(iov), iovcnt as usize),
     )) {
         Some(nwritten) => nwritten as isize,
@@ -48,7 +48,7 @@ unsafe extern "C" fn pwrite64(fd: c_int, ptr: *const c_void, len: usize, offset:
     libc!(libc::pwrite64(fd, ptr, len, offset));
 
     match convert_res(rustix::io::pwrite(
-        &BorrowedFd::borrow_raw(fd),
+        BorrowedFd::borrow_raw(fd),
         slice::from_raw_parts(ptr.cast::<u8>(), len),
         offset as u64,
     )) {
@@ -73,7 +73,7 @@ unsafe extern "C" fn pwritev64(
     libc!(libc::pwritev64(fd, iov, iovcnt, offset));
 
     match convert_res(rustix::io::pwritev(
-        &BorrowedFd::borrow_raw(fd),
+        BorrowedFd::borrow_raw(fd),
         slice::from_raw_parts(checked_cast!(iov), iovcnt as usize),
         offset as u64,
     )) {
