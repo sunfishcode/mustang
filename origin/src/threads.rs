@@ -379,7 +379,7 @@ unsafe fn exit_thread() -> ! {
 /// already running.
 #[cfg(target_vendor = "mustang")]
 pub(super) unsafe fn initialize_main_thread(mem: *mut c_void) {
-    use io::{mmap_anonymous, MapFlags, ProtFlags};
+    use rustix::mm::{mmap_anonymous, MapFlags, ProtFlags};
 
     // Read the TLS information from the ELF header.
     STARTUP_TLS_INFO = rustix::runtime::startup_tls_info();
@@ -505,7 +505,7 @@ pub fn create_thread(
     stack_size: usize,
     guard_size: usize,
 ) -> io::Result<*mut Thread> {
-    use io::{mmap_anonymous, mprotect, MapFlags, MprotectFlags, ProtFlags};
+    use rustix::mm::{mmap_anonymous, mprotect, MapFlags, MprotectFlags, ProtFlags};
 
     // Safety: `STARGUP_TLS_INFO` is initialized at program startup before
     // we come here creating new threads.
@@ -669,7 +669,7 @@ pub fn create_thread(
         if clone_res >= 0 {
             Ok(&mut (*metadata).thread)
         } else {
-            Err(io::Error::from_raw_os_error(-clone_res as i32))
+            Err(io::Errno::from_raw_os_error(-clone_res as i32))
         }
     }
 }
@@ -747,13 +747,13 @@ unsafe fn wait_for_thread_exit(thread: *mut Thread) {
             0,
         ) {
             Ok(_) => {}
-            Err(e) => debug_assert_eq!(e, io::Error::AGAIN),
+            Err(e) => debug_assert_eq!(e, io::Errno::AGAIN),
         }
     }
 }
 
 unsafe fn free_thread_memory(thread: *mut Thread) {
-    use rustix::io::munmap;
+    use rustix::mm::munmap;
 
     // The thread was detached. Prepare to free the memory. First read out
     // all the fields that we'll need before freeing it.

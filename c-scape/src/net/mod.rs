@@ -226,7 +226,7 @@ unsafe extern "C" fn getsockopt(
                 tv_sec: duration
                     .as_secs()
                     .try_into()
-                    .map_err(|_| rustix::io::Error::OVERFLOW)?,
+                    .map_err(|_| rustix::io::Errno::OVERFLOW)?,
                 tv_usec: duration.subsec_micros() as _,
             },
         };
@@ -515,7 +515,7 @@ unsafe extern "C" fn getaddrinfo(
             0
         }
         Err(err) => {
-            if let Some(err) = rustix::io::Error::from_io_error(&err) {
+            if let Some(err) = rustix::io::Errno::from_io_error(&err) {
                 set_errno(Errno(err.raw_os_error()));
                 libc::EAI_SYSTEM
             } else {

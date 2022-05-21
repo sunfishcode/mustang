@@ -129,7 +129,7 @@ unsafe extern "C" fn posix_memalign(
 ) -> c_int {
     libc!(libc::posix_memalign(memptr, alignment, size));
     if !(alignment.is_power_of_two() && alignment % core::mem::size_of::<*const c_void>() == 0) {
-        return rustix::io::Error::INVAL.raw_os_error();
+        return rustix::io::Errno::INVAL.raw_os_error();
     }
 
     let layout = alloc::alloc::Layout::from_size_align(size, alignment).unwrap();

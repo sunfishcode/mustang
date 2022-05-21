@@ -298,7 +298,7 @@ unsafe extern "C" fn pthread_mutex_trylock(mutex: *mut PthreadMutexT) -> c_int {
     } {
         0
     } else {
-        rustix::io::Error::BUSY.raw_os_error()
+        rustix::io::Errno::BUSY.raw_os_error()
     }
 }
 
@@ -324,7 +324,7 @@ unsafe extern "C" fn pthread_rwlock_tryrdlock(rwlock: *mut PthreadRwlockT) -> c_
         (*rwlock).exclusive.store(false, SeqCst);
         0
     } else {
-        rustix::io::Error::BUSY.raw_os_error()
+        rustix::io::Errno::BUSY.raw_os_error()
     }
 }
 
@@ -336,7 +336,7 @@ unsafe extern "C" fn pthread_rwlock_trywrlock(rwlock: *mut PthreadRwlockT) -> c_
         (*rwlock).exclusive.store(true, SeqCst);
         0
     } else {
-        rustix::io::Error::BUSY.raw_os_error()
+        rustix::io::Errno::BUSY.raw_os_error()
     }
 }
 

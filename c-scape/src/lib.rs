@@ -101,7 +101,7 @@ unsafe extern "C" fn __errno_location() -> *mut c_int {
 unsafe extern "C" fn __xpg_strerror_r(errnum: c_int, buf: *mut c_char, buflen: usize) -> c_int {
     libc!(libc::strerror_r(errnum, buf, buflen));
 
-    let message = match error_str(rustix::io::Error::from_raw_os_error(errnum)) {
+    let message = match error_str(rustix::io::Errno::from_raw_os_error(errnum)) {
         Some(s) => s.to_owned(),
         None => format!("Unknown error {}", errnum),
     };
@@ -653,7 +653,7 @@ unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> 
             // If `execveat` is unsupported, emulate it with `execve`, without
             // allocating. This trusts /proc/self/fd.
             #[cfg(any(target_os = "android", target_os = "linux"))]
-            if let rustix::io::Error::NOSYS = error {
+            if let rustix::io::Errno::NOSYS = error {
                 let fd = rustix::fs::openat(
                     &dirfd,
                     file,
@@ -679,8 +679,8 @@ unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> 
 
         match result {
             Ok(()) => (),
-            Err(rustix::io::Error::ACCESS) => access_error = true,
-            Err(rustix::io::Error::NOENT) | Err(rustix::io::Error::NOTDIR) => {}
+            Err(rustix::io::Errno::ACCESS) => access_error = true,
+            Err(rustix::io::Errno::NOENT) | Err(rustix::io::Errno::NOTDIR) => {}
             Err(err) => {
                 set_errno(Errno(err.raw_os_error()));
                 return -1;
@@ -895,7 +895,7 @@ unsafe extern "C" fn gnu_get_libc_version() -> *const c_char {
 
 /// Convert a rustix `Result` into an `Option` with the error stored
 /// in `errno`.
-fn convert_res<T>(result: Result<T, rustix::io::Error>) -> Option<T> {
+fn convert_res<T>(result: Result<T, rustix::io::Errno>) -> Option<T> {
     result
         .map_err(|err| set_errno(Errno(err.raw_os_error())))
         .ok()
