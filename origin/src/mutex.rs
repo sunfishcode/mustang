@@ -81,7 +81,7 @@ impl FutexMutex {
                         null_mut(),
                         0,
                     ) {
-                        Ok(_) | Err(rustix::io::Error::AGAIN) => {}
+                        Ok(_) | Err(rustix::io::Errno::AGAIN) => {}
                         Err(err) => Err(err).unwrap(),
                     }
                 }

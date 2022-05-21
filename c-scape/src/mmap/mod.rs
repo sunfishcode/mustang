@@ -1,5 +1,5 @@
 use rustix::fd::BorrowedFd;
-use rustix::io::{MapFlags, MprotectFlags, MremapFlags, ProtFlags};
+use rustix::mm::{MapFlags, MprotectFlags, MremapFlags, ProtFlags};
 
 use core::ffi::c_void;
 use libc::{c_int, off64_t, off_t};
@@ -35,9 +35,9 @@ unsafe extern "C" fn mmap64(
     let prot = ProtFlags::from_bits(prot as _).unwrap();
     let flags = MapFlags::from_bits((flags & !libc::MAP_ANONYMOUS) as _).unwrap();
     match convert_res(if anon {
-        rustix::io::mmap_anonymous(addr, length, prot, flags)
+        rustix::mm::mmap_anonymous(addr, length, prot, flags)
     } else {
-        rustix::io::mmap(
+        rustix::mm::mmap(
             addr,
             length,
             prot,
@@ -55,7 +55,7 @@ unsafe extern "C" fn mmap64(
 unsafe extern "C" fn munmap(ptr: *mut c_void, len: usize) -> c_int {
     libc!(libc::munmap(ptr, len));
 
-    match convert_res(rustix::io::munmap(ptr, len)) {
+    match convert_res(rustix::mm::munmap(ptr, len)) {
         Some(()) => 0,
         None => -1,
     }
@@ -81,7 +81,7 @@ unsafe extern "C" fn mremap(
 
         let flags = flags & !libc::MREMAP_FIXED;
         let flags = MremapFlags::from_bits(flags as _).unwrap();
-        match convert_res(rustix::io::mremap_fixed(
+        match convert_res(rustix::mm::mremap_fixed(
             old_address,
             old_size,
             new_size,
@@ -95,7 +95,7 @@ unsafe extern "C" fn mremap(
         libc!(libc::mremap(old_address, old_size, new_size, flags));
 
         let flags = MremapFlags::from_bits(flags as _).unwrap();
-        match convert_res(rustix::io::mremap(old_address, old_size, new_size, flags)) {
+        match convert_res(rustix::mm::mremap(old_address, old_size, new_size, flags)) {
             Some(new_address) => new_address,
             None => libc::MAP_FAILED,
         }
@@ -107,7 +107,7 @@ unsafe extern "C" fn mprotect(addr: *mut c_void, length: usize, prot: c_int) -> 
     libc!(libc::mprotect(addr, length, prot));
 
     let prot = MprotectFlags::from_bits(prot as _).unwrap();
-    match convert_res(rustix::io::mprotect(addr, length, prot)) {
+    match convert_res(rustix::mm::mprotect(addr, length, prot)) {
         Some(()) => 0,
         None => -1,
     }
