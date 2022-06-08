@@ -1,4 +1,4 @@
-use rustix::ffi::ZStr;
+use core::ffi::CStr;
 
 use core::ptr::null_mut;
 use errno::{set_errno, Errno};
@@ -12,7 +12,7 @@ unsafe extern "C" fn realpath(path: *const c_char, resolved_path: *mut c_char) -
 
     let mut buf = [0; libc::PATH_MAX as usize];
     match realpath_ext::realpath_raw(
-        ZStr::from_ptr(path.cast()).to_bytes(),
+        CStr::from_ptr(path.cast()).to_bytes(),
         &mut buf,
         realpath_ext::RealpathFlags::empty(),
     ) {

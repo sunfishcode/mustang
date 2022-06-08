@@ -74,7 +74,7 @@ pub(super) unsafe extern "C" fn entry(mem: *mut usize) -> ! {
     // Explicitly initialize `rustix`. On non-mustang platforms it uses a
     // .init_array hook to initialize itself automatically, but for mustang, we
     // do it manually so that we can control the initialization order.
-    rustix::process::init(envp);
+    rustix::param::init(envp);
 
     // Initialize the main thread.
     #[cfg(feature = "threads")]

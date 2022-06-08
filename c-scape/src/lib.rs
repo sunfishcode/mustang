@@ -8,6 +8,7 @@
 #![feature(atomic_mut_ptr)] // for `RawMutex`
 #![feature(strict_provenance)]
 #![feature(sync_unsafe_cell)]
+#![feature(core_c_str)] // for `core::ffi::CStr`
 #![deny(fuzzy_provenance_casts)]
 #![deny(lossy_provenance_casts)]
 #![feature(try_blocks)]
@@ -48,7 +49,7 @@ use core::slice;
 use errno::{set_errno, Errno};
 use error_str::error_str;
 use libc::{c_char, c_int, c_long, c_ulong};
-use rustix::ffi::ZStr;
+use rustix::ffi::CStr;
 use rustix::fs::{AtFlags, Mode, OFlags};
 
 // fs
@@ -122,7 +123,7 @@ unsafe extern "C" fn getrandom(buf: *mut c_void, buflen: usize, flags: u32) -> i
     if buflen == 0 {
         return 0;
     }
-    let flags = rustix::rand::GetRandomFlags::from_bits(flags).unwrap();
+    let flags = rustix::rand::GetRandomFlags::from_bits(flags & !0x4).unwrap();
     match convert_res(rustix::rand::getrandom(
         slice::from_raw_parts_mut(buf.cast::<u8>(), buflen),
         flags,
@@ -145,7 +146,7 @@ unsafe extern "C" fn sysconf(name: c_int) -> c_long {
     libc!(libc::sysconf(name));
 
     match name {
-        libc::_SC_PAGESIZE => rustix::process::page_size() as _,
+        libc::_SC_PAGESIZE => rustix::param::page_size() as _,
         #[cfg(not(target_os = "wasi"))]
         libc::_SC_GETPW_R_SIZE_MAX => -1,
         // TODO: Oddly, only ever one processor seems to be online.
@@ -170,7 +171,7 @@ unsafe extern "C" fn getauxval(type_: c_ulong) -> *mut c_void {
 unsafe extern "C" fn __getauxval(type_: c_ulong) -> *mut c_void {
     //libc!(ptr::from_exposed_addr(libc::__getauxval(type_) as _));
     match type_ {
-        libc::AT_HWCAP => ptr::invalid_mut(rustix::process::linux_hwcap().0),
+        libc::AT_HWCAP => ptr::invalid_mut(rustix::param::linux_hwcap().0),
         _ => unimplemented!("unrecognized __getauxval {}", type_),
     }
 }
@@ -213,34 +214,34 @@ unsafe extern "C" fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c
         // `std` uses `dlsym` to dynamically detect feature availability; recognize
         // functions it asks for.
         #[cfg(any(target_os = "android", target_os = "linux"))]
-        if ZStr::from_ptr(symbol.cast()).to_bytes() == b"statx" {
+        if CStr::from_ptr(symbol.cast()).to_bytes() == b"statx" {
             todo!()
             // return statx as *mut c_void;
         }
         #[cfg(any(target_os = "android", target_os = "linux"))]
-        if ZStr::from_ptr(symbol.cast()).to_bytes() == b"getrandom" {
+        if CStr::from_ptr(symbol.cast()).to_bytes() == b"getrandom" {
             return getrandom as *mut c_void;
         }
         #[cfg(any(target_os = "android", target_os = "linux"))]
-        if ZStr::from_ptr(symbol.cast()).to_bytes() == b"copy_file_range" {
+        if CStr::from_ptr(symbol.cast()).to_bytes() == b"copy_file_range" {
             // return copy_file_range as *mut c_void;
             todo!()
         }
         #[cfg(any(target_os = "android", target_os = "linux"))]
-        if ZStr::from_ptr(symbol.cast()).to_bytes() == b"clone3" {
+        if CStr::from_ptr(symbol.cast()).to_bytes() == b"clone3" {
             // Let's just say we don't support this for now.
             return null_mut();
         }
-        if ZStr::from_ptr(symbol.cast()).to_bytes() == b"__pthread_get_minstack" {
+        if CStr::from_ptr(symbol.cast()).to_bytes() == b"__pthread_get_minstack" {
             // Let's just say we don't support this for now.
             return null_mut();
         }
         #[cfg(target_env = "gnu")]
-        if ZStr::from_ptr(symbol.cast()).to_bytes() == b"gnu_get_libc_version" {
+        if CStr::from_ptr(symbol.cast()).to_bytes() == b"gnu_get_libc_version" {
             return gnu_get_libc_version as *mut c_void;
         }
     }
-    unimplemented!("dlsym({:?})", ZStr::from_ptr(symbol.cast()))
+    unimplemented!("dlsym({:?})", CStr::from_ptr(symbol.cast()))
 }
 
 #[no_mangle]
@@ -309,7 +310,7 @@ unsafe extern "C" fn prctl(
     libc!(libc::prctl(option, arg2, _arg3, _arg4, _arg5));
     match option {
         libc::PR_SET_NAME => {
-            match convert_res(rustix::runtime::set_thread_name(ZStr::from_ptr(
+            match convert_res(rustix::runtime::set_thread_name(CStr::from_ptr(
                 arg2 as *const _,
             ))) {
                 Some(()) => 0,
@@ -617,18 +618,18 @@ unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> 
 
     let cwd = rustix::fs::cwd();
 
-    let file = ZStr::from_ptr(file);
+    let file = CStr::from_ptr(file);
     if file.to_bytes().contains(&b'/') {
         let err = rustix::runtime::execve(file, args.cast(), environ.cast());
         set_errno(Errno(err.raw_os_error()));
         return -1;
     }
 
-    let path = _getenv(rustix::zstr!("PATH"));
+    let path = _getenv(rustix::cstr!("PATH"));
     let path = if path.is_null() {
-        rustix::zstr!("/bin:/usr/bin")
+        rustix::cstr!("/bin:/usr/bin")
     } else {
-        ZStr::from_ptr(path)
+        CStr::from_ptr(path)
     };
 
     let mut access_error = false;
@@ -665,10 +666,10 @@ unsafe extern "C" fn execvp(file: *const c_char, args: *const *const c_char) -> 
                 let mut buf = [0_u8; PREFIX_LEN + 20 + 1];
                 buf[..PREFIX_LEN].copy_from_slice(PREFIX);
                 let fd_dec = rustix::path::DecInt::from_fd(&fd);
-                let fd_bytes = fd_dec.as_z_str().to_bytes_with_nul();
+                let fd_bytes = fd_dec.as_c_str().to_bytes_with_nul();
                 buf[PREFIX_LEN..PREFIX_LEN + fd_bytes.len()].copy_from_slice(fd_bytes);
                 error = rustix::runtime::execve(
-                    ZStr::from_bytes_with_nul_unchecked(&buf),
+                    CStr::from_bytes_with_nul_unchecked(&buf),
                     args.cast(),
                     environ.cast(),
                 );
@@ -746,11 +747,11 @@ unsafe extern "C" fn __sigsetjmp() {
 #[no_mangle]
 unsafe extern "C" fn getenv(key: *const c_char) -> *mut c_char {
     libc!(libc::getenv(key));
-    let key = ZStr::from_ptr(key.cast());
+    let key = CStr::from_ptr(key.cast());
     _getenv(key)
 }
 
-unsafe fn _getenv(key: &ZStr) -> *mut c_char {
+unsafe fn _getenv(key: &CStr) -> *mut c_char {
     let mut ptr = environ;
     loop {
         let env = *ptr;

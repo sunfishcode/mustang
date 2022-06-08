@@ -1,5 +1,5 @@
+use core::ffi::CStr;
 use rustix::fd::BorrowedFd;
-use rustix::ffi::ZStr;
 use rustix::fs::AtFlags;
 
 use core::convert::TryInto;
@@ -72,7 +72,7 @@ unsafe extern "C" fn fstatat(
     let flags = AtFlags::from_bits(flags as _).unwrap();
     let rustix_stat = match convert_res(rustix::fs::statat(
         BorrowedFd::borrow_raw(fd),
-        ZStr::from_ptr(pathname.cast()),
+        CStr::from_ptr(pathname.cast()),
         flags,
     )) {
         Some(r) => r,
@@ -105,7 +105,7 @@ unsafe extern "C" fn fstatat64(
     let flags = AtFlags::from_bits(flags as _).unwrap();
     match convert_res(rustix::fs::statat(
         BorrowedFd::borrow_raw(fd),
-        ZStr::from_ptr(pathname.cast()),
+        CStr::from_ptr(pathname.cast()),
         flags,
     )) {
         Some(r) => {

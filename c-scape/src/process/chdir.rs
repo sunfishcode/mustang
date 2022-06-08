@@ -1,5 +1,5 @@
+use core::ffi::CStr;
 use rustix::fd::BorrowedFd;
-use rustix::ffi::ZStr;
 
 use libc::{c_char, c_int};
 
@@ -9,7 +9,7 @@ use crate::convert_res;
 unsafe extern "C" fn chdir(path: *const c_char) -> c_int {
     libc!(libc::chdir(path));
 
-    let path = ZStr::from_ptr(path.cast());
+    let path = CStr::from_ptr(path.cast());
     match convert_res(rustix::process::chdir(path)) {
         Some(()) => 0,
         None => -1,

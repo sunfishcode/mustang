@@ -1,5 +1,5 @@
+use core::ffi::CStr;
 use rustix::fd::{BorrowedFd, IntoRawFd};
-use rustix::ffi::ZStr;
 use rustix::fs::{cwd, Mode, OFlags};
 
 use libc::{c_char, c_int};
@@ -20,7 +20,7 @@ macro_rules! openat_impl {
         };
         match convert_res(rustix::fs::openat(
             &$fd,
-            ZStr::from_ptr($pathname.cast()),
+            CStr::from_ptr($pathname.cast()),
             flags,
             mode,
         )) {

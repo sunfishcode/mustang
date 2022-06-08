@@ -1,5 +1,5 @@
+use core::ffi::CStr;
 use rustix::fd::BorrowedFd;
-use rustix::ffi::ZStr;
 
 use libc::{c_char, c_int};
 
@@ -23,7 +23,7 @@ unsafe extern "C" fn readlinkat(
 
     let path = match convert_res(rustix::fs::readlinkat(
         BorrowedFd::borrow_raw(fd),
-        ZStr::from_ptr(pathname.cast()),
+        CStr::from_ptr(pathname.cast()),
         Vec::new(),
     )) {
         Some(path) => path,

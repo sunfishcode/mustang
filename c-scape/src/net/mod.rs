@@ -2,6 +2,7 @@
 use alloc::string::ToString;
 use core::convert::TryInto;
 use core::ffi::c_void;
+use core::ffi::CStr;
 #[cfg(not(target_os = "wasi"))]
 use core::mem::{size_of, zeroed};
 use core::ptr::null_mut;
@@ -9,7 +10,6 @@ use core::slice;
 use errno::{set_errno, Errno};
 use libc::{c_char, c_int, c_uint};
 use rustix::fd::{BorrowedFd, IntoRawFd};
-use rustix::ffi::ZStr;
 #[cfg(feature = "net")]
 use rustix::net::{
     AcceptFlags, AddressFamily, Ipv4Addr, Ipv6Addr, Protocol, RecvFlags, SendFlags, Shutdown,
@@ -469,7 +469,7 @@ unsafe extern "C" fn getaddrinfo(
         assert!(hints.ai_next.is_null(), "GAI next hint not supported yet");
     }
 
-    let host = match ZStr::from_ptr(node.cast()).to_str() {
+    let host = match CStr::from_ptr(node.cast()).to_str() {
         Ok(host) => host,
         Err(_) => {
             set_errno(Errno(libc::EILSEQ));

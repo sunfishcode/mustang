@@ -18,8 +18,8 @@ unsafe extern "C" fn dup(fd: c_int) -> c_int {
 unsafe extern "C" fn dup2(fd: c_int, to: c_int) -> c_int {
     libc!(libc::dup2(fd, to));
 
-    let to = OwnedFd::from_raw_fd(to).into();
-    match convert_res(rustix::io::dup2(BorrowedFd::borrow_raw(fd), &to)) {
+    let mut to = OwnedFd::from_raw_fd(to).into();
+    match convert_res(rustix::io::dup2(BorrowedFd::borrow_raw(fd), &mut to)) {
         Some(()) => OwnedFd::from(to).into_raw_fd(),
         None => -1,
     }

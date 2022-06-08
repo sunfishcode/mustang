@@ -1,5 +1,5 @@
+use core::ffi::CStr;
 use rustix::fd::{BorrowedFd, FromRawFd, IntoRawFd};
-use rustix::ffi::ZStr;
 use rustix::fs::{cwd, Mode, OFlags};
 use rustix::io::OwnedFd;
 
@@ -20,7 +20,7 @@ unsafe extern "C" fn opendir(pathname: *const c_char) -> *mut c_void {
 
     match convert_res(rustix::fs::openat(
         cwd(),
-        ZStr::from_ptr(pathname.cast()),
+        CStr::from_ptr(pathname.cast()),
         OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC,
         Mode::empty(),
     )) {
