@@ -17,8 +17,8 @@ mod symlink;
 mod sync;
 mod truncate;
 
+use core::ffi::CStr;
 use rustix::fd::BorrowedFd;
-use rustix::ffi::ZStr;
 use rustix::fs::AtFlags;
 
 use core::{convert::TryInto, mem::transmute, ptr::null_mut};
@@ -50,7 +50,7 @@ unsafe extern "C" fn statx(
     let mask = rustix::fs::StatxFlags::from_bits(mask).unwrap();
     match convert_res(rustix::fs::statx(
         BorrowedFd::borrow_raw(dirfd_),
-        ZStr::from_ptr(path.cast()),
+        CStr::from_ptr(path.cast()),
         flags,
         mask,
     )) {

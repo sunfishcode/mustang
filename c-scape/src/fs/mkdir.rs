@@ -1,5 +1,5 @@
+use core::ffi::CStr;
 use rustix::fd::BorrowedFd;
-use rustix::ffi::ZStr;
 use rustix::fs::Mode;
 
 use libc::{c_char, c_int};
@@ -20,7 +20,7 @@ unsafe extern "C" fn mkdirat(fd: c_int, pathname: *const c_char, mode: libc::mod
     let mode = Mode::from_bits((mode & !libc::S_IFMT) as _).unwrap();
     match convert_res(rustix::fs::mkdirat(
         BorrowedFd::borrow_raw(fd),
-        ZStr::from_ptr(pathname.cast()),
+        CStr::from_ptr(pathname.cast()),
         mode,
     )) {
         Some(()) => 0,

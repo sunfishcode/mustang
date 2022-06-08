@@ -1,5 +1,5 @@
+use core::ffi::CStr;
 use rustix::fd::BorrowedFd;
-use rustix::ffi::ZStr;
 use rustix::fs::{Access, AtFlags};
 
 use libc::{c_char, c_int};
@@ -24,7 +24,7 @@ unsafe extern "C" fn faccessat(
 
     match convert_res(rustix::fs::accessat(
         BorrowedFd::borrow_raw(fd),
-        ZStr::from_ptr(pathname.cast()),
+        CStr::from_ptr(pathname.cast()),
         Access::from_bits(amode as _).unwrap(),
         AtFlags::from_bits(flags as _).unwrap(),
     )) {

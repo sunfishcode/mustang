@@ -16,8 +16,11 @@ use core::sync::atomic::{AtomicU32, AtomicU8};
 use memoffset::offset_of;
 use rustix::io;
 #[cfg(target_vendor = "mustang")]
-use rustix::process::{getrlimit, linux_execfn, Resource};
-use rustix::process::{page_size, Pid, RawNonZeroPid};
+use rustix::param::linux_execfn;
+use rustix::param::page_size;
+#[cfg(target_vendor = "mustang")]
+use rustix::process::{getrlimit, Resource};
+use rustix::process::{Pid, RawNonZeroPid};
 use rustix::runtime::{set_tid_address, StartupTlsInfo};
 use rustix::thread::gettid;
 #[cfg(feature = "raw_dtors")]

@@ -1,5 +1,5 @@
+use core::ffi::CStr;
 use rustix::fd::BorrowedFd;
-use rustix::ffi::ZStr;
 
 use libc::{c_char, c_int};
 
@@ -23,9 +23,9 @@ unsafe extern "C" fn renameat(
 
     match convert_res(rustix::fs::renameat(
         BorrowedFd::borrow_raw(old_fd),
-        ZStr::from_ptr(old.cast()),
+        CStr::from_ptr(old.cast()),
         BorrowedFd::borrow_raw(new_fd),
-        ZStr::from_ptr(new.cast()),
+        CStr::from_ptr(new.cast()),
     )) {
         Some(()) => 0,
         None => -1,

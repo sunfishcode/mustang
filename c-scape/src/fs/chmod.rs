@@ -1,5 +1,5 @@
+use core::ffi::CStr;
 use rustix::fd::BorrowedFd;
-use rustix::ffi::ZStr;
 use rustix::fs::{cwd, Mode};
 
 use libc::{c_char, c_int, c_uint};
@@ -13,7 +13,7 @@ unsafe extern "C" fn chmod(pathname: *const c_char, mode: c_uint) -> c_int {
     let mode = Mode::from_bits((mode & !libc::S_IFMT) as _).unwrap();
     match convert_res(rustix::fs::chmodat(
         cwd(),
-        ZStr::from_ptr(pathname.cast()),
+        CStr::from_ptr(pathname.cast()),
         mode,
     )) {
         Some(()) => 0,

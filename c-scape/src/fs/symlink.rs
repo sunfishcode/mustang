@@ -1,5 +1,5 @@
+use core::ffi::CStr;
 use rustix::fd::BorrowedFd;
-use rustix::ffi::ZStr;
 
 use libc::{c_char, c_int};
 
@@ -21,9 +21,9 @@ unsafe extern "C" fn symlinkat(
     libc!(libc::symlinkat(target, linkdirfd, linkpath));
 
     match convert_res(rustix::fs::symlinkat(
-        ZStr::from_ptr(target.cast()),
+        CStr::from_ptr(target.cast()),
         BorrowedFd::borrow_raw(linkdirfd),
-        ZStr::from_ptr(linkpath.cast()),
+        CStr::from_ptr(linkpath.cast()),
     )) {
         Some(()) => 0,
         None => -1,

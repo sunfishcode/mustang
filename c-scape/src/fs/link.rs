@@ -1,5 +1,5 @@
+use core::ffi::CStr;
 use rustix::fd::BorrowedFd;
-use rustix::ffi::ZStr;
 use rustix::fs::AtFlags;
 
 use libc::{c_char, c_int};
@@ -26,9 +26,9 @@ unsafe extern "C" fn linkat(
     let flags = AtFlags::from_bits(flags as _).unwrap();
     match convert_res(rustix::fs::linkat(
         BorrowedFd::borrow_raw(olddirfd),
-        ZStr::from_ptr(oldpath.cast()),
+        CStr::from_ptr(oldpath.cast()),
         BorrowedFd::borrow_raw(newdirfd),
-        ZStr::from_ptr(newpath.cast()),
+        CStr::from_ptr(newpath.cast()),
         flags,
     )) {
         Some(()) => 0,
