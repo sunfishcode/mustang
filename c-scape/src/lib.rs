@@ -171,7 +171,7 @@ unsafe extern "C" fn getauxval(type_: c_ulong) -> *mut c_void {
 unsafe extern "C" fn __getauxval(type_: c_ulong) -> *mut c_void {
     //libc!(ptr::from_exposed_addr(libc::__getauxval(type_) as _));
     match type_ {
-        libc::AT_HWCAP => ptr::invalid_mut(rustix::process::linux_hwcap().0),
+        libc::AT_HWCAP => ptr::invalid_mut(rustix::param::linux_hwcap().0),
         _ => unimplemented!("unrecognized __getauxval {}", type_),
     }
 }
