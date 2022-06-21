@@ -29,7 +29,7 @@ This also isn't about building a complete libc. It currently includes some
 things with libc-compatible interfaces, just enough to allow it to slide in
 underneath `std`, however even this may not always be necessary. We'll see.
 
-Mustang currently runs on Rust Nightly on Linux on x86-64, aarch64, and
+Mustang currently runs on Rust Nightly on Linux on x86-64, x86, aarch64, and
 riscv64. It aims to support all Linux versions [supported by Rust], though
 at this time it's only tested on relatively recent versions.
 
