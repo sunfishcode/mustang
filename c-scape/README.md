@@ -15,9 +15,9 @@
 
 C-ABI-compatible libc, libm, libpthread, and libunwind interfaces, implemented
 in terms of crates written in Rust, such as [rustix], [origin], [sync-resolve],
-[libm], [realpath-ext], [memchr], and [parking\_lot]. Currently this only
-supports `*-*-linux-gnu` ABIs, though other ABIs could be added in the future.
-And currently this only supports features needed by Rust programs, though more
+[libm], [realpath-ext], and [memchr]. Currently this only supports
+`*-*-linux-gnu` ABIs, though other ABIs could be added in the future. And
+currently this only supports features needed by Rust programs, though more
 support for C programs (eg. `printf`) could also be added in the future.
 
 The goal is to have very little code in c-scape itself, by factoring out all of
@@ -41,5 +41,4 @@ in Rust.
 [libm]: https://crates.io/crates/libm
 [realpath-ext]: https://crates.io/crates/realpath-ext
 [memchr]: https://crates.io/crates/memchr
-[parking\_lot]: https://crates.io/crates/parking_lot
 [mustang]: https://crates.io/crates/mustang
