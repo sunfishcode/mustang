@@ -1,9 +1,7 @@
-use parking_lot::lock_api::RawMutex as _;
-use parking_lot::{Mutex, RawMutex};
+use origin::sync::Mutex;
 
 /// Functions registered with `at_fork`.
-static FORK_FUNCS: Mutex<RegisteredForkFuncs> =
-    Mutex::const_new(RawMutex::INIT, RegisteredForkFuncs::new());
+static FORK_FUNCS: Mutex<RegisteredForkFuncs> = Mutex::new(RegisteredForkFuncs::new());
 
 /// A type for holding `fork` callbacks.
 #[derive(Default)]

@@ -3,14 +3,14 @@ use core::ffi::c_void;
 use core::ptr::{self, null, null_mut};
 use core::sync::atomic::Ordering::SeqCst;
 use core::sync::atomic::{AtomicBool, AtomicU32};
-use parking_lot::lock_api::{RawMutex as _, RawRwLock};
-use parking_lot::RawMutex;
+use origin::lock_api::{self, RawMutex as _, RawReentrantMutex, RawRwLock as _};
+use origin::sync::{Condvar, RawMutex, RawRwLock};
 
 use libc::c_int;
 
 struct GetThreadId;
 
-unsafe impl parking_lot::lock_api::GetThreadId for GetThreadId {
+unsafe impl lock_api::GetThreadId for GetThreadId {
     const INIT: Self = Self;
 
     fn nonzero_thread_id(&self) -> core::num::NonZeroUsize {
@@ -66,11 +66,8 @@ impl Default for PthreadAttrT {
 #[allow(non_camel_case_types)]
 #[repr(C)]
 union pthread_mutex_u {
-    // Use a custom `RawMutex` for non-reentrant pthread mutex for now, because
-    // we use `dlmalloc` or `wee_alloc` for global allocations, which use
-    // mutexes, and `parking_lot`'s `RawMutex` performs global allocations.
     normal: RawMutex,
-    reentrant: parking_lot::lock_api::RawReentrantMutex<parking_lot::RawMutex, GetThreadId>,
+    reentrant: RawReentrantMutex<RawMutex, GetThreadId>,
 }
 
 #[allow(non_camel_case_types)]
@@ -87,7 +84,7 @@ libc_type!(PthreadMutexT, pthread_mutex_t);
 #[allow(non_camel_case_types)]
 #[repr(C)]
 struct PthreadRwlockT {
-    lock: parking_lot::RawRwLock,
+    lock: RawRwLock,
     exclusive: AtomicBool,
     pad0: usize,
     pad1: usize,
@@ -260,10 +257,9 @@ unsafe extern "C" fn pthread_mutex_init(
     let kind = (*mutexattr).kind.load(SeqCst);
     match kind as i32 {
         libc::PTHREAD_MUTEX_NORMAL => ptr::write(&mut (*mutex).u.normal, RawMutex::INIT),
-        libc::PTHREAD_MUTEX_RECURSIVE => ptr::write(
-            &mut (*mutex).u.reentrant,
-            parking_lot::lock_api::RawReentrantMutex::<parking_lot::RawMutex, GetThreadId>::INIT,
-        ),
+        libc::PTHREAD_MUTEX_RECURSIVE => {
+            ptr::write(&mut (*mutex).u.reentrant, RawReentrantMutex::INIT)
+        }
         libc::PTHREAD_MUTEX_ERRORCHECK => unimplemented!("PTHREAD_MUTEX_ERRORCHECK"),
         other => unimplemented!("unsupported pthread mutex kind {}", other),
     }
@@ -394,8 +390,8 @@ const SIZEOF_PTHREAD_COND_T: usize = 48;
 #[cfg_attr(target_arch = "x86", repr(C, align(4)))]
 #[cfg_attr(not(target_arch = "x86"), repr(C, align(8)))]
 struct PthreadCondT {
-    inner: parking_lot::Condvar,
-    pad: [u8; SIZEOF_PTHREAD_COND_T - core::mem::size_of::<parking_lot::Condvar>()],
+    inner: Condvar,
+    pad: [u8; SIZEOF_PTHREAD_COND_T - core::mem::size_of::<Condvar>()],
 }
 
 libc_type!(PthreadCondT, pthread_cond_t);

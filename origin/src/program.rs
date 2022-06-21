@@ -1,5 +1,5 @@
 #[cfg(target_vendor = "mustang")]
-use crate::mutex::Mutex;
+use crate::sync::Mutex;
 #[cfg(target_vendor = "mustang")]
 #[cfg(feature = "threads")]
 use crate::threads::initialize_main_thread;
@@ -80,11 +80,6 @@ pub(super) unsafe extern "C" fn entry(mem: *mut usize) -> ! {
     #[cfg(feature = "threads")]
     initialize_main_thread(mem.cast());
 
-    // `parking_lot_core` needs to allocate some datastructures before any
-    // threads start up.
-    #[cfg(feature = "parking_lot_core")]
-    parking_lot_core::init();
-
     // Call the functions registered via `.init_array`.
     call_ctors(argc, argv, envp);
 
@@ -144,7 +139,8 @@ static DTORS: Mutex<Vec<Box<dyn FnOnce() + Send>>> = Mutex::new(Vec::new());
 pub fn at_exit(func: Box<dyn FnOnce() + Send>) {
     #[cfg(target_vendor = "mustang")]
     {
-        DTORS.lock(|funcs| funcs.push(func));
+        let mut funcs = DTORS.lock();
+        funcs.push(func);
     }
 
     #[cfg(not(target_vendor = "mustang"))]
@@ -172,11 +168,16 @@ pub fn exit(status: c_int) -> ! {
     // unlocked while making the call so that functions can add more functions
     // to the end of the list.
     #[cfg(target_vendor = "mustang")]
-    while let Some(dtor) = DTORS.lock(|dtors| dtors.pop()) {
-        #[cfg(feature = "log")]
-        log::trace!("Calling `at_exit`-registered function",);
+    loop {
+        let mut dtors = DTORS.lock();
+        if let Some(dtor) = dtors.pop() {
+            #[cfg(feature = "log")]
+            log::trace!("Calling `at_exit`-registered function",);
 
-        dtor();
+            dtor();
+        } else {
+            break;
+        }
     }
 
     // Call the `.fini_array` functions, in reverse order.

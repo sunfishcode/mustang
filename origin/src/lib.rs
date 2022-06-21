@@ -16,7 +16,8 @@
 extern crate alloc;
 
 #[cfg(target_vendor = "mustang")]
-mod mutex;
+pub mod sync;
+
 mod program;
 #[cfg(feature = "threads")]
 mod threads;
@@ -144,3 +145,6 @@ static INIT_ARRAY: unsafe extern "C" fn() = {
     }
     function
 };
+
+// Re-export this so that our users can use the same version we do.
+pub use lock_api;
