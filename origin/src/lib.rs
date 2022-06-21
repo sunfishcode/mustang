@@ -15,7 +15,6 @@
 #[cfg(not(feature = "rustc-dep-of-std"))]
 extern crate alloc;
 
-#[cfg(target_vendor = "mustang")]
 pub mod sync;
 
 mod program;
