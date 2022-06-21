@@ -2,6 +2,7 @@ use alloc::boxed::Box;
 use core::any::Any;
 use core::arch::asm;
 use core::ffi::c_void;
+use core::ptr::invalid;
 use linux_raw_sys::general::{__NR_clone, __NR_exit, __NR_munmap};
 use rustix::process::RawPid;
 
@@ -21,7 +22,7 @@ pub(super) unsafe fn clone(
 
     let mut user_desc = rustix::runtime::UserDesc {
         entry_number,
-        base_addr: newtls as u32,
+        base_addr: newtls.addr() as u32,
         limit: 0xfffff,
         _bitfield_align_1: [],
         _bitfield_1: Default::default(),
@@ -71,7 +72,7 @@ pub(super) unsafe fn clone(
         "pop esi",
 
         entry = sym super::threads::entry,
-        inout("eax") &[newtls as *mut c_void, __NR_clone as *mut c_void, fn_ as *mut c_void] => r0,
+        inout("eax") &[newtls as *mut c_void, invalid(__NR_clone as usize), fn_ as *mut c_void] => r0,
         in("ebx") flags,
         in("ecx") child_stack,
         in("edx") parent_tid,
@@ -86,7 +87,7 @@ pub(super) unsafe fn clone(
 pub(super) unsafe fn set_thread_pointer(ptr: *mut c_void) {
     let mut user_desc = rustix::runtime::UserDesc {
         entry_number: -1i32 as u32,
-        base_addr: ptr as u32,
+        base_addr: ptr.addr() as u32,
         limit: 0xfffff,
         _bitfield_align_1: [],
         _bitfield_1: Default::default(),

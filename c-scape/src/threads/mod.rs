@@ -91,8 +91,6 @@ struct PthreadRwlockT {
     pad2: usize,
     pad3: usize,
     pad4: usize,
-    #[cfg(target_arch = "x86")]
-    pad5: usize,
 }
 libc_type!(PthreadRwlockT, pthread_rwlock_t);
 
