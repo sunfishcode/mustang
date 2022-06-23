@@ -18,6 +18,19 @@ macro_rules! checked_cast {
     }};
 }
 
+/// A macro for ensuring that the `libc` crate signature for a function matches
+/// the signature that c-scape is using.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// #[no_mangle]
+/// unsafe extern "C" fn strlen(s: *const c_char) -> usize {
+///    libc!(libc::strlen(s));
+///    ...
+/// ```
+///
+/// This will elicit a compile-time error if the signature doesn't match.
 macro_rules! libc {
     ($e:expr) => {
         // TODO: Implement actually using libc. Right now this is just a
@@ -32,6 +45,8 @@ macro_rules! libc {
     };
 }
 
+/// A macro to test that a Mustang-defined type has the same ABI as a libc
+/// type.
 #[cfg(feature = "threads")]
 macro_rules! libc_type {
     ($name:ident, $libc:ident) => {
