@@ -1,5 +1,8 @@
 use rustix::io::Errno;
 
+/// Return a string message for the given error.
+///
+/// This is used to implement `strerror`-like functions.
 pub(crate) const fn error_str(e: Errno) -> Option<&'static str> {
     // Recognize errors documented in POSIX and use the documented strings.
     // <https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/errno.h.html>

@@ -170,7 +170,7 @@ aiming to be a complete libc replacement, while c-scape is just aiming to cover
 the things used by Rust's `std` and popular crates. Some parts of Relibc are
 implemented in C, while c-scape is implemented entirely in Rust.
 
-c-scape is also similar to [steed]. See the Mustang README.md for details.
+c-scape is also similar to [steed]. See the [Background] for details.
 
 The most significant thing that makes c-scape unique though is its design as a
 set of wrappers around Rust crates with Rust interfaces. C ABI compatibility is
@@ -190,3 +190,4 @@ NUL-terminated strings, so it can be much safer.
 [chat]: https://bytecodealliance.zulipchat.com/#narrow/stream/217126-wasmtime
 [issue]: https://github.com/sunfishcode/mustang/issues
 [these instructions]: https://docs.rust-embedded.org/embedonomicon/custom-target.html#fill-the-target-file
+[Background]: #background
