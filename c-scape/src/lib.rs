@@ -61,15 +61,11 @@ mod io;
 // malloc
 mod malloc;
 
-pub use malloc::*;
-
 // math
 mod math;
 
 // mem
 mod mem;
-
-pub use mem::*;
 
 // mmap
 #[cfg(not(target_os = "wasi"))]

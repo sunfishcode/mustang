@@ -3,9 +3,7 @@ use core::{
     ptr,
 };
 use errno::{set_errno, Errno};
-use libc::{c_int, c_void};
-
-use crate::{memcpy, memset};
+use libc::{c_int, c_void, memcpy, memset};
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
@@ -68,7 +66,7 @@ unsafe fn tagged_dealloc(ptr: *mut u8) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn malloc(size: usize) -> *mut c_void {
+unsafe extern "C" fn malloc(size: usize) -> *mut c_void {
     libc!(libc::malloc(size));
 
     // TODO: Add `max_align_t` for riscv64 to upstream libc.
@@ -86,7 +84,7 @@ pub unsafe extern "C" fn malloc(size: usize) -> *mut c_void {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn realloc(old: *mut c_void, size: usize) -> *mut c_void {
+unsafe extern "C" fn realloc(old: *mut c_void, size: usize) -> *mut c_void {
     libc!(libc::realloc(old, size));
 
     if old.is_null() {
@@ -106,7 +104,7 @@ pub unsafe extern "C" fn realloc(old: *mut c_void, size: usize) -> *mut c_void {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn calloc(nmemb: usize, size: usize) -> *mut c_void {
+unsafe extern "C" fn calloc(nmemb: usize, size: usize) -> *mut c_void {
     libc!(libc::calloc(nmemb, size));
 
     let product = match nmemb.checked_mul(size) {
@@ -140,7 +138,7 @@ unsafe extern "C" fn posix_memalign(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn free(ptr: *mut c_void) {
+unsafe extern "C" fn free(ptr: *mut c_void) {
     libc!(libc::free(ptr));
 
     if ptr.is_null() {

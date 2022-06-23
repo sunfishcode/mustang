@@ -2,9 +2,7 @@ use core::ffi::CStr;
 
 use core::ptr::null_mut;
 use errno::{set_errno, Errno};
-use libc::{c_char, c_void};
-
-use crate::{malloc, memcpy};
+use libc::{c_char, c_void, malloc, memcpy};
 
 #[no_mangle]
 unsafe extern "C" fn realpath(path: *const c_char, resolved_path: *mut c_char) -> *mut c_char {

@@ -1,8 +1,6 @@
 use core::cell::SyncUnsafeCell;
 use core::ptr;
-use libc::{c_char, c_int, c_schar};
-
-use crate::{malloc, memcpy};
+use libc::{c_char, c_int, c_schar, malloc, memcpy};
 
 const NUL: c_char = 0;
 

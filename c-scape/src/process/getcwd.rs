@@ -1,9 +1,9 @@
 use alloc::vec::Vec;
 use core::ptr::null_mut;
 use errno::{set_errno, Errno};
-use libc::c_char;
+use libc::{c_char, memcpy};
 
-use crate::{convert_res, memcpy};
+use crate::convert_res;
 
 #[no_mangle]
 unsafe extern "C" fn getcwd(buf: *mut c_char, len: usize) -> *mut c_char {

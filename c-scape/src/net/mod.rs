@@ -576,7 +576,7 @@ unsafe extern "C" fn gethostname(name: *mut c_char, len: usize) -> c_int {
         set_errno(Errno(libc::ENAMETOOLONG));
         return -1;
     }
-    crate::memcpy(
+    libc::memcpy(
         name.cast(),
         nodename.to_bytes().as_ptr().cast(),
         nodename.to_bytes().len(),
