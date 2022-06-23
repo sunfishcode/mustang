@@ -847,7 +847,10 @@ unsafe extern "C" fn __cxa_atexit(
     unsafe impl Send for SendSync {}
     unsafe impl Sync for SendSync {}
     let arg = SendSync(arg);
-    origin::at_exit(Box::new(move || func(arg.0)));
+    origin::at_exit(Box::new(move || {
+        let arg: SendSync = arg;
+        func(arg.0);
+    }));
     0
 }
 
