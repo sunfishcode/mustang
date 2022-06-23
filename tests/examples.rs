@@ -58,9 +58,6 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
         .arg(name);
     let output = command.output().unwrap();
 
-    // FIXME: Re-enable this once we no longer get "warning: target json file
-    // contains unused fields: has-thread-local" warnings.
-    /*
     assert_eq_str!(
         stderr.as_bytes(),
         &output.stderr,
@@ -68,7 +65,6 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
         name,
         output
     );
-    */
 
     assert_eq_str!(
         stdout.as_bytes(),

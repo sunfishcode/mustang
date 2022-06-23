@@ -8,7 +8,6 @@
   "env": "gnu",
   "executables": true,
   "features": "+m,+a,+f,+d,+c",
-  "has-elf-tls": true,
   "has-thread-local": true,
   "has-rpath": true,
   "llvm-abiname": "lp64d",
