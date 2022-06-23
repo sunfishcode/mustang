@@ -6,7 +6,9 @@ mustang::can_run_this!();
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::channel;
-use std::sync::{Arc, Condvar, Mutex};
+#[cfg(feature = "pthread_cond")]
+use std::sync::Condvar;
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 #[cfg(feature = "pthread_cond")]
