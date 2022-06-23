@@ -1,6 +1,6 @@
 //! The following is derived from Rust's
-//! library/std/src/sync/mutex.rs at revision
-//! 497ee321af3b8496eaccd7af7b437f18bab81abf.
+//! library/std/src/sync/mutex/tests.rs at revision
+//! 72a25d05bf1a4b155d74139ef700ff93af6d8e22.
 
 mustang::can_run_this!();
 
@@ -23,7 +23,6 @@ fn smoke() {
 }
 
 #[test]
-#[cfg_attr(all(target_vendor = "mustang", not(target_arch = "x86-64")), ignore)] // FIXME(mustang): triggers segfault
 fn lots_and_lots() {
     const J: u32 = 1000;
     const K: u32 = 3;
@@ -91,7 +90,6 @@ fn test_into_inner_drop() {
 
 #[test]
 #[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
-#[cfg_attr(all(target_vendor = "mustang", not(target_arch = "x86-64")), ignore)] // FIXME(mustang): triggers segfault
 fn test_into_inner_poison() {
     let m = Arc::new(Mutex::new(NonCopy(10)));
     let m2 = m.clone();
@@ -104,7 +102,7 @@ fn test_into_inner_poison() {
     assert!(m.is_poisoned());
     match Arc::try_unwrap(m).unwrap().into_inner() {
         Err(e) => assert_eq!(e.into_inner(), NonCopy(10)),
-        Ok(x) => panic!("into_inner of poisoned Mutex is Ok: {:?}", x),
+        Ok(x) => panic!("into_inner of poisoned Mutex is Ok: {x:?}"),
     }
 }
 
@@ -117,7 +115,6 @@ fn test_get_mut() {
 
 #[test]
 #[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
-#[cfg_attr(all(target_vendor = "mustang", not(target_arch = "x86-64")), ignore)] // FIXME(mustang): triggers segfault
 fn test_get_mut_poison() {
     let m = Arc::new(Mutex::new(NonCopy(10)));
     let m2 = m.clone();
@@ -130,7 +127,7 @@ fn test_get_mut_poison() {
     assert!(m.is_poisoned());
     match Arc::try_unwrap(m).unwrap().get_mut() {
         Err(e) => assert_eq!(*e.into_inner(), NonCopy(10)),
-        Ok(x) => panic!("get_mut of poisoned Mutex is Ok: {:?}", x),
+        Ok(x) => panic!("get_mut of poisoned Mutex is Ok: {x:?}"),
     }
 }
 
@@ -190,7 +187,6 @@ fn test_arc_condvar_poison() {
 
 #[test]
 #[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
-#[cfg_attr(all(target_vendor = "mustang", not(target_arch = "x86-64")), ignore)] // FIXME(mustang): triggers segfault
 fn test_mutex_arc_poison() {
     let arc = Arc::new(Mutex::new(1));
     assert!(!arc.is_poisoned());
@@ -222,7 +218,6 @@ fn test_mutex_arc_nested() {
 
 #[test]
 #[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
-#[cfg_attr(all(target_vendor = "mustang", not(target_arch = "x86-64")), ignore)] // FIXME(mustang): triggers segfault
 fn test_mutex_arc_access_in_unwind() {
     let arc = Arc::new(Mutex::new(1));
     let arc2 = arc.clone();
