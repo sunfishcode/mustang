@@ -111,9 +111,10 @@ unsafe extern "C" fn pthread_self() -> PthreadT {
 
 #[no_mangle]
 unsafe extern "C" fn pthread_getattr_np(thread: PthreadT, attr: *mut PthreadAttrT) -> c_int {
-    // FIXME(#95) layout of attr doesn't match signature on aarch64
-    // uncomment once it does:
-    // libc!(libc::pthread_getattr_np(thread, checked_cast!(attr)));
+    libc!(libc::pthread_getattr_np(
+        thread.expose_addr() as _,
+        checked_cast!(attr)
+    ));
     let (stack_addr, stack_size, guard_size) = origin::thread_stack(thread.cast());
     ptr::write(
         attr,
@@ -550,9 +551,12 @@ unsafe extern "C" fn pthread_create(
     fn_: extern "C" fn(*mut c_void) -> *mut c_void,
     arg: *mut c_void,
 ) -> c_int {
-    // FIXME(#95) layout of attr doesn't match signature on aarch64
-    // uncomment once it does:
-    // libc!(libc::pthread_create(pthread, checked_cast!(attr), fn_, arg));
+    libc!(libc::pthread_create(
+        checked_cast!(pthread),
+        checked_cast!(attr),
+        fn_,
+        arg
+    ));
     let PthreadAttrT {
         stack_addr,
         stack_size,
