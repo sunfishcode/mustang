@@ -1,6 +1,6 @@
 //! The following is derived from Rust's
 //! library/std/src/fs/tests.rs at revision
-//! 497ee321af3b8496eaccd7af7b437f18bab81abf.
+//! ef59ab738e9e6b6021294cd31901ee42c81b67ec.
 
 #![feature(io_error_uncategorized)]
 
@@ -10,12 +10,15 @@ mod sys_common;
 
 use std::io::prelude::*;
 
+use std::env;
 use std::fs::{self, File, OpenOptions};
 use std::io::{ErrorKind, SeekFrom};
 use std::path::Path;
 use std::str;
+use std::sync::Arc;
 #[cfg(feature = "threads")]
 use std::thread;
+use std::time::{Duration, Instant};
 use sys_common::io::test::{tmpdir, TempDir};
 
 use rand::{rngs::StdRng, RngCore, SeedableRng};
@@ -39,7 +42,7 @@ macro_rules! check {
     ($e:expr) => {
         match $e {
             Ok(t) => t,
-            Err(e) => panic!("{} failed with: {}", stringify!($e), e),
+            Err(e) => panic!("{} failed with: {e}", stringify!($e)),
         }
     };
 }
@@ -49,10 +52,14 @@ macro_rules! error {
     ($e:expr, $s:expr) => {
         match $e {
             Ok(_) => panic!("Unexpected success. Should've been: {:?}", $s),
-            Err(ref err) => assert!(
-                err.raw_os_error() == Some($s),
-                format!("`{}` did not have a code of `{}`", err, $s)
-            ),
+            Err(ref err) => {
+                assert!(
+                    err.raw_os_error() == Some($s),
+                    "`{}` did not have a code of `{}`",
+                    err,
+                    $s
+                )
+            }
         }
     };
 }
@@ -509,7 +516,7 @@ fn file_test_directoryinfo_readdir() {
     check!(fs::create_dir(dir));
     let prefix = "foo";
     for n in 0..3 {
-        let f = dir.join(&format!("{}.txt", n));
+        let f = dir.join(&format!("{n}.txt"));
         let mut w = check!(File::create(&f));
         let msg_str = format!("{}{}", prefix, n.to_string());
         let msg = msg_str.as_bytes();
@@ -648,6 +655,21 @@ fn recursive_rmdir_of_symlink() {
 }
 
 #[test]
+fn recursive_rmdir_of_file_fails() {
+    // test we do not delete a directly specified file.
+    let tmpdir = tmpdir();
+    let canary = tmpdir.join("do_not_delete");
+    check!(check!(File::create(&canary)).write(b"foo"));
+    let result = fs::remove_dir_all(&canary);
+    #[cfg(unix)]
+    error!(result, "Not a directory");
+    #[cfg(windows)]
+    error!(result, 267); // ERROR_DIRECTORY - The directory name is invalid.
+    assert!(result.is_err());
+    assert!(canary.exists());
+}
+
+#[test]
 // only Windows makes a distinction between file and directory symlinks.
 #[cfg(windows)]
 fn recursive_rmdir_of_file_symlink() {
@@ -663,6 +685,59 @@ fn recursive_rmdir_of_file_symlink() {
     match fs::remove_dir_all(&f2) {
         Ok(..) => panic!("wanted a failure"),
         Err(..) => {}
+    }
+}
+
+#[test]
+#[ignore] // takes too much time
+fn recursive_rmdir_toctou() {
+    // Test for time-of-check to time-of-use issues.
+    //
+    // Scenario:
+    // The attacker wants to get directory contents deleted, to which they do not have access.
+    // They have a way to get a privileged Rust binary call `std::fs::remove_dir_all()` on a
+    // directory they control, e.g. in their home directory.
+    //
+    // The POC sets up the `attack_dest/attack_file` which the attacker wants to have deleted.
+    // The attacker repeatedly creates a directory and replaces it with a symlink from
+    // `victim_del` to `attack_dest` while the victim code calls `std::fs::remove_dir_all()`
+    // on `victim_del`. After a few seconds the attack has succeeded and
+    // `attack_dest/attack_file` is deleted.
+    let tmpdir = tmpdir();
+    let victim_del_path = tmpdir.join("victim_del");
+    let victim_del_path_clone = victim_del_path.clone();
+
+    // setup dest
+    let attack_dest_dir = tmpdir.join("attack_dest");
+    let attack_dest_dir = attack_dest_dir.as_path();
+    fs::create_dir(attack_dest_dir).unwrap();
+    let attack_dest_file = tmpdir.join("attack_dest/attack_file");
+    File::create(&attack_dest_file).unwrap();
+
+    let drop_canary_arc = Arc::new(());
+    let drop_canary_weak = Arc::downgrade(&drop_canary_arc);
+
+    eprintln!("x: {:?}", &victim_del_path);
+
+    // victim just continuously removes `victim_del`
+    thread::spawn(move || {
+        while drop_canary_weak.upgrade().is_some() {
+            let _ = fs::remove_dir_all(&victim_del_path_clone);
+        }
+    });
+
+    // attacker (could of course be in a separate process)
+    let start_time = Instant::now();
+    while Instant::now().duration_since(start_time) < Duration::from_secs(1000) {
+        if !attack_dest_file.exists() {
+            panic!(
+                "Victim deleted symlinked file outside of victim_del. Attack succeeded in {:?}.",
+                Instant::now().duration_since(start_time)
+            );
+        }
+        let _ = fs::create_dir(&victim_del_path);
+        let _ = fs::remove_dir(&victim_del_path);
+        let _ = symlink_dir(attack_dest_dir, &victim_del_path);
     }
 }
 
@@ -890,25 +965,23 @@ fn read_link() {
     if cfg!(windows) {
         // directory symlink
         assert_eq!(
-            check!(fs::read_link(r"C:\Users\All Users"))
-                .to_str()
-                .unwrap(),
-            r"C:\ProgramData"
+            check!(fs::read_link(r"C:\Users\All Users")),
+            Path::new(r"C:\ProgramData")
         );
         // junction
         assert_eq!(
-            check!(fs::read_link(r"C:\Users\Default User"))
-                .to_str()
-                .unwrap(),
-            r"C:\Users\Default"
+            check!(fs::read_link(r"C:\Users\Default User")),
+            Path::new(r"C:\Users\Default")
         );
         // junction with special permissions
-        assert_eq!(
-            check!(fs::read_link(r"C:\Documents and Settings\"))
-                .to_str()
-                .unwrap(),
-            r"C:\Users"
-        );
+        // Since not all localized windows versions contain the folder "Documents and Settings" in english,
+        // we will briefly check, if it exists and otherwise skip the test. Except during CI we will always execute the test.
+        if Path::new(r"C:\Documents and Settings\").exists() || env::var_os("CI").is_some() {
+            assert_eq!(
+                check!(fs::read_link(r"C:\Documents and Settings\")),
+                Path::new(r"C:\Users")
+            );
+        }
     }
     let tmpdir = tmpdir();
     let link = tmpdir.join("link");
@@ -1361,7 +1434,7 @@ fn dir_entry_methods() {
                 assert!(file.file_type().unwrap().is_file());
                 assert!(file.metadata().unwrap().is_file());
             }
-            f => panic!("unknown file name: {:?}", f),
+            f => panic!("unknown file name: {f:?}"),
         }
     }
 }
@@ -1372,7 +1445,7 @@ fn dir_entry_debug() {
     File::create(&tmpdir.join("b")).unwrap();
     let mut read_dir = tmpdir.path().read_dir().unwrap();
     let dir_entry = read_dir.next().unwrap().unwrap();
-    let actual = format!("{:?}", dir_entry);
+    let actual = format!("{dir_entry:?}");
     let expected = format!("DirEntry({:?})", dir_entry.path());
     assert_eq!(actual, expected);
 }
@@ -1380,6 +1453,12 @@ fn dir_entry_debug() {
 #[test]
 fn read_dir_not_found() {
     let res = fs::read_dir("/path/that/does/not/exist");
+    assert_eq!(res.err().unwrap().kind(), ErrorKind::NotFound);
+}
+
+#[test]
+fn file_open_not_found() {
+    let res = File::open("/path/that/does/not/exist");
     assert_eq!(res.err().unwrap().kind(), ErrorKind::NotFound);
 }
 
@@ -1441,10 +1520,7 @@ fn metadata_access_times() {
                     || e1.kind() == ErrorKind::Unsupported
                         && e2.kind() == ErrorKind::Unsupported => {}
             (a, b) => {
-                panic!(
-                    "creation time must be always supported or not supported: {:?} {:?}",
-                    a, b,
-                )
+                panic!("creation time must be always supported or not supported: {a:?} {b:?}")
             }
         }
     }
@@ -1478,7 +1554,7 @@ fn symlink_hard_link() {
         .file_type()
         .is_symlink());
 
-    // We sould be able to open "file" via any of the above names.
+    // We should be able to open "file" via any of the above names.
     let _ = check!(fs::File::open(tmpdir.join("file")));
     assert!(fs::File::open(tmpdir.join("file.renamed")).is_err());
     let _ = check!(fs::File::open(tmpdir.join("symlink")));
@@ -1518,4 +1594,56 @@ fn symlink_hard_link() {
     assert!(check!(fs::symlink_metadata(tmpdir.join("hard_link")))
         .file_type()
         .is_symlink());
+}
+
+/// Ensure `fs::create_dir` works on Windows with longer paths.
+#[test]
+#[cfg(windows)]
+fn create_dir_long_paths() {
+    use crate::{ffi::OsStr, iter, os::windows::ffi::OsStrExt};
+    const PATH_LEN: usize = 247;
+
+    let tmpdir = tmpdir();
+    let mut path = tmpdir.path().to_path_buf();
+    path.push("a");
+    let mut path = path.into_os_string();
+
+    let utf16_len = path.encode_wide().count();
+    if utf16_len >= PATH_LEN {
+        // Skip the test in the unlikely event the local user has a long temp directory path.
+        // This should not affect CI.
+        return;
+    }
+    // Increase the length of the path.
+    path.extend(iter::repeat(OsStr::new("a")).take(PATH_LEN - utf16_len));
+
+    // This should succeed.
+    fs::create_dir(&path).unwrap();
+
+    // This will fail if the path isn't converted to verbatim.
+    path.push("a");
+    fs::create_dir(&path).unwrap();
+
+    // #90940: Ensure an empty path returns the "Not Found" error.
+    let path = Path::new("");
+    assert_eq!(
+        path.canonicalize().unwrap_err().kind(),
+        crate::io::ErrorKind::NotFound
+    );
+}
+
+/// Ensure ReadDir works on large directories.
+/// Regression test for https://github.com/rust-lang/rust/issues/93384.
+#[test]
+fn read_large_dir() {
+    let tmpdir = tmpdir();
+
+    let count = 32 * 1024;
+    for i in 0..count {
+        check!(fs::File::create(tmpdir.join(&i.to_string())));
+    }
+
+    for entry in fs::read_dir(tmpdir.path()).unwrap() {
+        entry.unwrap();
+    }
 }

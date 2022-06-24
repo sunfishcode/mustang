@@ -8,7 +8,7 @@ description = "Rust programs written entirely in Rust"
 documentation = "https://docs.rs/mustang"
 license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
 repository = "https://github.com/sunfishcode/mustang"
-edition = "2018"
+edition = "2021"
 
 [build-dependencies]
 # Enable the cc dependency to build the empty `libc.a` and similar libraries

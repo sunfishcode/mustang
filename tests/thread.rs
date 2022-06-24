@@ -1,6 +1,6 @@
 //! The following is derived from Rust's
 //! library/std/src/thread/tests.rs at revision
-//! 497ee321af3b8496eaccd7af7b437f18bab81abf.
+//! eb14dd863a0d8af603c6783b10efff8454944c15.
 
 #![feature(box_syntax)]
 #![cfg(feature = "threads")]
@@ -9,11 +9,17 @@ mustang::can_run_this!();
 
 use std::any::Any;
 use std::mem;
+use std::panic::panic_any;
 use std::result;
-use std::sync::mpsc::{channel, Sender};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    mpsc::{channel, Sender},
+    Arc, Barrier,
+};
 use std::thread::Builder;
-use std::thread::{self, ThreadId};
+use std::thread::{self, Scope, ThreadId};
 use std::time::Duration;
+use std::time::Instant;
 
 // !!! These tests are dangerous. If something is buggy, they will hang, !!!
 // !!! instead of exiting cleanly. This might wedge the buildbots.       !!!
@@ -42,7 +48,7 @@ fn test_named_thread() {
 
 #[test]
 #[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
-#[cfg_attr(all(target_vendor = "mustang", not(target_arch = "x86-64")), ignore)] // FIXME(mustang): triggers segfault
+#[cfg_attr(all(target_vendor = "mustang", target_arch = "x86"), ignore)] // FIXME(mustang): triggers segfault
 #[should_panic]
 fn test_invalid_named_thread() {
     let _ = Builder::new()
@@ -60,7 +66,38 @@ fn test_run_basic() {
 }
 
 #[test]
+fn test_is_finished() {
+    let b = Arc::new(Barrier::new(2));
+    let t = thread::spawn({
+        let b = b.clone();
+        move || {
+            b.wait();
+            1234
+        }
+    });
+
+    // Thread is definitely running here, since it's still waiting for the barrier.
+    assert_eq!(t.is_finished(), false);
+
+    // Unblock the barrier.
+    b.wait();
+
+    // Now check that t.is_finished() becomes true within a reasonable time.
+    let start = Instant::now();
+    while !t.is_finished() {
+        assert!(start.elapsed() < Duration::from_secs(2));
+        thread::sleep(Duration::from_millis(15));
+    }
+
+    // Joining the thread should not block for a significant time now.
+    let join_time = Instant::now();
+    assert_eq!(t.join().unwrap(), 1234);
+    assert!(join_time.elapsed() < Duration::from_secs(2));
+}
+
+#[test]
 #[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
+#[cfg_attr(all(target_vendor = "mustang", target_arch = "x86"), ignore)] // FIXME(mustang): triggers segfault
 fn test_join_panic() {
     match thread::spawn(move || panic!()).join() {
         result::Result::Err(_) => (),
@@ -105,7 +142,7 @@ where
 {
     let (tx, rx) = channel();
 
-    let x: Box<_> = box 1;
+    let x: Box<_> = Box::new(1);
     let x_in_parent = (&*x) as *const i32 as usize;
 
     spawnfn(Box::new(move || {
@@ -164,7 +201,8 @@ fn test_simple_newsched_spawn() {
 
 #[test]
 #[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
-fn test_try_panic_message_static_str() {
+#[cfg_attr(all(target_vendor = "mustang", target_arch = "x86"), ignore)] // FIXME(mustang): triggers segfault
+fn test_try_panic_message_string_literal() {
     match thread::spawn(move || {
         panic!("static string");
     })
@@ -181,10 +219,10 @@ fn test_try_panic_message_static_str() {
 
 #[test]
 #[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
-#[cfg_attr(all(target_vendor = "mustang", not(target_arch = "x86-64")), ignore)] // FIXME(mustang): panics inside a panic
-fn test_try_panic_message_owned_str() {
+#[cfg_attr(all(target_vendor = "mustang", target_arch = "x86"), ignore)] // FIXME(mustang): panics inside a panic
+fn test_try_panic_any_message_owned_str() {
     match thread::spawn(move || {
-        panic!("owned string".to_string());
+        panic_any("owned string".to_string());
     })
     .join()
     {
@@ -199,10 +237,10 @@ fn test_try_panic_message_owned_str() {
 
 #[test]
 #[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
-#[cfg_attr(all(target_vendor = "mustang", not(target_arch = "x86-64")), ignore)] // FIXME(mustang): panics inside a panic
-fn test_try_panic_message_any() {
+#[cfg_attr(all(target_vendor = "mustang", target_arch = "x86"), ignore)] // FIXME(mustang): panics inside a panic
+fn test_try_panic_any_message_any() {
     match thread::spawn(move || {
-        panic!(box 413u16 as Box<dyn Any + Send>);
+        panic_any(Box::new(413u16) as Box<dyn Any + Send>);
     })
     .join()
     {
@@ -219,10 +257,11 @@ fn test_try_panic_message_any() {
 
 #[test]
 #[cfg_attr(all(target_arch = "arm", not(feature = "unwinding")), ignore)]
-fn test_try_panic_message_unit_struct() {
+#[cfg_attr(all(target_vendor = "mustang", target_arch = "x86"), ignore)] // FIXME(mustang): triggers segfault
+fn test_try_panic_any_message_unit_struct() {
     struct Juju;
 
-    match thread::spawn(move || panic!(Juju)).join() {
+    match thread::spawn(move || panic_any(Juju)).join() {
         Err(ref e) if e.is::<Juju>() => {}
         Err(_) | Ok(()) => panic!(),
     }
@@ -281,5 +320,38 @@ fn test_thread_id_not_equal() {
     assert!(thread::current().id() != spawned_id);
 }
 
-// NOTE: the corresponding test for stderr is in ui/thread-stderr, due
-// to the test harness apparently interfering with stderr configuration.
+#[test]
+fn test_scoped_threads_drop_result_before_join() {
+    let actually_finished = &AtomicBool::new(false);
+    struct X<'scope, 'env>(&'scope Scope<'scope, 'env>, &'env AtomicBool);
+    impl Drop for X<'_, '_> {
+        fn drop(&mut self) {
+            thread::sleep(Duration::from_millis(20));
+            let actually_finished = self.1;
+            self.0.spawn(move || {
+                thread::sleep(Duration::from_millis(20));
+                actually_finished.store(true, Ordering::Relaxed);
+            });
+        }
+    }
+    thread::scope(|s| {
+        s.spawn(move || {
+            thread::sleep(Duration::from_millis(20));
+            X(s, actually_finished)
+        });
+    });
+    assert!(actually_finished.load(Ordering::Relaxed));
+}
+
+#[test]
+fn test_scoped_threads_nll() {
+    // this is mostly a *compilation test* for this exact function:
+    fn foo(x: &u8) {
+        thread::scope(|s| {
+            s.spawn(|| drop(x));
+        });
+    }
+    // let's also run it for good measure
+    let x = 42_u8;
+    foo(&x);
+}
