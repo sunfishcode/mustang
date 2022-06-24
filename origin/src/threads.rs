@@ -709,7 +709,7 @@ pub unsafe fn detach_thread(thread: *mut Thread) {
         wait_for_thread_exit(thread);
 
         #[cfg(feature = "log")]
-        log_thread_to_be_freed(thread, thread_id);
+        log_thread_to_be_freed(thread_id);
 
         free_thread_memory(thread);
     }
@@ -738,7 +738,7 @@ pub unsafe fn join_thread(thread: *mut Thread) {
     debug_assert_eq!((*thread).detached.load(SeqCst), ABANDONED);
 
     #[cfg(feature = "log")]
-    log_thread_to_be_freed(thread, thread_id);
+    log_thread_to_be_freed(thread_id);
 
     free_thread_memory(thread);
 }
@@ -773,7 +773,7 @@ unsafe fn wait_for_thread_exit(thread: *mut Thread) {
 }
 
 #[cfg(feature = "log")]
-unsafe fn log_thread_to_be_freed(thread: *mut Thread, thread_id: u32) {
+unsafe fn log_thread_to_be_freed(thread_id: u32) {
     if log::log_enabled!(log::Level::Trace) {
         log::trace!("Thread[{:?}] memory being freed", thread_id);
     }
