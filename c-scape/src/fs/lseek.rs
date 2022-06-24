@@ -14,7 +14,7 @@ unsafe extern "C" fn lseek(fd: c_int, offset: off_t, whence: c_int) -> off_t {
         Ok(v) => v,
         Err(_) => {
             set_errno(Errno(libc::EOVERFLOW));
-            return -1;
+            -1
         }
     }
 }

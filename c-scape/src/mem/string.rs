@@ -31,7 +31,7 @@ unsafe extern "C" fn stpncpy(
     libc!(libc::stpncpy(d, s, n));
 
     while n > 0 {
-        n = n - 1;
+        n -= 1;
 
         *d = *s;
 
@@ -153,7 +153,7 @@ unsafe extern "C" fn strncat(d: *mut c_char, mut s: *const c_char, mut n: usize)
     let mut w = strchr(d, 0);
 
     while n > 0 && *s != NUL {
-        n = n - 1;
+        n -= 1;
 
         *w = *s;
 
@@ -170,7 +170,7 @@ unsafe extern "C" fn strncmp(mut s1: *const c_char, mut s2: *const c_char, mut n
     libc!(libc::strcmp(s1, s2));
 
     while n > 0 && *s1 != NUL && *s2 != NUL {
-        n = n - 1;
+        n -= 1;
 
         if *s1 != *s2 {
             break;
@@ -204,7 +204,7 @@ unsafe extern "C" fn strnlen(s: *const c_char, mut n: usize) -> usize {
 
     let mut w = s;
     while n > 0 && *w != NUL {
-        n = n - 1;
+        n -= 1;
         w = w.add(1);
     }
 

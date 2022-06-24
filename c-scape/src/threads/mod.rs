@@ -552,7 +552,7 @@ unsafe extern "C" fn pthread_create(
     arg: *mut c_void,
 ) -> c_int {
     libc!(libc::pthread_create(
-        checked_cast!(pthread),
+        pthread as _,
         checked_cast!(attr),
         fn_,
         arg

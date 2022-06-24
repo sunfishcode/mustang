@@ -34,5 +34,5 @@ unsafe extern "C" fn waitpid(pid: c_int, status: *mut c_int, options: c_int) -> 
     if !status.is_null() {
         status.write(ret_status);
     }
-    return ret_pid;
+    ret_pid
 }

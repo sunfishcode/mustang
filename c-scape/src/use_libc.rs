@@ -36,6 +36,7 @@ macro_rules! libc {
         // TODO: Implement actually using libc. Right now this is just a
         // signature check.
         #[allow(unreachable_code)]
+        #[allow(clippy::diverging_sub_expression)]
         if false {
             #[allow(unused_imports)]
             use crate::use_libc::*;
