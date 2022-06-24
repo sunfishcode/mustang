@@ -6,12 +6,10 @@ mustang::can_run_this!();
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::channel;
-#[cfg(feature = "pthread_cond")]
 use std::sync::Condvar;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[cfg(feature = "pthread_cond")]
 struct Packet<T>(Arc<(Mutex<T>, Condvar)>);
 
 #[derive(Eq, PartialEq, Debug)]
@@ -135,7 +133,6 @@ fn test_get_mut_poison() {
     }
 }
 
-#[cfg(feature = "pthread_cond")]
 #[test]
 fn test_mutex_arc_condvar() {
     let packet = Packet(Arc::new((Mutex::new(false), Condvar::new())));
@@ -159,7 +156,6 @@ fn test_mutex_arc_condvar() {
     }
 }
 
-#[cfg(feature = "pthread_cond")]
 #[test]
 fn test_arc_condvar_poison() {
     let packet = Packet(Arc::new((Mutex::new(1), Condvar::new())));
