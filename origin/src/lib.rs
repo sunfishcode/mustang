@@ -1,7 +1,5 @@
 #![doc = include_str!("../README.md")]
-#![allow(stable_features)]
 #![deny(missing_docs)]
-#![feature(asm)]
 #![feature(asm_const)]
 #![feature(asm_sym)]
 #![feature(naked_functions)]
