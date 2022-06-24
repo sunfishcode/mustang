@@ -71,9 +71,9 @@ pub(super) unsafe extern "C" fn entry(mem: *mut usize) -> ! {
     debug_assert_eq!(*mem, argc as _);
     debug_assert_eq!(*argv.add(argc as usize), core::ptr::null_mut());
 
-    // Explicitly initialize `rustix`. On non-mustang platforms it uses a
-    // .init_array hook to initialize itself automatically, but for mustang, we
-    // do it manually so that we can control the initialization order.
+    // Explicitly initialize `rustix`. On non-mustang platforms, `rustix` uses
+    // a .init_array hook to initialize itself automatically, but for mustang,
+    // we do it manually so that we can control the initialization order.
     rustix::param::init(envp);
 
     // Initialize the main thread.
