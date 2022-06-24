@@ -3,6 +3,7 @@ use core::ffi::c_void;
 use core::ptr::{self, null, null_mut};
 use core::sync::atomic::Ordering::SeqCst;
 use core::sync::atomic::{AtomicBool, AtomicU32};
+use core::time::Duration;
 use origin::lock_api::{self, RawMutex as _, RawReentrantMutex, RawRwLock as _};
 use origin::sync::{Condvar, RawMutex, RawRwLock};
 
@@ -380,7 +381,10 @@ const SIZEOF_PTHREAD_COND_T: usize = 48;
 #[cfg_attr(not(target_arch = "x86"), repr(C, align(8)))]
 struct PthreadCondT {
     inner: Condvar,
-    pad: [u8; SIZEOF_PTHREAD_COND_T - core::mem::size_of::<Condvar>()],
+    attr: PthreadCondattrT,
+    pad: [u8; SIZEOF_PTHREAD_COND_T
+        - core::mem::size_of::<Condvar>()
+        - core::mem::size_of::<PthreadCondattrT>()],
 }
 
 libc_type!(PthreadCondT, pthread_cond_t);
@@ -402,29 +406,27 @@ struct PthreadCondattrT {
     pad: [u8; SIZEOF_PTHREAD_CONDATTR_T],
 }
 
+impl Default for PthreadCondattrT {
+    fn default() -> Self {
+        Self {
+            pad: [0_u8; SIZEOF_PTHREAD_CONDATTR_T],
+        }
+    }
+}
+
 libc_type!(PthreadCondattrT, pthread_condattr_t);
 
 #[no_mangle]
 unsafe extern "C" fn pthread_condattr_destroy(attr: *mut PthreadCondattrT) -> c_int {
     libc!(libc::pthread_condattr_destroy(checked_cast!(attr)));
-    let _ = attr;
-    rustix::io::write(
-        &rustix::io::stderr(),
-        b"unimplemented: pthread_condattr_destroy\n",
-    )
-    .ok();
+    ptr::drop_in_place(attr);
     0
 }
 
 #[no_mangle]
 unsafe extern "C" fn pthread_condattr_init(attr: *mut PthreadCondattrT) -> c_int {
     libc!(libc::pthread_condattr_init(checked_cast!(attr)));
-    let _ = attr;
-    rustix::io::write(
-        &rustix::io::stderr(),
-        b"unimplemented: pthread_condattr_init\n",
-    )
-    .ok();
+    ptr::write(attr, PthreadCondattrT::default());
     0
 }
 
@@ -449,24 +451,14 @@ unsafe extern "C" fn pthread_condattr_setclock(
 #[no_mangle]
 unsafe extern "C" fn pthread_cond_broadcast(cond: *mut PthreadCondT) -> c_int {
     libc!(libc::pthread_cond_broadcast(checked_cast!(cond)));
-    let _ = cond;
-    rustix::io::write(
-        &rustix::io::stderr(),
-        b"unimplemented: pthread_cond_broadcast\n",
-    )
-    .ok();
+    (*cond).inner.notify_all();
     0
 }
 
 #[no_mangle]
 unsafe extern "C" fn pthread_cond_destroy(cond: *mut PthreadCondT) -> c_int {
     libc!(libc::pthread_cond_destroy(checked_cast!(cond)));
-    let _ = cond;
-    rustix::io::write(
-        &rustix::io::stderr(),
-        b"unimplemented: pthread_cond_destroy\n",
-    )
-    .ok();
+    ptr::drop_in_place(cond);
     0
 }
 
@@ -479,20 +471,24 @@ unsafe extern "C" fn pthread_cond_init(
         checked_cast!(cond),
         checked_cast!(attr)
     ));
-    let _ = (cond, attr);
-    rustix::io::write(&rustix::io::stderr(), b"unimplemented: pthread_cond_init\n").ok();
+    ptr::write(
+        cond,
+        PthreadCondT {
+            inner: Condvar::new(),
+            attr: ptr::read(attr),
+            pad: [0_u8;
+                SIZEOF_PTHREAD_COND_T
+                    - core::mem::size_of::<Condvar>()
+                    - core::mem::size_of::<PthreadCondattrT>()],
+        },
+    );
     0
 }
 
 #[no_mangle]
 unsafe extern "C" fn pthread_cond_signal(cond: *mut PthreadCondT) -> c_int {
     libc!(libc::pthread_cond_signal(checked_cast!(cond)));
-    let _ = cond;
-    rustix::io::write(
-        &rustix::io::stderr(),
-        b"unimplemented: pthread_cond_signal\n",
-    )
-    .ok();
+    (*cond).inner.notify_one();
     0
 }
 
@@ -502,8 +498,12 @@ unsafe extern "C" fn pthread_cond_wait(cond: *mut PthreadCondT, lock: *mut Pthre
         checked_cast!(cond),
         checked_cast!(lock)
     ));
-    let _ = (cond, lock);
-    rustix::io::write(&rustix::io::stderr(), b"unimplemented: pthread_cond_wait\n").ok();
+    match (*lock).kind.load(SeqCst) as i32 {
+        libc::PTHREAD_MUTEX_NORMAL => (*cond).inner.wait(&mut (*lock).u.normal),
+        libc::PTHREAD_MUTEX_RECURSIVE => unimplemented!("PTHREAD_MUTEX_RECURSIVE"),
+        libc::PTHREAD_MUTEX_ERRORCHECK => unimplemented!("PTHREAD_MUTEX_ERRORCHECK"),
+        other => unimplemented!("unsupported pthread mutex kind {}", other),
+    }
     0
 }
 
@@ -516,15 +516,25 @@ unsafe extern "C" fn pthread_cond_timedwait(
     libc!(libc::pthread_cond_timedwait(
         checked_cast!(cond),
         checked_cast!(lock),
-        abstime
+        abstime,
     ));
-    let _ = (cond, lock, abstime);
-    rustix::io::write(
-        &rustix::io::stderr(),
-        b"unimplemented: pthread_cond_timedwait\n",
-    )
-    .ok();
-    0
+    let abstime = ptr::read(abstime);
+    let duration = Duration::new(
+        abstime.tv_sec.try_into().unwrap(),
+        abstime.tv_nsec.try_into().unwrap(),
+    );
+    match (*lock).kind.load(SeqCst) as i32 {
+        libc::PTHREAD_MUTEX_NORMAL => {
+            if (*cond).inner.wait_timeout(&mut (*lock).u.normal, duration) {
+                0
+            } else {
+                libc::ETIMEDOUT
+            }
+        }
+        libc::PTHREAD_MUTEX_RECURSIVE => unimplemented!("PTHREAD_MUTEX_RECURSIVE"),
+        libc::PTHREAD_MUTEX_ERRORCHECK => unimplemented!("PTHREAD_MUTEX_ERRORCHECK"),
+        other => unimplemented!("unsupported pthread mutex kind {}", other),
+    }
 }
 
 #[no_mangle]
@@ -572,7 +582,7 @@ unsafe extern "C" fn pthread_create(
     } = if attr.is_null() {
         PthreadAttrT::default()
     } else {
-        (*attr).clone()
+        ptr::read(attr)
     };
     assert!(stack_addr.is_null());
 

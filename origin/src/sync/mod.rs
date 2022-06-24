@@ -12,13 +12,14 @@
 #![allow(missing_docs)]
 
 // Re-export the `MovableCondvar` from std directly.
-pub use futex::MovableCondvar as Condvar;
+pub use condvar::MovableCondvar as Condvar;
 
 // Export convenient `Mutex` and `RwLock` types.
 pub type Mutex<T> = lock_api::Mutex<RawMutex, T>;
 pub type RwLock<T> = lock_api::RwLock<RawRwLock, T>;
 
 // std's implementation code.
+mod condvar;
 mod futex;
 mod futex_rwlock;
 mod wait_wake;
@@ -28,7 +29,9 @@ use futex::MovableMutex;
 use futex_rwlock::MovableRwLock;
 
 // Encapsulate the std lock types to hide this detail.
+#[repr(transparent)]
 pub struct RawMutex(MovableMutex);
+#[repr(transparent)]
 pub struct RawRwLock(MovableRwLock);
 
 // Implement the raw lock traits for our wrappers.

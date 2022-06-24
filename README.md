@@ -114,7 +114,6 @@ set the environment variable `CC_i686-mustang-linux-gnu` to
 Known limitations in `mustang` include:
 
  - No support for dynamic linking yet.
- - No support for `std::sync::Condvar` yet.
  - Many missing features needed for libraries written in C.
 
 ## Background

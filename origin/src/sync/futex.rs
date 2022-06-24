@@ -2,15 +2,13 @@
 //! library/std/src/sys/unix/locks/futex.rs at revision
 //! 6fd7e9010db6be7605241c39eab7c5078ee2d5bd.
 
-use super::wait_wake::{futex_wait, futex_wake, futex_wake_all};
+use super::wait_wake::{futex_wait, futex_wake};
 use core::sync::atomic::{
     AtomicU32,
     Ordering::{Acquire, Relaxed, Release},
 };
-use core::time::Duration;
 
 pub type MovableMutex = Mutex;
-pub type MovableCondvar = Condvar;
 
 pub struct Mutex {
     /// 0: unlocked
@@ -26,12 +24,6 @@ impl Mutex {
             futex: AtomicU32::new(0),
         }
     }
-
-    #[inline]
-    pub unsafe fn init(&mut self) {}
-
-    #[inline]
-    pub unsafe fn destroy(&self) {}
 
     #[inline]
     pub unsafe fn try_lock(&self) -> bool {
@@ -108,65 +100,5 @@ impl Mutex {
     #[cold]
     fn wake(&self) {
         futex_wake(&self.futex);
-    }
-}
-
-pub struct Condvar {
-    // The value of this atomic is simply incremented on every notification.
-    // This is used by `.wait()` to not miss any notifications after
-    // unlocking the mutex and before waiting for notifications.
-    futex: AtomicU32,
-}
-
-impl Condvar {
-    #[inline]
-    pub const fn new() -> Self {
-        Self {
-            futex: AtomicU32::new(0),
-        }
-    }
-
-    #[inline]
-    pub unsafe fn init(&mut self) {}
-
-    #[inline]
-    pub unsafe fn destroy(&self) {}
-
-    // All the memory orderings here are `Relaxed`,
-    // because synchronization is done by unlocking and locking the mutex.
-
-    pub unsafe fn notify_one(&self) {
-        self.futex.fetch_add(1, Relaxed);
-        futex_wake(&self.futex);
-    }
-
-    pub unsafe fn notify_all(&self) {
-        self.futex.fetch_add(1, Relaxed);
-        futex_wake_all(&self.futex);
-    }
-
-    pub unsafe fn wait(&self, mutex: &Mutex) {
-        self.wait_optional_timeout(mutex, None);
-    }
-
-    pub unsafe fn wait_timeout(&self, mutex: &Mutex, timeout: Duration) -> bool {
-        self.wait_optional_timeout(mutex, Some(timeout))
-    }
-
-    unsafe fn wait_optional_timeout(&self, mutex: &Mutex, timeout: Option<Duration>) -> bool {
-        // Examine the notification counter _before_ we unlock the mutex.
-        let futex_value = self.futex.load(Relaxed);
-
-        // Unlock the mutex before going to sleep.
-        mutex.unlock();
-
-        // Wait, but only if there hasn't been any
-        // notification since we unlocked the mutex.
-        let r = futex_wait(&self.futex, futex_value, timeout);
-
-        // Lock the mutex again.
-        mutex.lock();
-
-        r
     }
 }

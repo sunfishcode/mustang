@@ -4,14 +4,10 @@
 
 mustang::can_run_this!();
 
-#[cfg(feature = "pthread_cond")]
 use std::sync::mpsc::{channel, TryRecvError};
-#[cfg(feature = "pthread_cond")]
 use std::sync::{Arc, Barrier};
-#[cfg(feature = "pthread_cond")]
 use std::thread;
 
-#[cfg(feature = "pthread_cond")]
 #[test]
 #[cfg_attr(target_os = "emscripten", ignore)]
 fn test_barrier() {
