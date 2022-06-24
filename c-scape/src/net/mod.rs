@@ -29,9 +29,8 @@ unsafe extern "C" fn accept(
     addr: *mut SocketAddrStorage,
     len: *mut libc::socklen_t,
 ) -> c_int {
-    // FIXME(#95) layout of addr doesn't match signature on i686
-    // uncomment once it does:
-    // libc!(libc::accept(fd, checked_cast!(addr), len));
+    // We don't use `checked_cast` here because libc uses `sockaddr` which
+    // just represents the header of the struct, not the full storage.
     libc!(libc::accept(fd, addr.cast(), len));
 
     match convert_res(rustix::net::acceptfrom(BorrowedFd::borrow_raw(fd))) {
@@ -53,9 +52,8 @@ unsafe extern "C" fn accept4(
     len: *mut libc::socklen_t,
     flags: c_int,
 ) -> c_int {
-    // FIXME(#95) layout of addr doesn't match signature on i686
-    // uncomment once it does:
-    // libc!(libc::accept4(fd, checked_cast!(addr), len, flags));
+    // We don't use `checked_cast` here because libc uses `sockaddr` which
+    // just represents the header of the struct, not the full storage.
     libc!(libc::accept4(fd, addr.cast(), len, flags));
 
     let flags = AcceptFlags::from_bits(flags as _).unwrap();
@@ -80,9 +78,8 @@ unsafe extern "C" fn bind(
     addr: *const SocketAddrStorage,
     len: libc::socklen_t,
 ) -> c_int {
-    // FIXME(#95) layout of addr doesn't match signature on i686
-    // uncomment once it does:
-    // libc!(libc::bind(sockfd, checked_cast!(addr), len));
+    // We don't use `checked_cast` here because libc uses `sockaddr` which
+    // just represents the header of the struct, not the full storage.
     libc!(libc::bind(sockfd, addr.cast(), len));
 
     let addr = match convert_res(SocketAddrAny::read(addr, len.try_into().unwrap())) {
@@ -106,9 +103,8 @@ unsafe extern "C" fn connect(
     addr: *const SocketAddrStorage,
     len: libc::socklen_t,
 ) -> c_int {
-    // FIXME(#95) layout of addr doesn't match signature on i686
-    // uncomment once it does:
-    // libc!(libc::connect(sockfd, checked_cast!(addr), len));
+    // We don't use `checked_cast` here because libc uses `sockaddr` which
+    // just represents the header of the struct, not the full storage.
     libc!(libc::connect(sockfd, addr.cast(), len));
 
     let addr = match convert_res(SocketAddrAny::read(addr, len.try_into().unwrap())) {
@@ -134,9 +130,8 @@ unsafe extern "C" fn getpeername(
     addr: *mut SocketAddrStorage,
     len: *mut libc::socklen_t,
 ) -> c_int {
-    // FIXME(#95) layout of addr doesn't match signature on i686
-    // uncomment once it does:
-    // libc!(libc::getpeername(fd, checked_cast!(addr), len));
+    // We don't use `checked_cast` here because libc uses `sockaddr` which
+    // just represents the header of the struct, not the full storage.
     libc!(libc::getpeername(fd, addr.cast(), len));
 
     match convert_res(rustix::net::getpeername(BorrowedFd::borrow_raw(fd))) {
@@ -157,9 +152,8 @@ unsafe extern "C" fn getsockname(
     addr: *mut SocketAddrStorage,
     len: *mut libc::socklen_t,
 ) -> c_int {
-    // FIXME(#95) layout of addr doesn't match signature on i686
-    // uncomment once it does:
-    // libc!(libc::getsockname(fd, checked_cast!(addr), len));
+    // We don't use `checked_cast` here because libc uses `sockaddr` which
+    // just represents the header of the struct, not the full storage.
     libc!(libc::getsockname(fd, addr.cast(), len));
 
     match convert_res(rustix::net::getsockname(BorrowedFd::borrow_raw(fd))) {
@@ -619,9 +613,8 @@ unsafe extern "C" fn recvfrom(
     from: *mut SocketAddrStorage,
     from_len: *mut libc::socklen_t,
 ) -> isize {
-    // FIXME(#95) layout of from doesn't match signature on i686
-    // uncomment once it does:
-    // libc!(libc::recvfrom(fd, buf, len, flags, checked_cast!(from), from_len));
+    // We don't use `checked_cast` here because libc uses `sockaddr` which
+    // just represents the header of the struct, not the full storage.
     libc!(libc::recvfrom(fd, buf, len, flags, from.cast(), from_len));
 
     let flags = RecvFlags::from_bits(flags as _).unwrap();
@@ -665,9 +658,8 @@ unsafe extern "C" fn sendto(
     to: *const SocketAddrStorage,
     to_len: libc::socklen_t,
 ) -> isize {
-    // FIXME(#95) layout of to doesn't match signature on i686
-    // uncomment once it does:
-    // libc!(libc::sendto(fd, buf, len, flags, checked_cast!(to), to_len));
+    // We don't use `checked_cast` here because libc uses `sockaddr` which
+    // just represents the header of the struct, not the full storage.
     libc!(libc::sendto(fd, buf, len, flags, to.cast(), to_len));
 
     let flags = SendFlags::from_bits(flags as _).unwrap();
