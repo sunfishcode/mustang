@@ -154,7 +154,11 @@ unsafe extern "C" fn pthread_attr_getstack(
     stackaddr: *mut *mut c_void,
     stacksize: *mut usize,
 ) -> c_int {
-    libc!(libc::pthread_attr_getstack(checked_cast!(attr), stackaddr, stacksize));
+    libc!(libc::pthread_attr_getstack(
+        checked_cast!(attr),
+        stackaddr,
+        stacksize
+    ));
     *stackaddr = (*attr).stack_addr;
     *stacksize = (*attr).stack_size;
     0
@@ -239,7 +243,10 @@ unsafe extern "C" fn pthread_mutex_init(
     mutex: *mut PthreadMutexT,
     mutexattr: *const PthreadMutexattrT,
 ) -> c_int {
-    libc!(libc::pthread_mutex_init(checked_cast!(mutex), checked_cast!(mutexattr)));
+    libc!(libc::pthread_mutex_init(
+        checked_cast!(mutex),
+        checked_cast!(mutexattr)
+    ));
     let kind = (*mutexattr).kind.load(SeqCst);
     match kind as i32 {
         libc::PTHREAD_MUTEX_NORMAL => ptr::write(&mut (*mutex).u.normal, RawMutex::INIT),
@@ -351,7 +358,10 @@ unsafe extern "C" fn pthread_attr_getguardsize(
     attr: *const PthreadAttrT,
     guardsize: *mut usize,
 ) -> c_int {
-    libc!(libc::pthread_attr_getguardsize(checked_cast!(attr), guardsize));
+    libc!(libc::pthread_attr_getguardsize(
+        checked_cast!(attr),
+        guardsize
+    ));
     *guardsize = (*attr).guard_size;
     0
 }
@@ -487,7 +497,10 @@ unsafe extern "C" fn pthread_cond_signal(cond: *mut PthreadCondT) -> c_int {
 
 #[no_mangle]
 unsafe extern "C" fn pthread_cond_wait(cond: *mut PthreadCondT, lock: *mut PthreadMutexT) -> c_int {
-    libc!(libc::pthread_cond_wait(checked_cast!(cond), checked_cast!(lock)));
+    libc!(libc::pthread_cond_wait(
+        checked_cast!(cond),
+        checked_cast!(lock)
+    ));
     let _ = (cond, lock);
     rustix::io::write(&rustix::io::stderr(), b"unimplemented: pthread_cond_wait\n").ok();
     0
@@ -499,7 +512,11 @@ unsafe extern "C" fn pthread_cond_timedwait(
     lock: *mut PthreadMutexT,
     abstime: *const libc::timespec,
 ) -> c_int {
-    libc!(libc::pthread_cond_timedwait(checked_cast!(cond), checked_cast!(lock), abstime));
+    libc!(libc::pthread_cond_timedwait(
+        checked_cast!(cond),
+        checked_cast!(lock),
+        abstime
+    ));
     let _ = (cond, lock, abstime);
     rustix::io::write(
         &rustix::io::stderr(),
@@ -599,7 +616,10 @@ unsafe extern "C" fn pthread_sigmask() -> c_int {
 
 #[no_mangle]
 unsafe extern "C" fn pthread_attr_setstacksize(attr: *mut PthreadAttrT, stacksize: usize) -> c_int {
-    libc!(libc::pthread_attr_setstacksize(checked_cast!(attr), stacksize));
+    libc!(libc::pthread_attr_setstacksize(
+        checked_cast!(attr),
+        stacksize
+    ));
     (*attr).stack_size = stacksize;
     0
 }
