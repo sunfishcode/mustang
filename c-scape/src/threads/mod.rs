@@ -38,7 +38,7 @@ struct PthreadAttrT {
     pad1: usize,
     pad2: usize,
     pad3: usize,
-    #[cfg(target_arch = "x86")]
+    #[cfg(any(target_arch = "aarch64", target_arch = "x86"))]
     pad4: usize,
     #[cfg(target_arch = "x86")]
     pad5: usize,
@@ -55,7 +55,7 @@ impl Default for PthreadAttrT {
             pad1: 0,
             pad2: 0,
             pad3: 0,
-            #[cfg(target_arch = "x86")]
+            #[cfg(any(target_arch = "aarch64", target_arch = "x86"))]
             pad4: 0,
             #[cfg(target_arch = "x86")]
             pad5: 0,
@@ -76,7 +76,7 @@ struct PthreadMutexT {
     kind: AtomicU32,
     u: pthread_mutex_u,
     pad0: usize,
-    #[cfg(target_arch = "x86")]
+    #[cfg(any(target_arch = "aarch64", target_arch = "x86"))]
     pad1: usize,
 }
 libc_type!(PthreadMutexT, pthread_mutex_t);
@@ -98,6 +98,8 @@ libc_type!(PthreadRwlockT, pthread_rwlock_t);
 #[repr(C)]
 struct PthreadMutexattrT {
     kind: AtomicU32,
+    #[cfg(target_arch = "aarch64")]
+    pad0: u32,
 }
 libc_type!(PthreadMutexattrT, pthread_mutexattr_t);
 
@@ -109,9 +111,10 @@ unsafe extern "C" fn pthread_self() -> PthreadT {
 
 #[no_mangle]
 unsafe extern "C" fn pthread_getattr_np(thread: PthreadT, attr: *mut PthreadAttrT) -> c_int {
-    // FIXME(#95) layout of attr doesn't match signature on aarch64
-    // uncomment once it does:
-    // libc!(libc::pthread_getattr_np(thread, checked_cast!(attr)));
+    libc!(libc::pthread_getattr_np(
+        thread.expose_addr() as _,
+        checked_cast!(attr)
+    ));
     let (stack_addr, stack_size, guard_size) = origin::thread_stack(thread.cast());
     ptr::write(
         attr,
@@ -123,7 +126,7 @@ unsafe extern "C" fn pthread_getattr_np(thread: PthreadT, attr: *mut PthreadAttr
             pad1: 0,
             pad2: 0,
             pad3: 0,
-            #[cfg(target_arch = "x86")]
+            #[cfg(any(target_arch = "aarch64", target_arch = "x86"))]
             pad4: 0,
             #[cfg(target_arch = "x86")]
             pad5: 0,
@@ -134,18 +137,14 @@ unsafe extern "C" fn pthread_getattr_np(thread: PthreadT, attr: *mut PthreadAttr
 
 #[no_mangle]
 unsafe extern "C" fn pthread_attr_init(attr: *mut PthreadAttrT) -> c_int {
-    // FIXME(#95) layout of attr doesn't match signature on aarch64
-    // uncomment once it does:
-    // libc!(libc::pthread_attr_init(checked_cast!(attr)));
+    libc!(libc::pthread_attr_init(checked_cast!(attr)));
     ptr::write(attr, PthreadAttrT::default());
     0
 }
 
 #[no_mangle]
 unsafe extern "C" fn pthread_attr_destroy(attr: *mut PthreadAttrT) -> c_int {
-    // FIXME(#95) layout of attr doesn't match signature on aarch64
-    // uncomment once it does:
-    // libc!(libc::pthread_attr_destroy(checked_cast!(attr)));
+    libc!(libc::pthread_attr_destroy(checked_cast!(attr)));
     ptr::drop_in_place(attr);
     0
 }
@@ -156,9 +155,11 @@ unsafe extern "C" fn pthread_attr_getstack(
     stackaddr: *mut *mut c_void,
     stacksize: *mut usize,
 ) -> c_int {
-    // FIXME(#95) layout of attr doesn't match signature on aarch64
-    // uncomment once it does:
-    // libc!(libc::pthread_attr_getstack(checked_cast!(attr), stackaddr, stacksize));
+    libc!(libc::pthread_attr_getstack(
+        checked_cast!(attr),
+        stackaddr,
+        stacksize
+    ));
     *stackaddr = (*attr).stack_addr;
     *stacksize = (*attr).stack_size;
     0
@@ -199,22 +200,20 @@ unsafe extern "C" fn pthread_key_delete() -> c_int {
 
 #[no_mangle]
 unsafe extern "C" fn pthread_mutexattr_destroy(attr: *mut PthreadMutexattrT) -> c_int {
-    // FIXME(#95) layout of attr doesn't match signature on aarch64
-    // uncomment once it does:
-    // libc!(libc::pthread_mutexattr_destroy(checked_cast!(attr)));
+    libc!(libc::pthread_mutexattr_destroy(checked_cast!(attr)));
     ptr::drop_in_place(attr);
     0
 }
 
 #[no_mangle]
 unsafe extern "C" fn pthread_mutexattr_init(attr: *mut PthreadMutexattrT) -> c_int {
-    // FIXME(#95) layout of attr doesn't match signature on aarch64
-    // uncomment once it does:
-    // libc!(libc::pthread_mutexattr_init(checked_cast!(attr)));
+    libc!(libc::pthread_mutexattr_init(checked_cast!(attr)));
     ptr::write(
         attr,
         PthreadMutexattrT {
             kind: AtomicU32::new(libc::PTHREAD_MUTEX_DEFAULT as u32),
+            #[cfg(target_arch = "aarch64")]
+            pad0: 0,
         },
     );
     0
@@ -222,18 +221,14 @@ unsafe extern "C" fn pthread_mutexattr_init(attr: *mut PthreadMutexattrT) -> c_i
 
 #[no_mangle]
 unsafe extern "C" fn pthread_mutexattr_settype(attr: *mut PthreadMutexattrT, kind: c_int) -> c_int {
-    // FIXME(#95) layout of attr doesn't match signature on aarch64
-    // uncomment once it does:
-    // libc!(libc::pthread_mutexattr_settype(checked_cast!(attr), kind));
+    libc!(libc::pthread_mutexattr_settype(checked_cast!(attr), kind));
     (*attr).kind = AtomicU32::new(kind as u32);
     0
 }
 
 #[no_mangle]
 unsafe extern "C" fn pthread_mutex_destroy(mutex: *mut PthreadMutexT) -> c_int {
-    // FIXME(#95) layout of mutex doesn't match signature on aarch64
-    // uncomment once it does:
-    // libc!(libc::pthread_mutex_destroy(checked_cast!(mutex)));
+    libc!(libc::pthread_mutex_destroy(checked_cast!(mutex)));
     match (*mutex).kind.load(SeqCst) as i32 {
         libc::PTHREAD_MUTEX_NORMAL => ptr::drop_in_place(&mut (*mutex).u.normal),
         libc::PTHREAD_MUTEX_RECURSIVE => ptr::drop_in_place(&mut (*mutex).u.reentrant),
@@ -249,9 +244,10 @@ unsafe extern "C" fn pthread_mutex_init(
     mutex: *mut PthreadMutexT,
     mutexattr: *const PthreadMutexattrT,
 ) -> c_int {
-    // FIXME(#95) layout of mutex and attr doesn't match signature on aarch64
-    // uncomment once it does:
-    // libc!(libc::pthread_mutex_init(checked_cast!(mutex), checked_cast!(mutexattr)));
+    libc!(libc::pthread_mutex_init(
+        checked_cast!(mutex),
+        checked_cast!(mutexattr)
+    ));
     let kind = (*mutexattr).kind.load(SeqCst);
     match kind as i32 {
         libc::PTHREAD_MUTEX_NORMAL => ptr::write(&mut (*mutex).u.normal, RawMutex::INIT),
@@ -267,9 +263,7 @@ unsafe extern "C" fn pthread_mutex_init(
 
 #[no_mangle]
 unsafe extern "C" fn pthread_mutex_lock(mutex: *mut PthreadMutexT) -> c_int {
-    // FIXME(#95) layout of mutex doesn't match signature on aarch64
-    // uncomment once it does:
-    // libc!(libc::pthread_mutex_lock(checked_cast!(mutex)));
+    libc!(libc::pthread_mutex_lock(checked_cast!(mutex)));
     match (*mutex).kind.load(SeqCst) as i32 {
         libc::PTHREAD_MUTEX_NORMAL => (*mutex).u.normal.lock(),
         libc::PTHREAD_MUTEX_RECURSIVE => (*mutex).u.reentrant.lock(),
@@ -281,9 +275,7 @@ unsafe extern "C" fn pthread_mutex_lock(mutex: *mut PthreadMutexT) -> c_int {
 
 #[no_mangle]
 unsafe extern "C" fn pthread_mutex_trylock(mutex: *mut PthreadMutexT) -> c_int {
-    // FIXME(#95) layout of mutex doesn't match signature on aarch64
-    // uncomment once it does:
-    // libc!(libc::pthread_mutex_trylock(checked_cast!(mutex)));
+    libc!(libc::pthread_mutex_trylock(checked_cast!(mutex)));
     if match (*mutex).kind.load(SeqCst) as i32 {
         libc::PTHREAD_MUTEX_NORMAL => (*mutex).u.normal.try_lock(),
         libc::PTHREAD_MUTEX_RECURSIVE => (*mutex).u.reentrant.try_lock(),
@@ -298,9 +290,7 @@ unsafe extern "C" fn pthread_mutex_trylock(mutex: *mut PthreadMutexT) -> c_int {
 
 #[no_mangle]
 unsafe extern "C" fn pthread_mutex_unlock(mutex: *mut PthreadMutexT) -> c_int {
-    // FIXME(#95) layout of mutex doesn't match signature on aarch64
-    // uncomment once it does:
-    // libc!(libc::pthread_mutex_unlock(checked_cast!(mutex)));
+    libc!(libc::pthread_mutex_unlock(checked_cast!(mutex)));
     match (*mutex).kind.load(SeqCst) as i32 {
         libc::PTHREAD_MUTEX_NORMAL => (*mutex).u.normal.unlock(),
         libc::PTHREAD_MUTEX_RECURSIVE => (*mutex).u.reentrant.unlock(),
@@ -369,9 +359,10 @@ unsafe extern "C" fn pthread_attr_getguardsize(
     attr: *const PthreadAttrT,
     guardsize: *mut usize,
 ) -> c_int {
-    // FIXME(#95) layout of attr doesn't match signature on aarch64
-    // uncomment once it does:
-    // libc!(libc::pthread_attr_getguardsize(checked_cast!(attr), guardsize));
+    libc!(libc::pthread_attr_getguardsize(
+        checked_cast!(attr),
+        guardsize
+    ));
     *guardsize = (*attr).guard_size;
     0
 }
@@ -507,9 +498,10 @@ unsafe extern "C" fn pthread_cond_signal(cond: *mut PthreadCondT) -> c_int {
 
 #[no_mangle]
 unsafe extern "C" fn pthread_cond_wait(cond: *mut PthreadCondT, lock: *mut PthreadMutexT) -> c_int {
-    // FIXME(#95) layout of lock doesn't match signature on aarch64
-    // uncomment once it does:
-    // libc!(libc::pthread_cond_wait(checked_cast!(cond), checked_cast!(lock));
+    libc!(libc::pthread_cond_wait(
+        checked_cast!(cond),
+        checked_cast!(lock)
+    ));
     let _ = (cond, lock);
     rustix::io::write(&rustix::io::stderr(), b"unimplemented: pthread_cond_wait\n").ok();
     0
@@ -521,9 +513,11 @@ unsafe extern "C" fn pthread_cond_timedwait(
     lock: *mut PthreadMutexT,
     abstime: *const libc::timespec,
 ) -> c_int {
-    // FIXME(#95) layout of mutex doesn't match signature on aarch64
-    // uncomment once it does:
-    // libc!(libc::pthread_cond_timedwait(checked_cast!(cond), checked_cast!(lock), abstime));
+    libc!(libc::pthread_cond_timedwait(
+        checked_cast!(cond),
+        checked_cast!(lock),
+        abstime
+    ));
     let _ = (cond, lock, abstime);
     rustix::io::write(
         &rustix::io::stderr(),
@@ -557,9 +551,12 @@ unsafe extern "C" fn pthread_create(
     fn_: extern "C" fn(*mut c_void) -> *mut c_void,
     arg: *mut c_void,
 ) -> c_int {
-    // FIXME(#95) layout of attr doesn't match signature on aarch64
-    // uncomment once it does:
-    // libc!(libc::pthread_create(pthread, checked_cast!(attr), fn_, arg));
+    libc!(libc::pthread_create(
+        checked_cast!(pthread),
+        checked_cast!(attr),
+        fn_,
+        arg
+    ));
     let PthreadAttrT {
         stack_addr,
         stack_size,
@@ -568,7 +565,7 @@ unsafe extern "C" fn pthread_create(
         pad1: _,
         pad2: _,
         pad3: _,
-        #[cfg(target_arch = "x86")]
+        #[cfg(any(target_arch = "aarch64", target_arch = "x86"))]
             pad4: _,
         #[cfg(target_arch = "x86")]
             pad5: _,
@@ -623,9 +620,10 @@ unsafe extern "C" fn pthread_sigmask() -> c_int {
 
 #[no_mangle]
 unsafe extern "C" fn pthread_attr_setstacksize(attr: *mut PthreadAttrT, stacksize: usize) -> c_int {
-    // FIXME(#95) layout of attr doesn't match signature on aarch64
-    // uncomment once it does:
-    // libc!(libc::pthread_attr_setstacksize(checked_cast!(attr), stacksize));
+    libc!(libc::pthread_attr_setstacksize(
+        checked_cast!(attr),
+        stacksize
+    ));
     (*attr).stack_size = stacksize;
     0
 }
