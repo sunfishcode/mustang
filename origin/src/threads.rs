@@ -335,6 +335,7 @@ unsafe fn exit_thread() -> ! {
     if let Err(e) = state {
         // The thread was detached. Prepare to free the memory. First read out
         // all the fields that we'll need before freeing it.
+        #[cfg(feature = "log")]
         let current_thread_id = (*current).thread_id.load(SeqCst);
         let current_map_size = (*current).map_size;
         let current_stack_addr = (*current).stack_addr;

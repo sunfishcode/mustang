@@ -1,7 +1,6 @@
-use core::{
-    mem::{align_of, size_of},
-    ptr,
-};
+#[cfg(not(target_arch = "riscv64"))]
+use core::mem::align_of;
+use core::{mem::size_of, ptr};
 use errno::{set_errno, Errno};
 use libc::{c_int, c_void, memcpy, memset};
 

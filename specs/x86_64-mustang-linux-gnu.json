@@ -6,7 +6,6 @@
   "dynamic-linking": false,
   "env": "gnu",
   "executables": true,
-  "has-elf-tls": true,
   "has-thread-local": true,
   "has-rpath": true,
   "llvm-target": "x86_64-unknown-linux-gnu",
