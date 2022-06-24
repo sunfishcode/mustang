@@ -21,7 +21,9 @@ use core::ffi::CStr;
 use rustix::fd::BorrowedFd;
 use rustix::fs::AtFlags;
 
-use core::{convert::TryInto, mem::transmute, ptr::null_mut};
+use core::convert::TryInto;
+use core::mem::transmute;
+use core::ptr::null_mut;
 use errno::{set_errno, Errno};
 use libc::{c_char, c_int, c_uint, c_void};
 #[cfg(not(target_os = "wasi"))]

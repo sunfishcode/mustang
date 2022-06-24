@@ -10,7 +10,7 @@ use crate::convert_res;
 // This allows us to reduce code duplication as all of the `open` variants
 // should morally delegate to openat64.
 macro_rules! openat_impl {
-    ($fd: expr, $pathname: ident, $flags: ident, $args: ident) => {{
+    ($fd:expr, $pathname:ident, $flags:ident, $args:ident) => {{
         let flags = OFlags::from_bits($flags as _).unwrap();
         let mode = if flags.contains(OFlags::CREATE) {
             let mode: libc::mode_t = $args.arg();

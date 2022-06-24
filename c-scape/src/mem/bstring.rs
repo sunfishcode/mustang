@@ -1,4 +1,5 @@
-use core::{ptr::null_mut, slice};
+use core::ptr::null_mut;
+use core::slice;
 use libc::{c_int, c_void};
 
 // Obsolescent

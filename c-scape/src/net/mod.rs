@@ -1,8 +1,7 @@
 #[cfg(feature = "sync-resolve")]
 use alloc::string::ToString;
 use core::convert::TryInto;
-use core::ffi::c_void;
-use core::ffi::CStr;
+use core::ffi::{c_void, CStr};
 #[cfg(not(target_os = "wasi"))]
 use core::mem::{size_of, zeroed};
 use core::ptr::null_mut;

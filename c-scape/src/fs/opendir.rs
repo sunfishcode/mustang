@@ -3,7 +3,8 @@ use rustix::fd::{BorrowedFd, FromRawFd, IntoRawFd};
 use rustix::fs::{cwd, Mode, OFlags};
 use rustix::io::OwnedFd;
 
-use core::{mem::zeroed, ptr::null_mut};
+use core::mem::zeroed;
+use core::ptr::null_mut;
 use libc::{c_char, c_int, c_void};
 
 use crate::convert_res;

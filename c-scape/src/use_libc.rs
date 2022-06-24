@@ -1,7 +1,8 @@
 //! Utilities to check against C signatures, when enabled.
 
-/// Casts the given pointer to another type, similarly to calling `cast()` on it,
-/// while verifying that the layout of the pointee stays the same after the cast.
+/// Cast the given pointer to another type, similarly to calling `cast()` on
+/// it, while verifying that the layout of the pointee stays the same after the
+/// cast.
 macro_rules! checked_cast {
     ($ptr:ident) => {{
         let target_ptr = $ptr.cast();
@@ -68,7 +69,8 @@ macro_rules! libc_type {
 ///
 /// Based on the rules of C struct alignment:
 /// * `align_of<Pad<T>> == max(align_of<T>, align_of<u8>) == align_of<T>`
-/// * `size_of<Pad<T>> / align_of<Pad<T>> == ciel( (size_of<T> + size_of<u8>) / align_of<Pad<T>>)`
+/// * `size_of<Pad<T>> / align_of<Pad<T>> == ciel( (size_of<T> + size_of<u8>) /
+///   align_of<Pad<T>>)`
 /// * `size_of<T> % align_of<T> == 0`
 ///
 /// Therefore `size_of<Pad<T>> == size_of<T> + align_of<T>`.
@@ -85,9 +87,12 @@ impl<T> Pad<T> {
             force_padding: 0,
         }
     }
+
     /// Used to check that `size_of<T> == size_of<U>` with `transmute`.
     pub fn compare_size(&self, _v: T) {}
-    /// Used to check that `size_of<Pad<T>> == size_of<Pad<U>>` with `transmute`.
+
+    /// Used to check that `size_of<Pad<T>> == size_of<Pad<U>>` with
+    /// `transmute`.
     ///
     /// Since `size_of<Pad<T>> == size_of<T> + align_of<T>`,
     /// if `size_of<T> == size_of<U>` then `align_of<T> == align_of<U>`.
