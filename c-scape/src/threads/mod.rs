@@ -511,12 +511,12 @@ unsafe extern "C" fn pthread_cond_wait(cond: *mut PthreadCondT, lock: *mut Pthre
 unsafe extern "C" fn pthread_cond_timedwait(
     cond: *mut PthreadCondT,
     lock: *mut PthreadMutexT,
-    abstime: *const rustix::time::Timespec,
+    abstime: *const libc::timespec,
 ) -> c_int {
     libc!(libc::pthread_cond_timedwait(
         checked_cast!(cond),
         checked_cast!(lock),
-        checked_cast!(abstime),
+        abstime,
     ));
     let abstime = ptr::read(abstime);
     let duration = Duration::new(
