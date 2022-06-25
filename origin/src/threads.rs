@@ -511,7 +511,7 @@ pub fn create_thread(
 ) -> io::Result<*mut Thread> {
     use rustix::mm::{mmap_anonymous, mprotect, MapFlags, MprotectFlags, ProtFlags};
 
-    // Safety: `STARGUP_TLS_INFO` is initialized at program startup before
+    // Safety: `STARTUP_TLS_INFO` is initialized at program startup before
     // we come here creating new threads.
     let (startup_tls_align, startup_tls_mem_size) =
         unsafe { (STARTUP_TLS_INFO.align, STARTUP_TLS_INFO.mem_size) };
