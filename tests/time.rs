@@ -1,6 +1,6 @@
 //! The following is derived from Rust's
 //! library/std/src/time/tests.rs at revision
-//! 497ee321af3b8496eaccd7af7b437f18bab81abf.
+//! 72a25d05bf1a4b155d74139ef700ff93af6d8e22.
 
 #![feature(cfg_target_has_atomic)]
 #![feature(duration_constants)]
@@ -111,6 +111,12 @@ fn instant_math_is_associative() {
 }
 
 #[test]
+fn instant_duration_since_saturates() {
+    let a = Instant::now();
+    assert_eq!((a - Duration::SECOND).duration_since(a), Duration::ZERO);
+}
+
+#[test]
 fn instant_checked_duration_since_nopanic() {
     let now = Instant::now();
     let earlier = now - Duration::SECOND;
@@ -123,6 +129,7 @@ fn instant_checked_duration_since_nopanic() {
 #[test]
 fn instant_saturating_duration_since_nopanic() {
     let a = Instant::now();
+    #[allow(deprecated, deprecated_in_future)]
     let ret = (a - Duration::SECOND).saturating_duration_since(a);
     assert_eq!(ret, Duration::ZERO);
 }
