@@ -226,5 +226,15 @@ pub fn exit_immediately(status: c_int) -> ! {
     #[cfg(feature = "log")]
     log::trace!("Program exiting");
 
-    rustix::runtime::exit_group(status)
+    #[cfg(target_vendor = "mustang")]
+    {
+        // Call `rustix` to exit the program.
+        rustix::runtime::exit_group(status)
+    }
+
+    #[cfg(not(target_vendor = "mustang"))]
+    unsafe {
+        // Call `libc` to exit the program.
+        libc::_Exit(status)
+    }
 }
