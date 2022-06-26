@@ -6,6 +6,7 @@
 
 mustang::can_run_this!();
 
+/* FIXME(mustang): Needs `sendfile` and `splice`.
 mod sys_common;
 
 use std::fs::OpenOptions;
@@ -81,7 +82,6 @@ fn copy_specialization() -> Result<()> {
     result.and(rm1).and(rm2)
 }
 
-/* FIXME(mustang): Needs `sendfile` and `splice`.
 #[test]
 fn copies_append_mode_sink() -> Result<()> {
     let tmp_path = tmpdir();
@@ -106,7 +106,6 @@ fn copies_append_mode_sink() -> Result<()> {
 
     Ok(())
 }
-*/
 
 #[cfg(feature = "bench")]
 #[bench]
@@ -203,7 +202,6 @@ fn bench_file_to_uds_copy(b: &mut test::Bencher) {
     });
 }
 
-/* FIXME(mustang): Needs `sendfile` and `splice`.
 #[cfg(any(target_os = "linux", target_os = "android"))]
 #[cfg(feature = "bench")]
 #[bench]
