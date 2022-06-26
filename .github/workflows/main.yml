@@ -164,3 +164,31 @@ jobs:
         RUSTFLAGS=--cfg=mustang_use_libc cargo +nightly check --workspace -Z build-std --target=specs/${{ matrix.mustang_target }}.json
       env:
         RUST_BACKTRACE: 1
+
+    - name: test mustang-macro-does-nothing in mustang mode
+      working-directory: test-crates/mustang-macro-does-nothing
+      run: |
+        cargo run -Z build-std --target=../../specs/${{ matrix.mustang_target }}.json
+      env:
+        RUST_BACKTRACE: 1
+
+    - name: test mustang-macro-does-nothing in non-mustang mode
+      working-directory: test-crates/mustang-macro-does-nothing
+      run: |
+        cargo run --target=${{ matrix.host_target }}
+      env:
+        RUST_BACKTRACE: 1
+
+    - name: test libc-replacement in non-mustang mode
+      working-directory: test-crates/libc-replacement
+      run: |
+        cargo +nightly run --target=${{ matrix.host_target }}
+      env:
+        RUST_BACKTRACE: 1
+
+    - name: test origin-as-a-library in non-mustang mode
+      working-directory: test-crates/origin-as-a-library
+      run: |
+        cargo +nightly run --target=${{ matrix.host_target }}
+      env:
+        RUST_BACKTRACE: 1

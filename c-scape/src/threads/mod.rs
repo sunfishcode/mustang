@@ -6,6 +6,7 @@ use core::sync::atomic::{AtomicBool, AtomicU32};
 use core::time::Duration;
 use origin::lock_api::{self, RawMutex as _, RawReentrantMutex, RawRwLock as _};
 use origin::sync::{Condvar, RawMutex, RawRwLock};
+use origin::Thread;
 
 use libc::c_int;
 
@@ -107,7 +108,7 @@ libc_type!(PthreadMutexattrT, pthread_mutexattr_t);
 #[no_mangle]
 unsafe extern "C" fn pthread_self() -> PthreadT {
     libc!(ptr::from_exposed_addr_mut(libc::pthread_self() as _));
-    origin::current_thread().cast()
+    origin::current_thread().to_raw().cast()
 }
 
 #[no_mangle]
@@ -116,7 +117,8 @@ unsafe extern "C" fn pthread_getattr_np(thread: PthreadT, attr: *mut PthreadAttr
         thread.expose_addr() as _,
         checked_cast!(attr)
     ));
-    let (stack_addr, stack_size, guard_size) = origin::thread_stack(thread.cast());
+    let (stack_addr, stack_size, guard_size) =
+        origin::thread_stack(Thread::from_raw(thread.cast()));
     ptr::write(
         attr,
         PthreadAttrT {
@@ -598,14 +600,14 @@ unsafe extern "C" fn pthread_create(
         Err(e) => return e.raw_os_error(),
     };
 
-    pthread.write(thread.cast());
+    pthread.write(thread.to_raw().cast());
     0
 }
 
 #[no_mangle]
 unsafe extern "C" fn pthread_detach(pthread: PthreadT) -> c_int {
     libc!(libc::pthread_detach(pthread.expose_addr() as _));
-    origin::detach_thread(pthread.cast());
+    origin::detach_thread(Thread::from_raw(pthread.cast()));
     0
 }
 
@@ -617,7 +619,7 @@ unsafe extern "C" fn pthread_join(pthread: PthreadT, retval: *mut *mut c_void) -
         "pthread_join return values not supported yet"
     );
 
-    origin::join_thread(pthread.cast());
+    origin::join_thread(Thread::from_raw(pthread.cast()));
     0
 }
 

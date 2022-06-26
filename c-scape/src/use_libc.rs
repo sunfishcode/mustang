@@ -1,4 +1,4 @@
-//! Utilities to check against C signatures, when enabled.
+//! Utilities to check against C signatures.
 
 /// Cast the given pointer to another type, similarly to calling `cast()` on
 /// it, while verifying that the layout of the pointee stays the same after the
@@ -34,22 +34,19 @@ macro_rules! checked_cast {
 /// This will elicit a compile-time error if the signature doesn't match.
 macro_rules! libc {
     ($e:expr) => {
-        // TODO: Implement actually using libc. Right now this is just a
-        // signature check.
         #[allow(unreachable_code)]
         #[allow(clippy::diverging_sub_expression)]
         if false {
             #[allow(unused_imports)]
             use crate::use_libc::*;
-            // TODO: `dlopen` libc, `dlsym` the function, and call it...
             return $e;
         }
     };
 }
 
-/// A macro to test that a Mustang-defined type has the same ABI as a libc
-/// type.
-#[cfg(feature = "threads")]
+/// This is used to check that a `c-scape` type matches the layout of the
+/// corresponding libc type.
+#[cfg(all(target_vendor = "mustang", feature = "threads"))]
 macro_rules! libc_type {
     ($name:ident, $libc:ident) => {
         #[cfg(test)]

@@ -15,8 +15,6 @@
 
 Support crate for `*-mustang-*` targets. See [here] for usage instructions.
 
-In non-`*-mustang-*` targets, importing this crate has no effect.
-
 In `*-mustang-*` targets, this crate automatically pulls in crates to perform
 program initialization and termination, provide selected libc symbols, and
 registers a global allocator. By default, it uses [dlmalloc]; alternatively,
@@ -34,6 +32,15 @@ This macro expands to nothing in non-`*-mustang-*` builds.
 This is part of the [Mustang] project, building Rust programs written entirely
 in Rust.
 
+## Using mustang non-mustang programs
+
+In non-`*-mustang-*` targets, importing this crate and using the
+`mustang::can_run_this!()` macro has no effect, does not depend on nightly
+Rust, and has no extra dependencies.
+
+See the [mustang-macro-does-nothing example] for more details.
+
+[mustang-macro-does-nothing example]: ../test-crates/mustang-macro-does-nothing/README.md
 [Mustang]: https://github.com/sunfishcode/mustang/
 [here]: https://github.com/sunfishcode/mustang#usage
 [dlmalloc]: https://crates.io/crates/dlmalloc

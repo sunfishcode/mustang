@@ -25,7 +25,19 @@ its own implementations of this functionality, written in Rust.
 For an C-ABI-compatible interface to this functionality, see [c-scape].
 
 This is part of the [Mustang] project, building Rust programs written entirely
-in Rust.
+in Rust. When compiled for non-mustang targets, this library uses the system
+crt and libpthread libraries.
 
+## Using origin in non-mustang programs
+
+Origin can also be used as an orginary library, when compiled in non-mustang
+targets, provided you're using nightly Rust. In this configuration, origin
+disables its own program startup and thread implementations and lets libc
+handle those parts. Its API is then implemented in terms of system libc calls,
+including pthread calls.
+
+See the [origin-as-just-a-library example] for more details.
+
+[origin-as-just-a-library example]: ../test-crates/origin-as-just-a-library/README.md
 [Mustang]: https://github.com/sunfishcode/mustang/
 [c-scape]: https://crates.io/crates/c-scape/

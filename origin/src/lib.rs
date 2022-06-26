@@ -17,9 +17,11 @@ pub mod sync;
 
 mod program;
 #[cfg(feature = "threads")]
+#[cfg_attr(not(target_vendor = "mustang"), path = "threads_via_pthreads.rs")]
 mod threads;
 
 #[cfg(feature = "threads")]
+#[cfg(target_vendor = "mustang")]
 #[cfg_attr(target_arch = "aarch64", path = "arch-aarch64.rs")]
 #[cfg_attr(target_arch = "x86_64", path = "arch-x86_64.rs")]
 #[cfg_attr(target_arch = "x86", path = "arch-x86.rs")]

@@ -1,0 +1,12 @@
+[package]
+name = "origin-as-just-a-library"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+# Origin can be depended on just like any other crate.
+origin = { path = "../../origin" }
+
+# This is just an example crate, and not part of the mustang workspace.
+[workspace]

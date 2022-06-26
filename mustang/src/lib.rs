@@ -1,7 +1,9 @@
 #![doc = include_str!("../README.md")]
-#![feature(strict_provenance)]
-#![deny(fuzzy_provenance_casts)]
-#![deny(lossy_provenance_casts)]
+// Enable strict-provenance APIs and lints. We only do this for mustang to
+// prevent non-mustang compilations from depending on nightly Rust.
+#![cfg_attr(target_vendor = "mustang", feature(strict_provenance))]
+#![cfg_attr(target_vendor = "mustang", deny(fuzzy_provenance_casts))]
+#![cfg_attr(target_vendor = "mustang", deny(lossy_provenance_casts))]
 
 /// Declare that a program can be compiled and run by `mustang`.
 ///

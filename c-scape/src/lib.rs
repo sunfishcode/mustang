@@ -16,6 +16,10 @@
 extern crate alloc;
 extern crate compiler_builtins;
 
+// Re-export the libc crate's API. This allows users to depend on the c-scape
+// crate in place of libc.
+pub use libc::*;
+
 #[macro_use]
 mod use_libc;
 
@@ -59,6 +63,7 @@ mod fs;
 mod io;
 
 // malloc
+#[cfg(target_vendor = "mustang")]
 mod malloc;
 
 // math
@@ -81,6 +86,7 @@ mod process;
 
 // threads
 #[cfg(feature = "threads")]
+#[cfg(target_vendor = "mustang")]
 mod threads;
 
 // errno
