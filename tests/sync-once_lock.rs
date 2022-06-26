@@ -94,6 +94,7 @@ fn clone() {
 }
 
 #[test]
+#[cfg_attr(all(target_vendor = "mustang", target_arch = "x86"), ignore)] // FIXME(mustang): triggers segfault
 fn get_or_try_init() {
     let cell: OnceLock<String> = OnceLock::new();
     assert!(cell.get().is_none());
