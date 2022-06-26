@@ -97,8 +97,9 @@ pub(super) unsafe extern "C" fn entry(mem: *mut usize) -> ! {
     exit(status)
 }
 
+/// Call the constructors in the `.init_array` section.
 #[cfg(target_vendor = "mustang")]
-pub(super) unsafe fn call_ctors(argc: c_int, argv: *mut *mut u8, envp: *mut *mut u8) {
+unsafe fn call_ctors(argc: c_int, argv: *mut *mut u8, envp: *mut *mut u8) {
     extern "C" {
         static __init_array_start: c_void;
         static __init_array_end: c_void;
@@ -126,11 +127,11 @@ pub(super) unsafe fn call_ctors(argc: c_int, argv: *mut *mut u8, envp: *mut *mut
     }
 }
 
-/// Functions registered with `at_exit`.
+/// Functions registered with [`at_exit`].
 #[cfg(target_vendor = "mustang")]
 static DTORS: Mutex<Vec<Box<dyn FnOnce() + Send>>> = Mutex::new(Vec::new());
 
-/// Register a function to be called when `exit` is called.
+/// Register a function to be called when [`exit`] is called.
 ///
 /// # Safety
 ///
@@ -161,8 +162,8 @@ pub fn at_exit(func: Box<dyn FnOnce() + Send>) {
     }
 }
 
-/// Call all the functions registered with `at_exit` and `.fini_array`, and
-/// exit the program.
+/// Call all the functions registered with [`at_exit`] or with the
+/// `.fini_array` section, and exit the program.
 pub fn exit(status: c_int) -> ! {
     // Call all the registered functions, in reverse order. Leave `DTORS`
     // unlocked while making the call so that functions can add more functions
@@ -218,8 +219,8 @@ pub fn exit(status: c_int) -> ! {
     }
 }
 
-/// Exit the program without calling functions registered with `at_exit` or
-/// `.fini_array`.
+/// Exit the program without calling functions registered with [`at_exit`] or
+/// with the `.fini_array` section.
 #[inline]
 pub fn exit_immediately(status: c_int) -> ! {
     #[cfg(feature = "log")]
