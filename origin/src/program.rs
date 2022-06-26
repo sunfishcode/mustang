@@ -239,6 +239,6 @@ pub fn exit_immediately(status: c_int) -> ! {
     #[cfg(not(target_vendor = "mustang"))]
     unsafe {
         // Call `libc` to exit the program.
-        libc::_Exit(status)
+        libc::_exit(status)
     }
 }
