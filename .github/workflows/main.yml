@@ -186,8 +186,8 @@ jobs:
       env:
         RUST_BACKTRACE: 1
 
-    - name: test origin-as-a-library in non-mustang mode
-      working-directory: test-crates/origin-as-a-library
+    - name: test origin-as-just-a-library in non-mustang mode
+      working-directory: test-crates/origin-as-just-a-library
       run: |
         cargo +nightly run --target=${{ matrix.host_target }}
       env:
