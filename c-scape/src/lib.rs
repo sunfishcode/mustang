@@ -91,6 +91,11 @@ mod threads;
 
 // errno
 
+/// Return the address of the thread-local `errno` state.
+///
+/// This function conforms to the [LSB `__errno_location`] ABI.
+///
+/// [LSB `__errno_location`]: https://refspecs.linuxbase.org/LSB_3.1.0/LSB-generic/LSB-generic/baselib-errno-location-1.html
 #[no_mangle]
 unsafe extern "C" fn __errno_location() -> *mut c_int {
     libc!(libc::__errno_location());
@@ -838,21 +843,25 @@ static mut environ: *mut *mut c_char = null_mut();
 ///
 /// This function conforms to the [LSB `__cxa_atexit`] ABI.
 ///
-/// [LSB `__cxa_atexit`]: <https://refspecs.linuxbase.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/baselib---cxa-atexit.html>
+/// [LSB `__cxa_atexit`]: https://refspecs.linuxbase.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/baselib---cxa-atexit.html
 #[no_mangle]
 unsafe extern "C" fn __cxa_atexit(
     func: unsafe extern "C" fn(*mut c_void),
     arg: *mut c_void,
     _dso: *mut c_void,
 ) -> c_int {
+    // Tell Rust it's ok to send `arg` across threads even though it's a
+    // `*mut c_void`.
     struct SendSync(*mut c_void);
     unsafe impl Send for SendSync {}
     unsafe impl Sync for SendSync {}
     let arg = SendSync(arg);
+
     origin::at_exit(Box::new(move || {
         let arg: SendSync = arg;
         func(arg.0);
     }));
+
     0
 }
 

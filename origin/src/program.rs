@@ -147,15 +147,19 @@ pub fn at_exit(func: Box<dyn FnOnce() + Send>) {
     #[cfg(not(target_vendor = "mustang"))]
     {
         extern "C" {
+            // <https://refspecs.linuxbase.org/LSB_3.1.0/LSB-generic/LSB-generic/baselib---cxa-atexit.html>
             fn __cxa_atexit(
                 func: unsafe extern "C" fn(*mut c_void),
                 arg: *mut c_void,
                 _dso: *mut c_void,
             ) -> c_int;
         }
+
+        // The function to pass to `__cxa_atexit`.
         unsafe extern "C" fn at_exit_func(arg: *mut c_void) {
             Box::from_raw(arg as *mut Box<dyn FnOnce() + Send>)();
         }
+
         let at_exit_arg = Box::into_raw(Box::new(func)).cast::<c_void>();
         let r = unsafe { __cxa_atexit(at_exit_func, at_exit_arg, null_mut()) };
         assert_eq!(r, 0);
