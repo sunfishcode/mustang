@@ -81,8 +81,8 @@ fn copy_specialization() -> Result<()> {
     result.and(rm1).and(rm2)
 }
 
+/* FIXME(mustang): Needs `sendfile` and `splice`.
 #[test]
-#[ignore] // FIXME(mustang): Needs `sendfile` and `splice`.
 fn copies_append_mode_sink() -> Result<()> {
     let tmp_path = tmpdir();
     let source_path = tmp_path.join("copies_append_mode.source");
@@ -106,6 +106,7 @@ fn copies_append_mode_sink() -> Result<()> {
 
     Ok(())
 }
+*/
 
 #[cfg(feature = "bench")]
 #[bench]
@@ -202,6 +203,7 @@ fn bench_file_to_uds_copy(b: &mut test::Bencher) {
     });
 }
 
+/* FIXME(mustang): Needs `sendfile` and `splice`.
 #[cfg(any(target_os = "linux", target_os = "android"))]
 #[cfg(feature = "bench")]
 #[bench]
@@ -294,3 +296,4 @@ fn bench_socket_pipe_socket_copy(b: &mut test::Bencher) {
         );
     });
 }
+*/
