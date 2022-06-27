@@ -15,7 +15,7 @@ publish = false
 [dev-dependencies]
 origin = { path = "origin", version = "^0.5.0" }
 mustang = { path = "mustang", version = "^0.4.0" }
-c-scape = { path = "c-scape", version = "^0.4.0" }
+c-scape = { path = "c-scape", version = "^0.5.0" }
 similar-asserts = "1.1.0"
 rand = "0.8.4"
 libc = "0.2.124"

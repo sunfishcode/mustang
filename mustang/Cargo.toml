@@ -33,7 +33,7 @@ features = [
 
 [target.'cfg(target_vendor = "mustang")'.dependencies]
 origin = { path = "../origin", default-features = false, version = "^0.5.0" }
-c-scape = { path = "../c-scape", version = "^0.4.0" }
+c-scape = { path = "../c-scape", version = "^0.5.0" }
 
 # A general-purpose `global_allocator` implementation.
 dlmalloc = { version = "0.2", features = ["global"], optional = true }
