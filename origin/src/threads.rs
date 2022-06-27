@@ -194,7 +194,7 @@ pub fn current_thread() -> Thread {
 
 /// Return the current thread id.
 ///
-/// This is the same as `rustix::thread::gettid()`, but loads the value from a
+/// This is the same as [`rustix::thread::gettid`], but loads the value from a
 /// field in the runtime rather than making a system call.
 #[inline]
 pub fn current_thread_id() -> Pid {
@@ -284,7 +284,7 @@ pub fn at_thread_exit(func: Box<dyn FnOnce()>) {
 ///
 /// This function does not perform dynamic allocations. It only supports
 /// a fixed number of destructors. And it can only be called before any
-/// destructors are registered with `at_thread_exit`.
+/// destructors are registered with [`at_thread_exit`].
 ///
 /// # Safety
 ///
@@ -297,7 +297,7 @@ pub unsafe fn at_thread_exit_raw(func: unsafe extern "C" fn(*mut c_void), obj: *
     (*current_thread().0).raw_dtors.push(Some((func, obj)));
 }
 
-/// Call the destructors registered with `at_thread_exit`.
+/// Call the destructors registered with [`at_thread_exit`].
 fn call_thread_dtors(current: Thread) {
     #[cfg(feature = "raw_dtors")]
     while let Some(func_obj) = unsafe { (*current.0).raw_dtors.pop() } {
@@ -336,7 +336,7 @@ fn call_thread_dtors(current: Thread) {
     }
 }
 
-/// Call the destructors registered with `at_thread_exit` and exit the thread.
+/// Call the destructors registered with [`at_thread_exit`] and exit the thread.
 unsafe fn exit_thread() -> ! {
     let current = current_thread();
 

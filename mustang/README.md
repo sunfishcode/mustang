@@ -40,7 +40,7 @@ Rust, and has no extra dependencies.
 
 See the [mustang-macro-does-nothing example] for more details.
 
-[mustang-macro-does-nothing example]: ../test-crates/mustang-macro-does-nothing/README.md
+[mustang-macro-does-nothing example]: https://github.com/sunfishcode/mustang/blob/main/test-crates/mustang-macro-does-nothing/README.md
 [Mustang]: https://github.com/sunfishcode/mustang/
 [here]: https://github.com/sunfishcode/mustang#usage
 [dlmalloc]: https://crates.io/crates/dlmalloc

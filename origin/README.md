@@ -38,6 +38,6 @@ including pthread calls.
 
 See the [origin-as-just-a-library example] for more details.
 
-[origin-as-just-a-library example]: ../test-crates/origin-as-just-a-library/README.md
+[origin-as-just-a-library example]: https://github.com/sunfishcode/mustang/blob/main/test-crates/origin-as-just-a-library/README.md
 [Mustang]: https://github.com/sunfishcode/mustang/
 [c-scape]: https://crates.io/crates/c-scape/

@@ -50,7 +50,7 @@ things.
 
 See the [libc-replacement example] for more details.
 
-[libc-replacement example]: ../test-crates/libc-replacement/README.md
+[libc-replacement example]: https://github.com/sunfishcode/mustang/blob/main/test-crates/libc-replacement/README.md
 [Mustang]: https://github.com/sunfishcode/mustang/
 [rustix]: https://crates.io/crates/rustix
 [origin]: https://crates.io/crates/origin

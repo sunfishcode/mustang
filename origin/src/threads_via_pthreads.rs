@@ -57,10 +57,12 @@ pub fn current_thread() -> Thread {
 
 /// Return the current thread id.
 ///
-/// This is the same as `rustix::thread::gettid()`, but loads the value from a
+/// This is the same as [`rustix::thread::gettid`], but loads the value from a
 /// field in the runtime rather than making a system call.
 #[inline]
 pub fn current_thread_id() -> Pid {
+    // Actually, in the pthread implementation here we do just make a system
+    // call, because we don't have access to the pthread internals.
     rustix::thread::gettid()
 }
 
@@ -139,7 +141,7 @@ pub fn at_thread_exit(func: Box<dyn FnOnce()>) {
 ///
 /// This function does not perform dynamic allocations. It only supports
 /// a fixed number of destructors. And it can only be called before any
-/// destructors are registered with `at_thread_exit`.
+/// destructors are registered with [`at_thread_exit`].
 ///
 /// # Safety
 ///
