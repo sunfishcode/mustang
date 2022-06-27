@@ -10,5 +10,5 @@ libc = { path = "../../c-scape", package = "c-scape" }
 ```
 
 tells cargo to use c-scape in place of libc. In a non-mustang configuration,
-it doesn't replace the malloc or pthread functions, but it replaces everything
-it can, such as the `getpid` function in the example.
+it doesn't replace the malloc, pthread, or getauxval functions, but it replaces
+everything it can, such as the `getpid` function in the example.
