@@ -149,26 +149,26 @@ jobs:
 
     - name: cargo test
       run: |
-        cargo +nightly test --verbose -Z build-std --target=specs/${{ matrix.mustang_target }}.json -- ${{ matrix.test_args }} -- --nocapture
+        cargo +nightly test --verbose -Z build-std --target=mustang/target-specs/${{ matrix.mustang_target }}.json -- ${{ matrix.test_args }} -- --nocapture
       env:
         RUST_BACKTRACE: 1
 
     - name: cargo test --release
       run: |
-        cargo +nightly test --verbose --release -Z build-std --target=specs/${{ matrix.mustang_target }}.json  -- ${{ matrix.test_args }}
+        cargo +nightly test --verbose --release -Z build-std --target=mustang/target-specs/${{ matrix.mustang_target }}.json  -- ${{ matrix.test_args }}
       env:
         RUST_BACKTRACE: 1
 
     - name: test mustang_use_libc
       run: |
-        RUSTFLAGS=--cfg=mustang_use_libc cargo +nightly check --workspace -Z build-std --target=specs/${{ matrix.mustang_target }}.json
+        RUSTFLAGS=--cfg=mustang_use_libc cargo +nightly check --workspace -Z build-std --target=mustang/target-specs/${{ matrix.mustang_target }}.json
       env:
         RUST_BACKTRACE: 1
 
     - name: test mustang-macro-does-nothing in mustang mode
       working-directory: test-crates/mustang-macro-does-nothing
       run: |
-        cargo run -Z build-std --target=../../specs/${{ matrix.mustang_target }}.json
+        cargo run -Z build-std --target=../../mustang/target-specs/${{ matrix.mustang_target }}.json
       env:
         RUST_BACKTRACE: 1
 

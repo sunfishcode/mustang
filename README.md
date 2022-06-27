@@ -43,12 +43,12 @@ To use it, first install rust-src, which is needed by `-Z build-std`:
 $ rustup component add rust-src --toolchain nightly
 ```
 
-Then, set the `RUST_TARGET_PATH` environment variable to a path to mustang's
-`specs` directory, so that you can name `mustang` targets with `--target=...`.
-For example, within a mustang repo:
+Then, set the `RUST_TARGET_PATH` environment variable to a path to the
+`mustang/target-specs` directory, so that you can name `mustang` targets with
+`--target=...`. For example, within a mustang repo:
 
 ```
-$ export RUST_TARGET_PATH="$PWD/specs"
+$ export RUST_TARGET_PATH="$PWD/mustang/target-specs"
 ```
 
 Then, in your own crate, add a dependency on `mustang`:
@@ -141,15 +141,15 @@ Let's find out! Come say hi in the [chat] or an [issue].
    making syscalls.
  - Port [`origin`] to the architecture, adding assembly sequences for
    program and thread primitives.
- - Create a target file in `specs/`, by first following
+ - Create a target file in `mustang/target-specs`, by first following
    [these instructions] to generate a specification of a built-in target,
    and then:
      - change `is-builtin` to false
      - change `dynamic-linking` to false
      - add `-nostartfiles` to pre-link-args
      - add `"vendor": "mustang"`
-   See other targets in the `specs/` directory for examples.
- - Compile some of the programs in the `examples/` directory, using
+   See other targets in the `mustang/target-specs` directory for examples.
+ - Compile some of the programs in the `examples` directory, using
    the new target. Try `nm -u` on the binaries to check for undefined
    symbols which need to be implemented.
  - Add the architecture to tests/tests.rs.
