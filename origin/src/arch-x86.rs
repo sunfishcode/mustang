@@ -86,7 +86,7 @@ pub(super) unsafe fn clone(
 #[inline]
 pub(super) unsafe fn set_thread_pointer(ptr: *mut c_void) {
     let mut user_desc = rustix::runtime::UserDesc {
-        entry_number: -1i32 as u32,
+        entry_number: !0u32,
         base_addr: ptr.addr() as u32,
         limit: 0xfffff,
         _bitfield_align_1: [],

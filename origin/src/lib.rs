@@ -61,44 +61,54 @@ unsafe extern "C" fn _start() -> ! {
     // already null.
 
     #[cfg(target_arch = "x86_64")]
-    asm!("mov rdi, rsp",   // Pass the incoming `rsp` as the arg to `entry`.
-         "push rbp",       // Set the return address to zero.
-         "jmp {entry}",    // Jump to `entry`.
-         entry = sym entry,
-         options(noreturn));
+    asm!(
+        "mov rdi, rsp", // Pass the incoming `rsp` as the arg to `entry`.
+        "push rbp",     // Set the return address to zero.
+        "jmp {entry}",  // Jump to `entry`.
+        entry = sym entry,
+        options(noreturn),
+    );
 
     #[cfg(target_arch = "aarch64")]
-    asm!("mov x0, sp",     // Pass the incoming `sp` as the arg to `entry`.
-         "mov x30, xzr",   // Set the return address to zero.
-         "b {entry}",      // Jump to `entry`.
-         entry = sym entry,
-         options(noreturn));
+    asm!(
+        "mov x0, sp",   // Pass the incoming `sp` as the arg to `entry`.
+        "mov x30, xzr", // Set the return address to zero.
+        "b {entry}",    // Jump to `entry`.
+        entry = sym entry,
+        options(noreturn),
+    );
 
     #[cfg(target_arch = "arm")]
-    asm!("mov r0, sp\n",   // Pass the incoming `sp` as the arg to `entry`.
-         "mov lr, #0",     // Set the return address to zero.
-         "b {entry}",      // Jump to `entry`.
-         entry = sym entry,
-         options(noreturn));
+    asm!(
+        "mov r0, sp\n", // Pass the incoming `sp` as the arg to `entry`.
+        "mov lr, #0",   // Set the return address to zero.
+        "b {entry}",    // Jump to `entry`.
+        entry = sym entry,
+        options(noreturn),
+    );
 
     #[cfg(target_arch = "riscv64")]
-    asm!("mv a0, sp",      // Pass the incoming `sp` as the arg to `entry`.
-         "mv ra, zero",    // Set the return address to zero.
-         "mv fp, zero",    // Set the frame address to zero.
-         "tail {entry}",   // Jump to `entry`.
-         entry = sym entry,
-         options(noreturn));
+    asm!(
+        "mv a0, sp",    // Pass the incoming `sp` as the arg to `entry`.
+        "mv ra, zero",  // Set the return address to zero.
+        "mv fp, zero",  // Set the frame address to zero.
+        "tail {entry}", // Jump to `entry`.
+        entry = sym entry,
+        options(noreturn),
+    );
 
     #[cfg(target_arch = "x86")]
-    asm!("mov eax, esp",   // Save the incoming `esp` value.
-         "push ebp",       // Pad for alignment.
-         "push ebp",       // Pad for alignment.
-         "push ebp",       // Pad for alignment.
-         "push eax",       // Pass saved the incoming `esp` as the arg to `entry`.
-         "push ebp",       // Set the return address to zero.
-         "jmp {entry}",    // Jump to `entry`.
-         entry = sym entry,
-         options(noreturn));
+    asm!(
+        "mov eax, esp", // Save the incoming `esp` value.
+        "push ebp",     // Pad for alignment.
+        "push ebp",     // Pad for alignment.
+        "push ebp",     // Pad for alignment.
+        "push eax",     // Pass saved the incoming `esp` as the arg to `entry`.
+        "push ebp",     // Set the return address to zero.
+        "jmp {entry}",  // Jump to `entry`.
+        entry = sym entry,
+        options(noreturn),
+    );
 }
 
 /// An ABI-conforming `__dso_handle`.

@@ -29,8 +29,8 @@ impl RegisteredForkFuncs {
 /// Register functions to be called when `fork` is called.
 ///
 /// The handlers for each phase are called in the following order:
-/// the prepare handlers are called in reverse order of registration;
-/// the parent and child handlers are called in the order of registration.
+/// - the prepare handlers are called in reverse order of registration;
+/// - the parent and child handlers are called in the order of registration.
 pub(crate) fn at_fork(
     prepare_func: Option<unsafe extern "C" fn()>,
     parent_func: Option<unsafe extern "C" fn()>,
@@ -48,8 +48,9 @@ pub(crate) fn at_fork(
 ///
 /// # Safety
 ///
-/// Wildly unsafe. See the documentation comment for `rustix::runtime::fork`.
-/// On top off that, this calls the unsafe functions registered with `at_fork`.
+/// Wildly unsafe. See the documentation comment for [`rustix::runtime::fork`].
+/// On top off that, this calls the unsafe functions registered with
+/// [`at_fork`].
 pub(crate) unsafe fn fork() -> rustix::io::Result<Option<rustix::process::Pid>> {
     let funcs = FORK_FUNCS.lock();
 
