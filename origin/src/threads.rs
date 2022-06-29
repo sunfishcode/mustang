@@ -336,7 +336,8 @@ fn call_thread_dtors(current: Thread) {
     }
 }
 
-/// Call the destructors registered with [`at_thread_exit`] and exit the thread.
+/// Call the destructors registered with [`at_thread_exit`] and exit the
+/// thread.
 unsafe fn exit_thread() -> ! {
     let current = current_thread();
 
