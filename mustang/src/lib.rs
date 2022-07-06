@@ -4,6 +4,7 @@
 #![cfg_attr(target_vendor = "mustang", feature(strict_provenance))]
 #![cfg_attr(target_vendor = "mustang", deny(fuzzy_provenance_casts))]
 #![cfg_attr(target_vendor = "mustang", deny(lossy_provenance_casts))]
+#![no_std]
 
 /// Declare that a program can be compiled and run by `mustang`.
 ///
