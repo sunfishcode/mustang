@@ -12,7 +12,7 @@ use rustix::fd::{BorrowedFd, IntoRawFd};
 use rustix::io::EventfdFlags;
 
 use core::convert::TryInto;
-use libc::{c_int, c_long, c_uint};
+use libc::{c_int, c_long, c_uint, loff_t};
 
 use crate::convert_res;
 
@@ -64,6 +64,14 @@ unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
 unsafe extern "C" fn sendfile() {
     //libc!(libc::sendfile());
     unimplemented!("sendfile")
+}
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+#[no_mangle]
+unsafe extern "C" fn splice(fd_in: c_int, off_in: *mut loff_t, fd_out: c_int,
+                      off_out: *mut loff_t, len: usize, flags: c_uint) -> isize {
+    libc!(libc::splice(fd_in, off_in, fd_out, off_out, len, flags));
+    unimplemented!("splice");
 }
 
 #[cfg(feature = "net")]
