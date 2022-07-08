@@ -40,7 +40,7 @@ builds, provided you're using nightly Rust. To use it, just change your typical
 libc dependency in Cargo.toml to this:
 
 ```toml
-libc = { <c-scape version>, package = "c-scape" }
+libc = { version = "<c-scape version>", package = "c-scape" }
 ```
 
 and c-scape will replace as many of the system libc implementation with its own
