@@ -6,7 +6,7 @@ use errno::{set_errno, Errno};
 use libc::{c_int, c_void};
 use memoffset::offset_of;
 
-use super::MustangDir;
+use super::CScapeDir;
 
 #[no_mangle]
 unsafe extern "C" fn readdir64_r(
@@ -20,7 +20,7 @@ unsafe extern "C" fn readdir64_r(
         checked_cast!(ptr)
     ));
 
-    let mustang_dir = dir.cast::<MustangDir>();
+    let mustang_dir = dir.cast::<CScapeDir>();
     let dir = &mut (*mustang_dir).dir;
     match dir.read() {
         None => {
@@ -60,7 +60,7 @@ unsafe extern "C" fn readdir64_r(
 unsafe extern "C" fn readdir64(dir: *mut c_void) -> *mut libc::dirent64 {
     libc!(libc::readdir64(dir.cast(),));
 
-    let mustang_dir = dir.cast::<MustangDir>();
+    let mustang_dir = dir.cast::<CScapeDir>();
     let dir = &mut (*mustang_dir).dir;
     match dir.read() {
         None => null_mut(),

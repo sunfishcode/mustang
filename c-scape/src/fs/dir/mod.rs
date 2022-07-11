@@ -5,7 +5,7 @@ mod readdir;
 
 use rustix::fd::OwnedFd;
 
-struct MustangDir {
+struct CScapeDir {
     dir: rustix::fs::Dir,
     dirent: libc::dirent64,
     fd: OwnedFd,
