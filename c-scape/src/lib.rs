@@ -44,6 +44,7 @@ mod unwind;
 use alloc::borrow::ToOwned;
 use alloc::boxed::Box;
 use alloc::format;
+use core::cell::SyncUnsafeCell;
 use core::convert::TryInto;
 use core::ffi::c_void;
 #[cfg(not(target_os = "wasi"))]
@@ -111,6 +112,22 @@ unsafe extern "C" fn __errno_location() -> *mut c_int {
     #[cfg_attr(feature = "threads", thread_local)]
     static mut ERRNO: i32 = 0;
     &mut ERRNO
+}
+
+#[no_mangle]
+unsafe extern "C" fn strerror(errnum: c_int) -> *mut c_char {
+    libc!(libc::strerror(errnum));
+
+    #[repr(transparent)]
+    #[derive(Copy, Clone)]
+    struct SyncBuf([c_char;256]);
+    unsafe impl Sync for SyncBuf {}
+
+    static STORAGE: SyncUnsafeCell<SyncBuf> = SyncUnsafeCell::new(SyncBuf([0; 256]));
+
+    let ptr = SyncUnsafeCell::get(&STORAGE) as *mut c_char;
+    __xpg_strerror_r(errnum, ptr, 256);
+    ptr
 }
 
 #[no_mangle]
