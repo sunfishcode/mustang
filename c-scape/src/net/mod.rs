@@ -1,3 +1,5 @@
+mod inet;
+
 #[cfg(feature = "sync-resolve")]
 use alloc::string::ToString;
 use core::convert::TryInto;
