@@ -106,6 +106,14 @@ struct PthreadMutexattrT {
 }
 libc_type!(PthreadMutexattrT, pthread_mutexattr_t);
 
+#[allow(non_camel_case_types)]
+#[repr(C, align(8))]
+struct PthreadRwlockattrT {
+    kind: AtomicU32,
+    pad0: u32,
+}
+libc_type!(PthreadRwlockattrT, pthread_rwlockattr_t);
+
 #[no_mangle]
 unsafe extern "C" fn pthread_self() -> PthreadT {
     libc!(ptr::from_exposed_addr_mut(libc::pthread_self() as _));
@@ -538,6 +546,21 @@ unsafe extern "C" fn pthread_cond_timedwait(
         libc::PTHREAD_MUTEX_ERRORCHECK => unimplemented!("PTHREAD_MUTEX_ERRORCHECK"),
         other => unimplemented!("unsupported pthread mutex kind {}", other),
     }
+}
+
+#[no_mangle]
+unsafe extern "C" fn pthread_rwlock_init(
+    rwlock: *mut PthreadRwlockT,
+    rwlockattr: *const PthreadRwlockattrT,
+) -> c_int {
+    libc!(libc::pthread_rwlock_init(
+        checked_cast!(rwlock),
+        checked_cast!(rwlockattr)
+    ));
+    ptr::write(&mut (*rwlock).lock, RawRwLock::INIT);
+    (*rwlock).exclusive.store(false, SeqCst);
+
+    0
 }
 
 #[no_mangle]
