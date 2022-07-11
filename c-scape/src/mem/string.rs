@@ -2,6 +2,8 @@ use core::cell::SyncUnsafeCell;
 use core::ptr;
 use libc::{c_char, c_int, c_schar, malloc, memcpy};
 
+use crate::sync_ptr::SyncMutPtr;
+
 const NUL: c_char = 0;
 
 #[no_mangle]
@@ -271,12 +273,8 @@ unsafe extern "C" fn strspn(s: *const c_char, m: *const c_char) -> usize {
 unsafe extern "C" fn strtok(s: *mut c_char, m: *const c_char) -> *mut c_char {
     libc!(libc::strtok(s, m));
 
-    #[repr(transparent)]
-    #[derive(Copy, Clone)]
-    struct SyncCChar(*mut c_char);
-    unsafe impl Sync for SyncCChar {}
-
-    static STORAGE: SyncUnsafeCell<SyncCChar> = SyncUnsafeCell::new(SyncCChar(ptr::null_mut()));
+    static STORAGE: SyncUnsafeCell<SyncMutPtr<c_char>> =
+        SyncUnsafeCell::new(unsafe { SyncMutPtr::new(ptr::null_mut()) });
 
     strtok_r(s, m, SyncUnsafeCell::get(&STORAGE) as *mut *mut c_char)
 }

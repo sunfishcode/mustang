@@ -1,6 +1,7 @@
+use core::cell::SyncUnsafeCell;
 use core::ptr::addr_of;
 
-use super::SyncWrapper;
+use crate::sync_ptr::SyncConstPtr;
 
 static TABLE: [i32; 128 + 256] = [
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -23,10 +24,11 @@ static TABLE: [i32; 128 + 256] = [
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 ];
 
-static PTR: SyncWrapper<*const i32> = SyncWrapper(addr_of!(TABLE[128]));
+static PTR: SyncUnsafeCell<SyncConstPtr<i32>> =
+    SyncUnsafeCell::new(unsafe { SyncConstPtr::new(addr_of!(TABLE[128])) });
 
 // https://refspecs.linuxbase.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/libutil---ctype-toupper-loc.html
 #[no_mangle]
-extern "C" fn __ctype_toupper_loc() -> *const *const i32 {
-    &PTR as *const _ as *const *const i32
+extern "C" fn __ctype_toupper_loc() -> *mut *const i32 {
+    SyncUnsafeCell::get(&PTR) as *mut _ as *mut *const i32
 }
