@@ -69,6 +69,12 @@ unsafe fn tagged_dealloc(ptr: *mut u8) {
 unsafe extern "C" fn malloc(size: usize) -> *mut c_void {
     libc!(libc::malloc(size));
 
+    // If we're asked to allocate zero bytes, actually allocate 1 byte, so
+    // that we can return a non-NULL pointer. Technically the `malloc`
+    // spec says we can return NULL in this case, but popular code in the
+    // wild interprets NULL as an allocation failure.
+    let size = if size == 0 { size + 1 } else { size };
+
     // TODO: Add `max_align_t` for riscv64 to upstream libc.
     #[cfg(target_arch = "riscv64")]
     let layout = alloc::alloc::Layout::from_size_align(size, 16).unwrap();
