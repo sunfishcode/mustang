@@ -148,7 +148,7 @@ unsafe extern "C" fn strlen(s: *const c_char) -> usize {
 
 #[no_mangle]
 unsafe extern "C" fn strncat(d: *mut c_char, mut s: *const c_char, mut n: usize) -> *mut c_char {
-    libc!(libc::strcat(d, s));
+    libc!(libc::strncat(d, s, n));
 
     let mut w = strchr(d, 0);
 
@@ -167,7 +167,7 @@ unsafe extern "C" fn strncat(d: *mut c_char, mut s: *const c_char, mut n: usize)
 
 #[no_mangle]
 unsafe extern "C" fn strncmp(mut s1: *const c_char, mut s2: *const c_char, mut n: usize) -> c_int {
-    libc!(libc::strcmp(s1, s2));
+    libc!(libc::strncmp(s1, s2, n));
 
     while n > 0 && *s1 != NUL && *s2 != NUL {
         n -= 1;
