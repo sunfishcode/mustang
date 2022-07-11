@@ -121,9 +121,9 @@ unsafe extern "C" fn strerror(errnum: c_int) -> *mut c_char {
 
     static STORAGE: SyncUnsafeCell<[c_char; 256]> = SyncUnsafeCell::new([0; 256]);
 
-    let ptr = SyncUnsafeCell::get(&STORAGE) as *mut c_char;
-    __xpg_strerror_r(errnum, ptr, 256);
-    ptr
+    let storage = SyncUnsafeCell::get(&STORAGE);
+    __xpg_strerror_r(errnum, (*storage).as_mut_ptr(), (*storage).len());
+    (*storage).as_mut_ptr()
 }
 
 #[no_mangle]
