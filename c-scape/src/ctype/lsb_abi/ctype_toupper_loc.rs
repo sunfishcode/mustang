@@ -1,6 +1,8 @@
+use core::ptr::addr_of;
+
 use super::SyncWrapper;
 
-static TABLE: [i32; 384] = [
+static TABLE: [i32; 128 + 256] = [
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -21,8 +23,9 @@ static TABLE: [i32; 384] = [
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 ];
 
-static PTR: SyncWrapper<*const i32> = SyncWrapper(unsafe { TABLE.as_ptr().offset(128) });
+static PTR: SyncWrapper<*const i32> = SyncWrapper(addr_of!(TABLE[128]));
 
+// https://refspecs.linuxbase.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/libutil---ctype-toupper-loc.html
 #[no_mangle]
 extern "C" fn __ctype_toupper_loc() -> *const *const i32 {
     &PTR as *const _ as *const *const i32

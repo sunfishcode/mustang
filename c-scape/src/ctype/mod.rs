@@ -74,7 +74,7 @@ unsafe extern "C" fn isspace(c: c_int) -> c_int {
     libc!(libc::isspace(c));
 
     // We can't use the core function
-    // for space testing here because we 
+    // for space testing here because we
     // have a slightly different defintion.
     let is_space = c == ' ' as c_int
         || c == '\t' as c_int
