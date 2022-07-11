@@ -22,8 +22,6 @@ use rustix::param::{linux_execfn, page_size};
 use rustix::process::{getrlimit, Pid, RawNonZeroPid, Resource};
 use rustix::runtime::{set_tid_address, StartupTlsInfo};
 use rustix::thread::gettid;
-#[cfg(feature = "raw_dtors")]
-use tinyvec::ArrayVec;
 
 /// The entrypoint where Rust code is first executed on a new thread.
 ///
@@ -146,8 +144,6 @@ struct ThreadData {
     guard_size: usize,
     map_size: usize,
     dtors: Vec<Box<dyn FnOnce()>>,
-    #[cfg(feature = "raw_dtors")]
-    raw_dtors: ArrayVec<[Option<(unsafe extern "C" fn(*mut c_void), *mut c_void)>; 4]>,
 }
 
 // Values for `ThreadData::detached`.
@@ -172,8 +168,6 @@ impl ThreadData {
             guard_size,
             map_size,
             dtors: Vec::new(),
-            #[cfg(feature = "raw_dtors")]
-            raw_dtors: ArrayVec::new(),
         }
     }
 }
@@ -279,45 +273,8 @@ pub fn at_thread_exit(func: Box<dyn FnOnce()>) {
     }
 }
 
-/// Registers a raw `unsafe extern "C"` function to call when the current
-/// thread exits.
-///
-/// This function does not perform dynamic allocations. It only supports
-/// a fixed number of destructors. And it can only be called before any
-/// destructors are registered with [`at_thread_exit`].
-///
-/// # Safety
-///
-/// This arranges for `func` to be called, and passed `obj`, when the thread
-/// exits.
-#[cfg(feature = "raw_dtors")]
-#[doc(hidden)]
-pub unsafe fn at_thread_exit_raw(func: unsafe extern "C" fn(*mut c_void), obj: *mut c_void) {
-    assert!((*current_thread().0).dtors.is_empty());
-    (*current_thread().0).raw_dtors.push(Some((func, obj)));
-}
-
 /// Call the destructors registered with [`at_thread_exit`].
 fn call_thread_dtors(current: Thread) {
-    #[cfg(feature = "raw_dtors")]
-    while let Some(func_obj) = unsafe { (*current.0).raw_dtors.pop() } {
-        let (func, obj) = func_obj.unwrap();
-
-        #[cfg(feature = "log")]
-        if log::log_enabled!(log::Level::Trace) {
-            log::trace!(
-                "Thread[{:?}] calling `at_thread_exit_raw`-registered function",
-                unsafe { (*current.0).thread_id.load(SeqCst) },
-            );
-        }
-
-        // # Safety
-        //
-        // The caller of `at_thread_exit_raw` guarnateed that the function
-        // is safe to call, with the given argument.
-        unsafe { func(obj) }
-    }
-
     // Run the `dtors`, in reverse order of registration. Note that destructors
     // may register new destructors.
     //

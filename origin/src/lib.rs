@@ -30,8 +30,6 @@ mod threads;
 mod arch;
 
 pub use program::{at_exit, exit, exit_immediately};
-#[cfg(feature = "raw_dtors")]
-pub use threads::at_thread_exit_raw;
 #[cfg(feature = "threads")]
 #[cfg(feature = "set_thread_id")]
 pub use threads::set_current_thread_id_after_a_fork;

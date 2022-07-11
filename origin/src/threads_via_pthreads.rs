@@ -136,23 +136,6 @@ pub fn at_thread_exit(func: Box<dyn FnOnce()>) {
     }
 }
 
-/// Registers a raw `unsafe extern "C"` function to call when the current
-/// thread exits.
-///
-/// This function does not perform dynamic allocations. It only supports
-/// a fixed number of destructors. And it can only be called before any
-/// destructors are registered with [`at_thread_exit`].
-///
-/// # Safety
-///
-/// This arranges for `func` to be called, and passed `obj`, when the thread
-/// exits.
-#[cfg(feature = "raw_dtors")]
-#[doc(hidden)]
-pub unsafe fn at_thread_exit_raw(func: unsafe extern "C" fn(*mut c_void), obj: *mut c_void) {
-    assert_eq!(__cxa_thread_atexit_impl(func, obj, dso_handle()), 0);
-}
-
 /// Creates a new thread.
 ///
 /// `fn_` is called on the new thread.

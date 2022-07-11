@@ -37,7 +37,7 @@ once_cell = "1.8.0"
 
 [features]
 default = ["threads", "resolve", "net"]
-threads = ["origin/threads", "origin/raw_dtors", "origin/set_thread_id"]
+threads = ["origin/threads", "origin/set_thread_id"]
 resolve = ["sync-resolve", "std"]
 std = ["rustix/std"]
 net = []
