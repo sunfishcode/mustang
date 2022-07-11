@@ -2,9 +2,9 @@ use core::convert::TryInto;
 use core::mem::transmute;
 use core::ptr::null_mut;
 
-use memoffset::offset_of;
 use errno::{set_errno, Errno};
 use libc::{c_int, c_void};
+use memoffset::offset_of;
 
 use super::MustangDir;
 

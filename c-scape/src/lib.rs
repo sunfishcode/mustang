@@ -120,7 +120,7 @@ unsafe extern "C" fn strerror(errnum: c_int) -> *mut c_char {
 
     #[repr(transparent)]
     #[derive(Copy, Clone)]
-    struct SyncBuf([c_char;256]);
+    struct SyncBuf([c_char; 256]);
     unsafe impl Sync for SyncBuf {}
 
     static STORAGE: SyncUnsafeCell<SyncBuf> = SyncUnsafeCell::new(SyncBuf([0; 256]));

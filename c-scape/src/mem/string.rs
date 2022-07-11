@@ -329,7 +329,11 @@ unsafe extern "C" fn strcasecmp(mut s1: *const c_char, mut s2: *const c_char) ->
 }
 
 #[no_mangle]
-unsafe extern "C" fn strncasecmp(mut s1: *const c_char, mut s2: *const c_char, mut n: usize) -> c_int {
+unsafe extern "C" fn strncasecmp(
+    mut s1: *const c_char,
+    mut s2: *const c_char,
+    mut n: usize,
+) -> c_int {
     libc!(libc::strncmp(s1, s2, n));
 
     while n > 0 && *s1 != NUL && *s2 != NUL {
