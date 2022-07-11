@@ -58,6 +58,9 @@ use libc::{c_char, c_int, c_long};
 use rustix::ffi::CStr;
 use rustix::fs::{AtFlags, Mode, OFlags};
 
+// ctype
+mod ctype;
+
 // fs
 mod fs;
 
