@@ -101,6 +101,14 @@ unsafe extern "C" fn strcpy(d: *mut c_char, s: *const c_char) -> *mut c_char {
 }
 
 #[no_mangle]
+unsafe extern "C" fn strncpy(d: *mut c_char, s: *const c_char, n: usize) -> *mut c_char {
+    libc!(libc::strncpy(d, s, n));
+
+    stpncpy(d, s, n);
+    d
+}
+
+#[no_mangle]
 unsafe extern "C" fn strcspn(s: *const c_char, m: *const c_char) -> usize {
     libc!(libc::strspn(s, m));
 
