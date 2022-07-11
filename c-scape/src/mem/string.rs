@@ -171,7 +171,10 @@ unsafe extern "C" fn strncat(d: *mut c_char, mut s: *const c_char, mut n: usize)
 unsafe extern "C" fn strncmp(mut s1: *const c_char, mut s2: *const c_char, mut n: usize) -> c_int {
     libc!(libc::strncmp(s1, s2, n));
 
-    while n > 0 && *s1 != NUL && *s2 != NUL {
+    while *s1 != NUL && *s2 != NUL {
+        if n == 0 {
+            return 0;
+        }
         n -= 1;
 
         if *s1 != *s2 {
@@ -332,9 +335,12 @@ unsafe extern "C" fn strncasecmp(
     mut s2: *const c_char,
     mut n: usize,
 ) -> c_int {
-    libc!(libc::strncmp(s1, s2, n));
+    libc!(libc::strncasecmp(s1, s2, n));
 
-    while n > 0 && *s1 != NUL && *s2 != NUL {
+    while *s1 != NUL && *s2 != NUL {
+        if n == 0 {
+            return 0;
+        }
         n -= 1;
 
         if libc::tolower(*s1 as c_schar as c_int) != libc::tolower(*s2 as c_schar as c_int) {
