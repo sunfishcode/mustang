@@ -16,7 +16,6 @@ rustix = { version = "0.35.6", default-features = false, features = ["mm", "thre
 bitflags = "1.3.0"
 memoffset = { version = "0.6.4", optional = true }
 log = { version = "0.4.14", default-features = false, optional = true }
-tinyvec = { version = "1.5.1", default-features = false, optional = true }
 lock_api = { version = "0.4.7", features = ["nightly"] }
 
 # Optional logging backend. You can use any external logger, but using this
@@ -35,7 +34,6 @@ compiler_builtins = { version = '0.1.49', optional = true }
 [features]
 default = ["std", "threads", "log"]
 std = ["rustix/std", "linux-raw-sys/std"]
-raw_dtors = ["tinyvec"]
 set_thread_id = []
 rustc-dep-of-std = [
     "core",

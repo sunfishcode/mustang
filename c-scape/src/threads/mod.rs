@@ -702,7 +702,7 @@ unsafe extern "C" fn __cxa_thread_atexit_impl(
     _dso_symbol: *mut c_void,
 ) -> c_int {
     // TODO: libc!(libc::__cxa_thread_atexit_impl(func, obj, _dso_symbol));
-    origin::at_thread_exit_raw(func, obj);
+    origin::at_thread_exit(Box::new(move || func(obj)));
     0
 }
 
