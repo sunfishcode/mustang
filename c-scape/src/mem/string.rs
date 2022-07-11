@@ -200,7 +200,7 @@ unsafe extern "C" fn strndup(s: *const c_char, n: usize) -> *mut c_char {
 
 #[no_mangle]
 unsafe extern "C" fn strnlen(s: *const c_char, mut n: usize) -> usize {
-    libc!(libc::strlen(s));
+    libc!(libc::strnlen(s, n));
 
     let mut w = s;
     while n > 0 && *w != NUL {
@@ -310,4 +310,38 @@ unsafe extern "C" fn strtok_r(
     }
 
     s
+}
+
+#[no_mangle]
+unsafe extern "C" fn strcasecmp(mut s1: *const c_char, mut s2: *const c_char) -> c_int {
+    libc!(libc::strcasecmp(s1, s2));
+
+    while *s1 != NUL && *s2 != NUL {
+        if libc::tolower(*s1 as c_schar as c_int) != libc::tolower(*s2 as c_schar as c_int) {
+            break;
+        }
+
+        s1 = s1.add(1);
+        s2 = s2.add(1);
+    }
+
+    libc::tolower(*s1 as c_schar as c_int) - libc::tolower(*s2 as c_schar as c_int)
+}
+
+#[no_mangle]
+unsafe extern "C" fn strncasecmp(mut s1: *const c_char, mut s2: *const c_char, mut n: usize) -> c_int {
+    libc!(libc::strncmp(s1, s2, n));
+
+    while n > 0 && *s1 != NUL && *s2 != NUL {
+        n -= 1;
+
+        if libc::tolower(*s1 as c_schar as c_int) != libc::tolower(*s2 as c_schar as c_int) {
+            break;
+        }
+
+        s1 = s1.add(1);
+        s2 = s2.add(1);
+    }
+
+    libc::tolower(*s1 as c_schar as c_int) - libc::tolower(*s2 as c_schar as c_int)
 }
