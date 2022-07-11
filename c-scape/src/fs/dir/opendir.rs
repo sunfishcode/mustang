@@ -1,20 +1,14 @@
 use alloc::boxed::Box;
 use core::ffi::CStr;
-use rustix::fd::{BorrowedFd, FromRawFd, IntoRawFd};
+use rustix::fd::{BorrowedFd, FromRawFd, IntoRawFd, OwnedFd};
 use rustix::fs::{cwd, Mode, OFlags};
-use rustix::io::OwnedFd;
 
 use core::mem::zeroed;
 use core::ptr::null_mut;
 use libc::{c_char, c_int, c_void};
 
 use crate::convert_res;
-
-pub(super) struct MustangDir {
-    pub(super) dir: rustix::fs::Dir,
-    pub(super) dirent: libc::dirent64,
-    pub(super) fd: OwnedFd,
-}
+use super::MustangDir;
 
 #[no_mangle]
 unsafe extern "C" fn opendir(pathname: *const c_char) -> *mut c_void {
