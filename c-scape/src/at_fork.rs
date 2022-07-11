@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use origin::sync::Mutex;
 
 /// Functions registered with `at_fork`.

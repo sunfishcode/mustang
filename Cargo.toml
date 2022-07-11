@@ -13,9 +13,9 @@ exclude = ["/.github"]
 publish = false
 
 [dev-dependencies]
-origin = { path = "origin", version = "^0.5.0" }
 mustang = { path = "mustang", version = "^0.5.0" }
 c-scape = { path = "c-scape", version = "^0.5.0" }
+c-gull = { path = "c-gull", version = "^0.5.0" }
 similar-asserts = "1.1.0"
 rand = "0.8.4"
 libc = "0.2.126"
@@ -29,9 +29,10 @@ ctor = "0.1.21"
 
 [features]
 default = ["threads"]
-threads = ["origin/threads", "mustang/threads"]
-env_logger = ["origin/env_logger"]
-max_level_off = ["origin/max_level_off"]
+threads = ["mustang/threads"]
+env_logger = ["mustang/env_logger"]
+log = ["mustang/log"]
+max_level_off = ["mustang/max_level_off"]
 
 # Enable the cc dependency to build assembly-code libraries from .s sources
 # instead of using the prebuilt libraries.
@@ -42,13 +43,5 @@ members = [
   "mustang",
   "origin",
   "c-scape",
+  "c-gull",
 ]
-
-# These profile settings make rustc emit all of c-scape's code as one single
-# object file, eliminating unused symbol errors from the linker simply not
-# choosing to link in the object file containing needed symbols.
-[profile.dev.package.c-scape]
-codegen-units = 1
-
-[profile.release.package.c-scape]
-codegen-units = 1
