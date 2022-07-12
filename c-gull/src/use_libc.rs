@@ -23,7 +23,7 @@ macro_rules! checked_cast {
 }
 
 /// A macro for ensuring that the `libc` crate signature for a function matches
-/// the signature that c-scape is using.
+/// the signature that our implementation of it is using.
 ///
 /// # Example
 ///
@@ -47,7 +47,7 @@ macro_rules! libc {
     };
 }
 
-/// This is used to check that a `c-scape` type matches the layout of the
+/// This is used to check that our type definition matches the layout of the
 /// corresponding libc type.
 #[cfg(all(target_vendor = "mustang", feature = "threads"))]
 macro_rules! libc_type {
