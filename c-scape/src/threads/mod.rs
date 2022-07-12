@@ -1,3 +1,4 @@
+use alloc::boxed::Box;
 use core::convert::TryInto;
 use core::ffi::c_void;
 use core::ptr::{self, null, null_mut};

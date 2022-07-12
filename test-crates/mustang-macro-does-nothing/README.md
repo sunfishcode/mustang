@@ -9,15 +9,16 @@ mustang-macro-does-nothing v0.0.0 (mustang/test-crates/mustang-macro-does-nothin
 ```
 
 When compiled for a mustang target, it depends on nightly Rust and it has the
-c-scape and origin dependencies:
+c-gull and origin dependencies:
 
 ```
 $ cargo tree --target=x86_64-mustang-linux-gnu
 mustang-macro-does-nothing v0.0.0 (mustang/test-crates/mustang-macro-does-nothing)
-└── mustang v0.4.1 (/mustang/mustang)
-    ├── c-scape v0.4.1 (mustang/c-scape)
-    │   ├── errno v0.2.8
-    │   │   └── libc v0.2.126
-    │   ├── libc v0.2.126
+└── mustang v0.5.1 (mustang/mustang)
+    ├── c-gull v0.5.1 (mustang/c-gull)
+    │   ├── c-scape v0.5.1 (mustang/c-scape)
+    │   │   ├── errno v0.2.8
+    │   │   │   └── libc v0.2.126
+    │   │   ├── libc v0.2.126
 ...
 ```

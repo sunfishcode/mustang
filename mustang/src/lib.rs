@@ -26,7 +26,7 @@ macro_rules! can_run_this {
 }
 
 #[cfg(target_vendor = "mustang")]
-extern crate c_scape;
+extern crate c_gull;
 #[cfg(target_vendor = "mustang")]
 extern crate origin;
 #[cfg(not(target_arch = "arm"))]

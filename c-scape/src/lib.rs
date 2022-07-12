@@ -1,4 +1,5 @@
 #![doc = include_str!("../README.md")]
+#![no_std]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![no_builtins] // don't let LLVM optimize our `memcpy` into a `memcpy` call
 #![feature(thread_local)] // for `__errno_location`
@@ -347,6 +348,7 @@ unsafe extern "C" fn raise(_sig: c_int) -> c_int {
 
 // nss
 
+#[cfg(not(feature = "std"))] // Avoid conflicting with c-gull's more complete `getpwuid_r`.
 #[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn getpwuid_r() {

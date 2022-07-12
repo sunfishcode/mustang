@@ -1,3 +1,4 @@
+use alloc::boxed::Box;
 use core::ffi::CStr;
 use rustix::fd::{BorrowedFd, FromRawFd, IntoRawFd};
 use rustix::fs::{cwd, Mode, OFlags};

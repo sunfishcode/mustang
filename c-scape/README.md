@@ -2,7 +2,7 @@
   <h1><code>c-scape</code></h1>
 
   <p>
-    <strong>A libc implementation in Rust</strong>
+    <strong>A layer underneath c-gull</strong>
   </p>
 
   <p>
@@ -13,50 +13,8 @@
   </p>
 </div>
 
-c-scape is a libc implementation. It is an implementation of the ABI described
-by the [libc] crate.
+c-scape is a layer underneath [c-gull]. It provides a subset of libc features,
+containing only features that don't require Rust's `std` to implement. This
+allows it to be used by `std` itself.
 
-It is implemented in terms of crates written in Rust, such as [rustix],
-[origin], [sync-resolve], [libm], [realpath-ext], and [memchr].
-
-Currently it only supports `*-*-linux-gnu` ABIs, though other ABIs could be
-added in the future. And currently this mostly focused on features needed by
-Rust programs, so it doesn't have many C-idiomatic things like `printf` yet, but
-they could be added in the future.
-
-The goal is to have very little code in c-scape itself, by factoring out all of
-the significant functionality into independent crates with more Rust-idiomatic
-APIs, with c-scape just wrapping those APIs to implement the C ABIs.
-
-This is currently experimental, incomplete, and some things aren't optimized.
-
-This is part of the [Mustang] project, building Rust programs written entirely
-in Rust.
-
-## Using c-scape in non-mustang programs
-
-c-scape can also be used as a drop-in (partial) libc replacement in non-mustang
-builds, provided you're using nightly Rust. To use it, just change your typical
-libc dependency in Cargo.toml to this:
-
-```toml
-libc = { version = "<c-scape version>", package = "c-scape" }
-```
-
-and c-scape will replace as many of the system libc implementation with its own
-implementations as it can. In particular, it can't replace `malloc` or any of
-the pthread functions in this configuration, but it can replace many other
-things.
-
-See the [libc-replacement example] for more details.
-
-[libc-replacement example]: https://github.com/sunfishcode/mustang/blob/main/test-crates/libc-replacement/README.md
-[Mustang]: https://github.com/sunfishcode/mustang/
-[rustix]: https://crates.io/crates/rustix
-[origin]: https://crates.io/crates/origin
-[sync-resolve]: https://crates.io/crates/sync-resolve
-[libm]: https://crates.io/crates/libm
-[libc]: https://crates.io/crates/libc
-[realpath-ext]: https://crates.io/crates/realpath-ext
-[memchr]: https://crates.io/crates/memchr
-[mustang]: https://crates.io/crates/mustang
+[c-gull]: https://crates.io/crates/c-gull

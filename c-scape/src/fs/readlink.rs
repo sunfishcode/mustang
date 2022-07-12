@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use core::ffi::CStr;
 use rustix::fd::BorrowedFd;
 
