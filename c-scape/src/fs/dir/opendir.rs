@@ -8,13 +8,8 @@ use core::mem::zeroed;
 use core::ptr::null_mut;
 use libc::{c_char, c_int, c_void};
 
+use super::CScapeDir;
 use crate::convert_res;
-
-pub(super) struct MustangDir {
-    pub(super) dir: rustix::fs::Dir,
-    pub(super) dirent: libc::dirent64,
-    pub(super) fd: OwnedFd,
-}
 
 #[no_mangle]
 unsafe extern "C" fn opendir(pathname: *const c_char) -> *mut c_void {
@@ -36,7 +31,7 @@ unsafe extern "C" fn fdopendir(fd: c_int) -> *mut c_void {
     libc!(libc::fdopendir(fd).cast());
 
     match convert_res(rustix::fs::Dir::read_from(BorrowedFd::borrow_raw(fd))) {
-        Some(dir) => Box::into_raw(Box::new(MustangDir {
+        Some(dir) => Box::into_raw(Box::new(CScapeDir {
             dir,
             dirent: zeroed(),
             fd: OwnedFd::from_raw_fd(fd),
@@ -50,6 +45,6 @@ unsafe extern "C" fn fdopendir(fd: c_int) -> *mut c_void {
 unsafe extern "C" fn closedir(dir: *mut c_void) -> c_int {
     libc!(libc::closedir(dir.cast()));
 
-    drop(Box::<MustangDir>::from_raw(dir.cast()));
+    drop(Box::<CScapeDir>::from_raw(dir.cast()));
     0
 }

@@ -2,6 +2,8 @@ use core::cell::SyncUnsafeCell;
 use core::ptr;
 use libc::{c_char, c_int, c_schar, malloc, memcpy};
 
+use crate::sync_ptr::SyncMutPtr;
+
 const NUL: c_char = 0;
 
 #[no_mangle]
@@ -99,6 +101,14 @@ unsafe extern "C" fn strcpy(d: *mut c_char, s: *const c_char) -> *mut c_char {
 }
 
 #[no_mangle]
+unsafe extern "C" fn strncpy(d: *mut c_char, s: *const c_char, n: usize) -> *mut c_char {
+    libc!(libc::strncpy(d, s, n));
+
+    stpncpy(d, s, n);
+    d
+}
+
+#[no_mangle]
 unsafe extern "C" fn strcspn(s: *const c_char, m: *const c_char) -> usize {
     libc!(libc::strspn(s, m));
 
@@ -148,7 +158,7 @@ unsafe extern "C" fn strlen(s: *const c_char) -> usize {
 
 #[no_mangle]
 unsafe extern "C" fn strncat(d: *mut c_char, mut s: *const c_char, mut n: usize) -> *mut c_char {
-    libc!(libc::strcat(d, s));
+    libc!(libc::strncat(d, s, n));
 
     let mut w = strchr(d, 0);
 
@@ -167,9 +177,12 @@ unsafe extern "C" fn strncat(d: *mut c_char, mut s: *const c_char, mut n: usize)
 
 #[no_mangle]
 unsafe extern "C" fn strncmp(mut s1: *const c_char, mut s2: *const c_char, mut n: usize) -> c_int {
-    libc!(libc::strcmp(s1, s2));
+    libc!(libc::strncmp(s1, s2, n));
 
-    while n > 0 && *s1 != NUL && *s2 != NUL {
+    while *s1 != NUL && *s2 != NUL {
+        if n == 0 {
+            return 0;
+        }
         n -= 1;
 
         if *s1 != *s2 {
@@ -200,7 +213,7 @@ unsafe extern "C" fn strndup(s: *const c_char, n: usize) -> *mut c_char {
 
 #[no_mangle]
 unsafe extern "C" fn strnlen(s: *const c_char, mut n: usize) -> usize {
-    libc!(libc::strlen(s));
+    libc!(libc::strnlen(s, n));
 
     let mut w = s;
     while n > 0 && *w != NUL {
@@ -271,12 +284,8 @@ unsafe extern "C" fn strspn(s: *const c_char, m: *const c_char) -> usize {
 unsafe extern "C" fn strtok(s: *mut c_char, m: *const c_char) -> *mut c_char {
     libc!(libc::strtok(s, m));
 
-    #[repr(transparent)]
-    #[derive(Copy, Clone)]
-    struct SyncCChar(*mut c_char);
-    unsafe impl Sync for SyncCChar {}
-
-    static STORAGE: SyncUnsafeCell<SyncCChar> = SyncUnsafeCell::new(SyncCChar(ptr::null_mut()));
+    static STORAGE: SyncUnsafeCell<SyncMutPtr<c_char>> =
+        SyncUnsafeCell::new(unsafe { SyncMutPtr::new(ptr::null_mut()) });
 
     strtok_r(s, m, SyncUnsafeCell::get(&STORAGE) as *mut *mut c_char)
 }
@@ -310,4 +319,45 @@ unsafe extern "C" fn strtok_r(
     }
 
     s
+}
+
+#[no_mangle]
+unsafe extern "C" fn strcasecmp(mut s1: *const c_char, mut s2: *const c_char) -> c_int {
+    libc!(libc::strcasecmp(s1, s2));
+
+    while *s1 != NUL && *s2 != NUL {
+        if libc::tolower(*s1 as c_schar as c_int) != libc::tolower(*s2 as c_schar as c_int) {
+            break;
+        }
+
+        s1 = s1.add(1);
+        s2 = s2.add(1);
+    }
+
+    libc::tolower(*s1 as c_schar as c_int) - libc::tolower(*s2 as c_schar as c_int)
+}
+
+#[no_mangle]
+unsafe extern "C" fn strncasecmp(
+    mut s1: *const c_char,
+    mut s2: *const c_char,
+    mut n: usize,
+) -> c_int {
+    libc!(libc::strncasecmp(s1, s2, n));
+
+    while *s1 != NUL && *s2 != NUL {
+        if n == 0 {
+            return 0;
+        }
+        n -= 1;
+
+        if libc::tolower(*s1 as c_schar as c_int) != libc::tolower(*s2 as c_schar as c_int) {
+            break;
+        }
+
+        s1 = s1.add(1);
+        s2 = s2.add(1);
+    }
+
+    libc::tolower(*s1 as c_schar as c_int) - libc::tolower(*s2 as c_schar as c_int)
 }
