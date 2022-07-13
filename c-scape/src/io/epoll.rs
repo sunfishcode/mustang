@@ -56,7 +56,7 @@ unsafe extern "C" fn epoll_wait(
 ) -> c_int {
     libc!(libc::epoll_wait(
         _epfd,
-        checked_cast!(_events),
+        _events,
         _maxevents,
         _timeout
     ));
