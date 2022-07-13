@@ -1,6 +1,6 @@
 use alloc::boxed::Box;
 use core::ffi::CStr;
-use rustix::fd::{BorrowedFd, FromRawFd, IntoRawFd, OwnedFd};
+use rustix::io::{BorrowedFd, FromRawFd, IntoRawFd, OwnedFd};
 use rustix::fs::{cwd, Mode, OFlags};
 
 use core::mem::zeroed;
