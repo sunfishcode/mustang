@@ -1,4 +1,4 @@
-/// A const pointer to `T` that implements [Sync].
+/// A const pointer to `T` that implements [`Sync`].
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SyncConstPtr<T>(*const T);
@@ -14,7 +14,7 @@ impl<T> SyncConstPtr<T> {
     }
 }
 
-/// A mut pointer to `T` that implements [Sync].
+/// A mut pointer to `T` that implements [`Sync`].
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SyncMutPtr<T>(*mut T);
