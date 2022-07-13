@@ -7,7 +7,7 @@
 /// it, while verifying that the layout of the pointee stays the same after the
 /// cast.
 macro_rules! checked_cast {
-    ($ptr:ident) => {{
+    ($ptr:expr) => {{
         let target_ptr = $ptr.cast();
         let target = crate::use_libc::Pad::new(core::ptr::read(target_ptr));
 
