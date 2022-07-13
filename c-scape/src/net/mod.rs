@@ -435,12 +435,7 @@ unsafe extern "C" fn getaddrinfo(
     hints: *const libc::addrinfo,
     res: *mut *mut libc::addrinfo,
 ) -> c_int {
-    libc!(libc::getaddrinfo(
-        node,
-        service,
-        hints,
-        res
-    ));
+    libc!(libc::getaddrinfo(node, service, hints, res));
 
     assert!(service.is_null(), "service lookups not supported yet");
     assert!(!node.is_null(), "only name lookups are supported corrently");
