@@ -1,23 +1,45 @@
 use core::ffi::CStr;
 use core::ptr;
 use rustix::fd::BorrowedFd;
-use rustix::fs::AtFlags;
+use rustix::fs::{AtFlags, UTIME_NOW, Timestamps};
+use rustix::time::Timespec;
 
 use libc::{c_char, c_int};
 
 use crate::convert_res;
 use errno::{set_errno, Errno};
 
+unsafe fn timestamp_from_timespecs(times: *const [libc::timespec; 2]) -> Timestamps {
+    let mut timestamps = Timestamps {
+        last_access: Timespec {
+            tv_sec: 0,
+            tv_nsec: UTIME_NOW,
+        },
+        last_modification: Timespec {
+            tv_sec: 0,
+            tv_nsec: UTIME_NOW,
+        },
+    };
+
+    if !times.is_null() {
+        timestamps.last_access.tv_sec = (*times)[0].tv_sec.into();
+        timestamps.last_access.tv_nsec = (*times)[0].tv_nsec;
+        timestamps.last_modification.tv_sec = (*times)[1].tv_sec.into();
+        timestamps.last_modification.tv_nsec = (*times)[1].tv_nsec;
+    }
+
+    timestamps
+}
+
 #[no_mangle]
 unsafe extern "C" fn futimens(fd: c_int, times: *const libc::timespec) -> c_int {
     libc!(libc::futimens(fd, times));
 
-    let timestamps: *const rustix::fs::Timestamps =
-        checked_cast!(times as *const [libc::timespec; 2]);
+    let times = times as *const [libc::timespec; 2];
 
     match convert_res(rustix::fs::futimens(
         BorrowedFd::borrow_raw(fd),
-        &*timestamps,
+        &timestamp_from_timespecs(times),
     )) {
         Some(_) => 0,
         None => -1,
@@ -33,14 +55,13 @@ unsafe extern "C" fn utimensat(
 ) -> c_int {
     libc!(libc::utimensat(fd, path, times, flag));
 
-    let timestamps: *const rustix::fs::Timestamps =
-        checked_cast!(times as *const [libc::timespec; 2]);
+    let times = times as *const [libc::timespec; 2];
     let flags = some_or_ret_einval!(AtFlags::from_bits(flag as _));
 
     match convert_res(rustix::fs::utimensat(
         BorrowedFd::borrow_raw(fd),
         CStr::from_ptr(path),
-        &*timestamps,
+        &timestamp_from_timespecs(times),
         flags,
     )) {
         Some(()) => 0,
