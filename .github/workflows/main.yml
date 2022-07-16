@@ -145,7 +145,7 @@ jobs:
     - name: cargo check non-mustang
       run: |
         # Check that the code compiles on non-mustang targets.
-        cargo +nightly check --all -Z build-std --target=${{ matrix.host_target }}
+        cargo +nightly check --all --target=${{ matrix.host_target }}
 
     - name: cargo test
       run: |
