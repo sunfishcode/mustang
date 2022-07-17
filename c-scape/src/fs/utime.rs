@@ -1,7 +1,7 @@
 use core::ffi::CStr;
 use core::ptr;
 use rustix::fd::BorrowedFd;
-use rustix::fs::{AtFlags, UTIME_NOW, Timestamps};
+use rustix::fs::{AtFlags, Timestamps, UTIME_NOW};
 use rustix::time::Timespec;
 
 use libc::{c_char, c_int};
