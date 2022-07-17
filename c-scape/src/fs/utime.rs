@@ -23,9 +23,9 @@ unsafe fn timestamp_from_timespecs(times: *const [libc::timespec; 2]) -> Timesta
 
     if !times.is_null() {
         timestamps.last_access.tv_sec = (*times)[0].tv_sec.into();
-        timestamps.last_access.tv_nsec = (*times)[0].tv_nsec;
+        timestamps.last_access.tv_nsec = (*times)[0].tv_nsec.into();
         timestamps.last_modification.tv_sec = (*times)[1].tv_sec.into();
-        timestamps.last_modification.tv_nsec = (*times)[1].tv_nsec;
+        timestamps.last_modification.tv_nsec = (*times)[1].tv_nsec.into();
     }
 
     timestamps
