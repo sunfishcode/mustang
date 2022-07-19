@@ -435,12 +435,7 @@ unsafe extern "C" fn getaddrinfo(
     hints: *const libc::addrinfo,
     res: *mut *mut libc::addrinfo,
 ) -> c_int {
-    libc!(libc::getaddrinfo(
-        node,
-        service,
-        checked_cast!(hints),
-        checked_cast!(res)
-    ));
+    libc!(libc::getaddrinfo(node, service, hints, res));
 
     assert!(service.is_null(), "service lookups not supported yet");
     assert!(!node.is_null(), "only name lookups are supported corrently");
@@ -532,7 +527,7 @@ unsafe extern "C" fn getaddrinfo(
 #[cfg(feature = "sync-resolve")]
 #[no_mangle]
 unsafe extern "C" fn freeaddrinfo(mut res: *mut libc::addrinfo) {
-    libc!(libc::freeaddrinfo(checked_cast!(res)));
+    libc!(libc::freeaddrinfo(res));
 
     let layout = alloc::alloc::Layout::new::<libc::addrinfo>();
     let addr_layout = alloc::alloc::Layout::new::<SocketAddrStorage>();

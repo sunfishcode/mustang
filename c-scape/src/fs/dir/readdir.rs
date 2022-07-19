@@ -14,11 +14,7 @@ unsafe extern "C" fn readdir64_r(
     entry: *mut libc::dirent64,
     ptr: *mut *mut libc::dirent64,
 ) -> c_int {
-    libc!(libc::readdir64_r(
-        dir.cast(),
-        checked_cast!(entry),
-        checked_cast!(ptr)
-    ));
+    libc!(libc::readdir64_r(dir.cast(), entry, ptr));
 
     let mustang_dir = dir.cast::<CScapeDir>();
     let dir = &mut (*mustang_dir).dir;

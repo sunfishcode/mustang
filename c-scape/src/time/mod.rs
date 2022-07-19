@@ -3,25 +3,76 @@ use core::convert::TryInto;
 use errno::{set_errno, Errno};
 use libc::c_int;
 
+fn rustix_timespec_to_libc_timespec(
+    rustix_time: rustix::time::Timespec,
+) -> Result<libc::timespec, core::num::TryFromIntError> {
+    // SAFETY: libc structs can be zero-initalized freely
+    let mut time: libc::timespec = unsafe { core::mem::zeroed() };
+    time.tv_sec = rustix_time.tv_sec.try_into()?;
+    time.tv_nsec = rustix_time.tv_nsec.try_into()?;
+    Ok(time)
+}
+
 #[no_mangle]
-unsafe extern "C" fn clock_gettime(id: c_int, tp: *mut rustix::time::Timespec) -> c_int {
-    // FIXME(#95) layout of tp doesn't match signature on i686
-    // uncomment once it does:
-    // libc!(libc::clock_gettime(id, checked_cast!(tp)));
-    libc!(libc::clock_gettime(id, tp.cast()));
+unsafe extern "C" fn clock_gettime(id: c_int, tp: *mut libc::timespec) -> c_int {
+    libc!(libc::clock_gettime(id, tp));
 
     let id = match id {
         libc::CLOCK_MONOTONIC => rustix::time::ClockId::Monotonic,
         libc::CLOCK_REALTIME => rustix::time::ClockId::Realtime,
         _ => panic!("unimplemented clock({})", id),
     };
-    *tp = rustix::time::clock_gettime(id);
-    0
+
+    match rustix_timespec_to_libc_timespec(rustix::time::clock_gettime(id)) {
+        Ok(t) => {
+            *tp = t;
+            0
+        }
+        Err(_) => {
+            set_errno(Errno(libc::EOVERFLOW));
+            -1
+        }
+    }
+}
+
+#[no_mangle]
+unsafe extern "C" fn time(t: *mut libc::time_t) -> libc::time_t {
+    libc!(libc::time(t));
+
+    let mut ts: libc::timespec = { core::mem::zeroed() };
+    if clock_gettime(libc::CLOCK_REALTIME, &mut ts) == -1 {
+        return -1;
+    }
+
+    if !t.is_null() {
+        *t = ts.tv_sec;
+    }
+    return ts.tv_sec;
+}
+
+#[no_mangle]
+unsafe extern "C" fn gettimeofday(t: *mut libc::timeval, _tz: *mut libc::timezone) -> c_int {
+    libc!(libc::gettimeofday(t, _tz));
+
+    if t.is_null() {
+        return 0;
+    }
+
+    let mut ts: libc::timespec = { core::mem::zeroed() };
+    if clock_gettime(libc::CLOCK_REALTIME, &mut ts) == -1 {
+        return -1;
+    }
+
+    if !t.is_null() {
+        (*t).tv_sec = ts.tv_sec;
+        (*t).tv_usec = ts.tv_nsec / 1000;
+    }
+    return 0;
 }
 
 #[no_mangle]
 unsafe extern "C" fn nanosleep(req: *const libc::timespec, rem: *mut libc::timespec) -> c_int {
-    libc!(libc::nanosleep(checked_cast!(req), checked_cast!(rem)));
+    libc!(libc::nanosleep(req, rem));
 
     let req = rustix::time::Timespec {
         tv_sec: (*req).tv_sec.into(),

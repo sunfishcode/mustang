@@ -139,8 +139,7 @@ unsafe extern "C" fn fstat(fd: c_int, stat_: *mut libc::stat) -> c_int {
 
 #[no_mangle]
 unsafe extern "C" fn fstat64(fd: c_int, stat_: *mut libc::stat64) -> c_int {
-    libc!(libc::fstat64(fd, checked_cast!(stat_)));
-
+    libc!(libc::fstat64(fd, stat_));
     let stat_: *mut rustix::fs::Stat = checked_cast!(stat_);
 
     match convert_res(rustix::fs::fstat(BorrowedFd::borrow_raw(fd))) {
