@@ -21,8 +21,6 @@ extern crate compiler_builtins;
 pub use libc::*;
 
 #[macro_use]
-mod err_check;
-#[macro_use]
 mod use_libc;
 
 #[cfg(not(target_os = "wasi"))]

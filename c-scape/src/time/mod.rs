@@ -3,11 +3,6 @@ use core::convert::TryInto;
 use errno::{set_errno, Errno};
 use libc::c_int;
 
-// So 32-bit time support was only added to 64bit in 5.1,
-// so I'm not even sure what Rustix's deal with this is.
-
-// TODO: clarify
-
 fn rustix_timespec_to_libc_timespec(
     rustix_time: rustix::time::Timespec,
 ) -> Result<libc::timespec, core::num::TryFromIntError> {

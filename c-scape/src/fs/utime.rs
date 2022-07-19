@@ -56,7 +56,7 @@ unsafe extern "C" fn utimensat(
     libc!(libc::utimensat(fd, path, times, flag));
 
     let times = times as *const [libc::timespec; 2];
-    let flags = some_or_ret_einval!(AtFlags::from_bits(flag as _));
+    let flags = AtFlags::from_bits(flag as _).unwrap();
 
     match convert_res(rustix::fs::utimensat(
         BorrowedFd::borrow_raw(fd),
