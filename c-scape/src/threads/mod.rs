@@ -237,8 +237,7 @@ unsafe extern "C" fn pthread_mutex_init(
     };
 
     match kind as i32 {
-        #[allow(unreachable_patterns)]
-        libc::PTHREAD_MUTEX_DEFAULT | libc::PTHREAD_MUTEX_NORMAL => {
+        libc::PTHREAD_MUTEX_NORMAL => {
             ptr::write(&mut (*mutex).u.normal, RawMutex::INIT)
         }
         libc::PTHREAD_MUTEX_RECURSIVE => {
