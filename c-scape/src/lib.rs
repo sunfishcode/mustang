@@ -383,6 +383,11 @@ unsafe extern "C" fn abort() {
 }
 
 #[no_mangle]
+unsafe extern "C" fn __stack_chk_fail() {
+    unimplemented!("__stack_chk_fail")
+}
+
+#[no_mangle]
 unsafe extern "C" fn signal(_num: c_int, _handler: usize) -> usize {
     libc!(libc::signal(_num, _handler));
 
