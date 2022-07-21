@@ -24,12 +24,11 @@ impl KeyData {
 }
 
 #[thread_local]
-static VALUES: [Cell<KeyData>; PTHREAD_KEYS_MAX as usize] = [Cell::new(KeyData::new()); PTHREAD_KEYS_MAX as usize];
+static VALUES: [Cell<KeyData>; PTHREAD_KEYS_MAX as usize] =
+    [Cell::new(KeyData::new()); PTHREAD_KEYS_MAX as usize];
 
 #[no_mangle]
-unsafe extern "C" fn pthread_getspecific(
-    key: libc::pthread_key_t
-) -> *mut c_void {
+unsafe extern "C" fn pthread_getspecific(key: libc::pthread_key_t) -> *mut c_void {
     libc!(libc::pthread_getspecific(key));
 
     let current_cell = &VALUES.as_array_of_cells()[key as usize];
@@ -39,10 +38,7 @@ unsafe extern "C" fn pthread_getspecific(
 }
 
 #[no_mangle]
-unsafe extern "C" fn pthread_setspecific(
-    key: libc::pthread_key_t, 
-    value: *const c_void
-) -> c_int {
+unsafe extern "C" fn pthread_setspecific(key: libc::pthread_key_t, value: *const c_void) -> c_int {
     libc!(libc::pthread_setspecific(key, value));
 
     let current_cell = &VALUES.as_array_of_cells()[key as usize];
@@ -56,8 +52,8 @@ unsafe extern "C" fn pthread_setspecific(
 
 #[no_mangle]
 unsafe extern "C" fn pthread_key_create(
-    key: *mut libc::pthread_key_t, 
-    dtor: Option<unsafe extern "C" fn(_: *mut c_void)>
+    key: *mut libc::pthread_key_t,
+    dtor: Option<unsafe extern "C" fn(_: *mut c_void)>,
 ) -> c_int {
     libc!(libc::pthread_key_create(key, dtor));
 
@@ -67,21 +63,18 @@ unsafe extern "C" fn pthread_key_create(
         return -1;
     }
     CURRENT_KEY.set(next_key + 1);
-    
-    
+
     let current_cell = &VALUES.as_array_of_cells()[next_key as usize];
 
     let mut temp = current_cell.get();
     temp.dtor = dtor;
     current_cell.set(temp);
-    
+
     0
 }
 
 #[no_mangle]
-unsafe extern "C" fn pthread_key_delete(
-    key: libc::pthread_key_t
-) -> c_int {
+unsafe extern "C" fn pthread_key_delete(key: libc::pthread_key_t) -> c_int {
     libc!(libc::pthread_key_delete(key));
 
     pthread_setspecific(key, null())

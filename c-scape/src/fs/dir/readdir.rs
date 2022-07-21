@@ -92,7 +92,6 @@ unsafe extern "C" fn readdir64(dir: *mut libc::DIR) -> *mut libc::dirent64 {
     }
 }
 
-
 #[no_mangle]
 unsafe extern "C" fn readdir(dir: *mut libc::DIR) -> *mut libc::dirent {
     libc!(libc::readdir(dir.cast()));
@@ -112,14 +111,16 @@ unsafe extern "C" fn readdir(dir: *mut libc::DIR) -> *mut libc::dirent {
                 rustix::fs::FileType::BlockDevice => libc::DT_BLK,
                 rustix::fs::FileType::Unknown => libc::DT_UNKNOWN,
             };
-            
+
             let result: Result<(), core::num::TryFromIntError> = try {
                 (*mustang_dir).storage.dirent = libc::dirent {
                     d_ino: e.ino().try_into()?,
                     d_off: 0, // We don't implement `seekdir` yet anyway.
-                    d_reclen: (offset_of!(libc::dirent64, d_name) + e.file_name().to_bytes().len() + 1)
-                        .try_into()
-                        .unwrap(),
+                    d_reclen: (offset_of!(libc::dirent64, d_name)
+                        + e.file_name().to_bytes().len()
+                        + 1)
+                    .try_into()
+                    .unwrap(),
                     d_type: file_type,
                     d_name: [0; 256],
                 };
@@ -129,10 +130,9 @@ unsafe extern "C" fn readdir(dir: *mut libc::DIR) -> *mut libc::dirent {
                 Err(_) => {
                     set_errno(Errno(libc::EOVERFLOW));
                     return null_mut();
-                },
-                Ok(()) => {},
+                }
+                Ok(()) => {}
             }
-            
 
             let len = core::cmp::min(256, e.file_name().to_bytes().len());
             (*mustang_dir).storage.dirent.d_name[..len]
