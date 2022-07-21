@@ -31,7 +31,7 @@ static VALUES: [Cell<KeyData>; PTHREAD_KEYS_MAX as usize] =
 unsafe extern "C" fn pthread_getspecific(key: libc::pthread_key_t) -> *mut c_void {
     libc!(libc::pthread_getspecific(key));
 
-    let current_cell = &VALUES.as_array_of_cells()[key as usize];
+    let current_cell = &VALUES[key as usize];
 
     let temp = current_cell.get();
     temp.data
@@ -41,7 +41,7 @@ unsafe extern "C" fn pthread_getspecific(key: libc::pthread_key_t) -> *mut c_voi
 unsafe extern "C" fn pthread_setspecific(key: libc::pthread_key_t, value: *const c_void) -> c_int {
     libc!(libc::pthread_setspecific(key, value));
 
-    let current_cell = &VALUES.as_array_of_cells()[key as usize];
+    let current_cell = &VALUES[key as usize];
 
     let mut temp = current_cell.get();
     temp.data = value as *mut _;
@@ -64,7 +64,7 @@ unsafe extern "C" fn pthread_key_create(
     }
     CURRENT_KEY.set(next_key + 1);
 
-    let current_cell = &VALUES.as_array_of_cells()[next_key as usize];
+    let current_cell = &VALUES[next_key as usize];
 
     let mut temp = current_cell.get();
     temp.dtor = dtor;
