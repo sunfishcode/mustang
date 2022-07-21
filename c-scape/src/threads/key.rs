@@ -14,7 +14,7 @@ struct KeyData {
     dtor: Option<unsafe extern "C" fn(_: *mut c_void)>,
 }
 
-const KEYDATA_INIT = Cell::new(KeyData::new());
+const KEYDATA_INIT: Cell<KeyData> = Cell::new(KeyData { data: null_mut(), dtor: None });
 
 #[thread_local]
 static VALUES: [Cell<KeyData>; PTHREAD_KEYS_MAX as usize] =
