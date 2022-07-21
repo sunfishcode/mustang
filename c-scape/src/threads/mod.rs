@@ -1,7 +1,9 @@
+mod key;
+
 use alloc::boxed::Box;
 use core::convert::TryInto;
 use core::ffi::c_void;
-use core::ptr::{self, null, null_mut};
+use core::ptr::{self, null_mut};
 use core::sync::atomic::Ordering::SeqCst;
 use core::sync::atomic::{AtomicBool, AtomicU32};
 use core::time::Duration;
@@ -179,39 +181,6 @@ unsafe extern "C" fn pthread_attr_getstack(
 }
 
 #[no_mangle]
-unsafe extern "C" fn pthread_getspecific() -> *const c_void {
-    //libc!(libc::pthread_getspecific());
-    rustix::io::write(
-        &rustix::io::stderr(),
-        b"unimplemented: pthread_getspecific\n",
-    )
-    .ok();
-    null()
-}
-
-#[no_mangle]
-unsafe extern "C" fn pthread_key_create() -> c_int {
-    //libc!(libc::pthread_key_create());
-    rustix::io::write(
-        &rustix::io::stderr(),
-        b"unimplemented: pthread_key_create\n",
-    )
-    .ok();
-    0
-}
-
-#[no_mangle]
-unsafe extern "C" fn pthread_key_delete() -> c_int {
-    //libc!(libc::pthread_key_delete());
-    rustix::io::write(
-        &rustix::io::stderr(),
-        b"unimplemented: pthread_key_delete\n",
-    )
-    .ok();
-    0
-}
-
-#[no_mangle]
 unsafe extern "C" fn pthread_mutexattr_destroy(attr: *mut PthreadMutexattrT) -> c_int {
     libc!(libc::pthread_mutexattr_destroy(checked_cast!(attr)));
     ptr::drop_in_place(attr);
@@ -261,9 +230,15 @@ unsafe extern "C" fn pthread_mutex_init(
         checked_cast!(mutex),
         checked_cast!(mutexattr)
     ));
-    let kind = (*mutexattr).kind.load(SeqCst);
+    let kind = if mutexattr.is_null() {
+        libc::PTHREAD_MUTEX_DEFAULT as u32
+    } else {
+        (*mutexattr).kind.load(SeqCst)
+    };
+
     match kind as i32 {
-        libc::PTHREAD_MUTEX_NORMAL => ptr::write(&mut (*mutex).u.normal, RawMutex::INIT),
+        #[allow(unreachable_patterns)]
+        libc::PTHREAD_MUTEX_DEFAULT | libc::PTHREAD_MUTEX_NORMAL => ptr::write(&mut (*mutex).u.normal, RawMutex::INIT),
         libc::PTHREAD_MUTEX_RECURSIVE => {
             ptr::write(&mut (*mutex).u.reentrant, RawReentrantMutex::INIT)
         }
@@ -353,17 +328,6 @@ unsafe extern "C" fn pthread_rwlock_unlock(rwlock: *mut PthreadRwlockT) -> c_int
     } else {
         (*rwlock).lock.unlock_shared();
     }
-    0
-}
-
-#[no_mangle]
-unsafe extern "C" fn pthread_setspecific() -> c_int {
-    //libc!(libc::pthread_setspecific());
-    rustix::io::write(
-        &rustix::io::stderr(),
-        b"unimplemented: pthread_getspecific\n",
-    )
-    .ok();
     0
 }
 
