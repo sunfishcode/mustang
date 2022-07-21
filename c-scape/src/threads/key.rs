@@ -14,18 +14,11 @@ struct KeyData {
     dtor: Option<unsafe extern "C" fn(_: *mut c_void)>,
 }
 
-impl KeyData {
-    const fn new() -> KeyData {
-        KeyData {
-            data: null_mut(),
-            dtor: None,
-        }
-    }
-}
+const KEYDATA_INIT = Cell::new(KeyData::new());
 
 #[thread_local]
 static VALUES: [Cell<KeyData>; PTHREAD_KEYS_MAX as usize] =
-    [Cell::new(KeyData::new()); PTHREAD_KEYS_MAX as usize];
+    [KEYDATA_INIT; PTHREAD_KEYS_MAX as usize];
 
 #[no_mangle]
 unsafe extern "C" fn pthread_getspecific(key: libc::pthread_key_t) -> *mut c_void {
