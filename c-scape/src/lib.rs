@@ -7,6 +7,7 @@
 #![feature(untagged_unions)] // for `PthreadMutexT`
 #![feature(atomic_mut_ptr)] // for `RawMutex`
 #![feature(strict_provenance)]
+#![feature(inline_const)]
 #![feature(sync_unsafe_cell)]
 #![feature(core_c_str)] // for `core::ffi::CStr`
 #![deny(fuzzy_provenance_casts)]

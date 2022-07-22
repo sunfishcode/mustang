@@ -7,7 +7,7 @@ use libc::{c_int, c_void};
 
 use origin::sync::RwLock;
 
-const PTHREAD_KEYS_MAX: u32 = 128;
+const PTHREAD_KEYS_MAX: u32 = 1024;
 const PTHREAD_DESTRUCTOR_ITERATIONS: u8 = 4;
 
 #[derive(Clone, Copy)]
