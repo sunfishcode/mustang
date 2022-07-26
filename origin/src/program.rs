@@ -171,6 +171,7 @@ pub fn at_exit(func: Box<dyn FnOnce() + Send>) {
 pub fn exit(status: c_int) -> ! {
     // Call functions registered with `at_thread_exit`.
     #[cfg(target_vendor = "mustang")]
+    #[cfg(feature = "threads")]
     crate::threads::call_thread_dtors(crate::current_thread());
 
     // Call all the registered functions, in reverse order. Leave `DTORS`
