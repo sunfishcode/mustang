@@ -169,6 +169,10 @@ pub fn at_exit(func: Box<dyn FnOnce() + Send>) {
 /// Call all the functions registered with [`at_exit`] or with the
 /// `.fini_array` section, and exit the program.
 pub fn exit(status: c_int) -> ! {
+    // Call functions registered with `at_thread_exit`.
+    #[cfg(target_vendor = "mustang")]
+    crate::threads::call_thread_dtors(crate::current_thread());
+
     // Call all the registered functions, in reverse order. Leave `DTORS`
     // unlocked while making the call so that functions can add more functions
     // to the end of the list.
