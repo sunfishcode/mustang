@@ -641,7 +641,6 @@ unsafe extern "C" fn pthread_exit() -> c_int {
     unimplemented!("pthread_exit")
 }
 
-
 // TODO: The ordering that we need here is
 // all the pthread_cleanup functions,
 // then all thread-local dtors,
