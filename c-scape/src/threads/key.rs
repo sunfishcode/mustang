@@ -1,12 +1,13 @@
 use alloc::boxed::Box;
 use core::cell::Cell;
 use core::ptr::{null, null_mut};
-use core::sync::atomic::{AtomicU16, Ordering};
+use core::sync::atomic::{AtomicU32, Ordering};
 use errno::{set_errno, Errno};
 use libc::{c_int, c_void};
 
 use origin::sync::RwLock;
 
+#[cfg(target_env = "gnu")]
 const PTHREAD_KEYS_MAX: u32 = 1024;
 const PTHREAD_DESTRUCTOR_ITERATIONS: u8 = 4;
 
@@ -18,7 +19,7 @@ struct KeyData {
 
 #[derive(Clone, Copy)]
 struct ValueWithEpoch {
-    epoch: u16,
+    epoch: u32,
     data: *mut c_void,
 }
 
@@ -36,8 +37,8 @@ static KEY_DATA: RwLock<KeyData> = RwLock::new(KeyData {
     destructors: [None; PTHREAD_KEYS_MAX as usize],
 });
 
-static EPOCHS: [AtomicU16; PTHREAD_KEYS_MAX as usize] =
-    [const { AtomicU16::new(0) }; PTHREAD_KEYS_MAX as usize];
+static EPOCHS: [AtomicU32; PTHREAD_KEYS_MAX as usize] =
+    [const { AtomicU32::new(0) }; PTHREAD_KEYS_MAX as usize];
 
 // This uses an epoch-based system for differentiating between
 // reused keys corresponding to the same slot.
