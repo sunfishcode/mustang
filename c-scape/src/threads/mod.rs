@@ -641,6 +641,14 @@ unsafe extern "C" fn pthread_exit() -> c_int {
     unimplemented!("pthread_exit")
 }
 
+
+// TODO: The ordering that we need here is
+// all the pthread_cleanup functions,
+// then all thread-local dtors,
+// and then finally all static
+// (`__cxa_thread_atexit_impl`) dtors.
+//
+// We don't have the mechanism for that yet though.
 #[no_mangle]
 unsafe extern "C" fn pthread_cleanup_push() -> c_int {
     //libc!(libc::pthread_cleanup_push());
@@ -682,6 +690,8 @@ unsafe extern "C" fn pthread_atfork(
     0
 }
 
+// TODO: See comment on `pthread_clean_push` about the
+// ordering gurantees that programs expect.
 #[no_mangle]
 unsafe extern "C" fn __cxa_thread_atexit_impl(
     func: unsafe extern "C" fn(*mut c_void),

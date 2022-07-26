@@ -73,13 +73,6 @@ unsafe extern "C" fn pthread_setspecific(key: libc::pthread_key_t, value: *const
     // If this is the first-time we have gotten here,
     // we need to actually register the dtors for cleanup.
     if !HAS_REGISTERED_CLEANUP.get() {
-        // TODO: The ordering that we need here is
-        // all the pthread_cleanup functions,
-        // then all thread-local dtors,
-        // and then finally all static
-        // (`__cxa_thread_atexit_impl`) dtors.
-        //
-        // We don't have the mechanism for that yet though.
         origin::at_thread_exit(Box::new(move || {
             for _ in 0..PTHREAD_DESTRUCTOR_ITERATIONS {
                 let mut ran_dtor = false;
