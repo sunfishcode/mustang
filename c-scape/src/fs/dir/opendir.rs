@@ -33,7 +33,7 @@ unsafe extern "C" fn fdopendir(fd: c_int) -> *mut c_void {
     match convert_res(rustix::fs::Dir::read_from(BorrowedFd::borrow_raw(fd))) {
         Some(dir) => Box::into_raw(Box::new(CScapeDir {
             dir,
-            dirent: zeroed(),
+            storage: zeroed(),
             fd: OwnedFd::from_raw_fd(fd),
         }))
         .cast(),

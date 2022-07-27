@@ -1,7 +1,9 @@
+mod key;
+
 use alloc::boxed::Box;
 use core::convert::TryInto;
 use core::ffi::c_void;
-use core::ptr::{self, null, null_mut};
+use core::ptr::{self, null_mut};
 use core::sync::atomic::Ordering::SeqCst;
 use core::sync::atomic::{AtomicBool, AtomicU32};
 use core::time::Duration;
@@ -179,39 +181,6 @@ unsafe extern "C" fn pthread_attr_getstack(
 }
 
 #[no_mangle]
-unsafe extern "C" fn pthread_getspecific() -> *const c_void {
-    //libc!(libc::pthread_getspecific());
-    rustix::io::write(
-        &rustix::io::stderr(),
-        b"unimplemented: pthread_getspecific\n",
-    )
-    .ok();
-    null()
-}
-
-#[no_mangle]
-unsafe extern "C" fn pthread_key_create() -> c_int {
-    //libc!(libc::pthread_key_create());
-    rustix::io::write(
-        &rustix::io::stderr(),
-        b"unimplemented: pthread_key_create\n",
-    )
-    .ok();
-    0
-}
-
-#[no_mangle]
-unsafe extern "C" fn pthread_key_delete() -> c_int {
-    //libc!(libc::pthread_key_delete());
-    rustix::io::write(
-        &rustix::io::stderr(),
-        b"unimplemented: pthread_key_delete\n",
-    )
-    .ok();
-    0
-}
-
-#[no_mangle]
 unsafe extern "C" fn pthread_mutexattr_destroy(attr: *mut PthreadMutexattrT) -> c_int {
     libc!(libc::pthread_mutexattr_destroy(checked_cast!(attr)));
     ptr::drop_in_place(attr);
@@ -261,7 +230,12 @@ unsafe extern "C" fn pthread_mutex_init(
         checked_cast!(mutex),
         checked_cast!(mutexattr)
     ));
-    let kind = (*mutexattr).kind.load(SeqCst);
+    let kind = if mutexattr.is_null() {
+        libc::PTHREAD_MUTEX_DEFAULT as u32
+    } else {
+        (*mutexattr).kind.load(SeqCst)
+    };
+
     match kind as i32 {
         libc::PTHREAD_MUTEX_NORMAL => ptr::write(&mut (*mutex).u.normal, RawMutex::INIT),
         libc::PTHREAD_MUTEX_RECURSIVE => {
@@ -353,17 +327,6 @@ unsafe extern "C" fn pthread_rwlock_unlock(rwlock: *mut PthreadRwlockT) -> c_int
     } else {
         (*rwlock).lock.unlock_shared();
     }
-    0
-}
-
-#[no_mangle]
-unsafe extern "C" fn pthread_setspecific() -> c_int {
-    //libc!(libc::pthread_setspecific());
-    rustix::io::write(
-        &rustix::io::stderr(),
-        b"unimplemented: pthread_getspecific\n",
-    )
-    .ok();
     0
 }
 
@@ -678,6 +641,13 @@ unsafe extern "C" fn pthread_exit() -> c_int {
     unimplemented!("pthread_exit")
 }
 
+// TODO: The ordering that we need here is
+// all the pthread_cleanup functions,
+// then all thread-local dtors,
+// and then finally all static
+// (`__cxa_thread_atexit_impl`) dtors.
+//
+// We don't have the mechanism for that yet though.
 #[no_mangle]
 unsafe extern "C" fn pthread_cleanup_push() -> c_int {
     //libc!(libc::pthread_cleanup_push());
@@ -719,6 +689,8 @@ unsafe extern "C" fn pthread_atfork(
     0
 }
 
+// TODO: See comment on `pthread_clean_push` about the
+// ordering gurantees that programs expect.
 #[no_mangle]
 unsafe extern "C" fn __cxa_thread_atexit_impl(
     func: unsafe extern "C" fn(*mut c_void),

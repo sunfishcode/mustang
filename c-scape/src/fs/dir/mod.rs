@@ -5,8 +5,13 @@ mod readdir;
 
 use rustix::io::OwnedFd;
 
+union LibcDirStorage {
+    dirent: libc::dirent,
+    dirent64: libc::dirent64,
+}
+
 struct CScapeDir {
     dir: rustix::fs::Dir,
-    dirent: libc::dirent64,
+    storage: LibcDirStorage,
     fd: OwnedFd,
 }
