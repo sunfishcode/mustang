@@ -147,7 +147,9 @@ unsafe extern "C" fn pthread_key_create(
             if dtor.is_none() {
                 // We have to bump the epoch now that we are
                 // reusing slots.
-                EPOCHS[index].fetch_add(1, Ordering::SeqCst);
+                if EPOCHS[index].fetch_add(1, Ordering::SeqCst) == 0 {
+                    panic!("detected epoch counter overflow");
+                }
                 next_key = index as libc::pthread_key_t;
             }
         }
