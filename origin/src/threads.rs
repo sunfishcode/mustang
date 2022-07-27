@@ -274,7 +274,7 @@ pub fn at_thread_exit(func: Box<dyn FnOnce()>) {
 }
 
 /// Call the destructors registered with [`at_thread_exit`].
-fn call_thread_dtors(current: Thread) {
+pub(crate) fn call_thread_dtors(current: Thread) {
     // Run the `dtors`, in reverse order of registration. Note that destructors
     // may register new destructors.
     //
