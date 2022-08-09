@@ -3,6 +3,7 @@ mod key;
 use alloc::boxed::Box;
 use core::convert::TryInto;
 use core::ffi::c_void;
+use core::mem::ManuallyDrop;
 use core::ptr::{self, null_mut};
 use core::sync::atomic::Ordering::SeqCst;
 use core::sync::atomic::{AtomicBool, AtomicU32};
@@ -71,8 +72,8 @@ impl Default for PthreadAttrT {
 #[allow(non_camel_case_types)]
 #[repr(C)]
 union pthread_mutex_u {
-    normal: RawMutex,
-    reentrant: RawReentrantMutex<RawMutex, GetThreadId>,
+    normal: ManuallyDrop<RawMutex>,
+    reentrant: ManuallyDrop<RawReentrantMutex<RawMutex, GetThreadId>>,
 }
 
 #[allow(non_camel_case_types)]
@@ -212,8 +213,8 @@ unsafe extern "C" fn pthread_mutexattr_settype(attr: *mut PthreadMutexattrT, kin
 unsafe extern "C" fn pthread_mutex_destroy(mutex: *mut PthreadMutexT) -> c_int {
     libc!(libc::pthread_mutex_destroy(checked_cast!(mutex)));
     match (*mutex).kind.load(SeqCst) as i32 {
-        libc::PTHREAD_MUTEX_NORMAL => ptr::drop_in_place(&mut (*mutex).u.normal),
-        libc::PTHREAD_MUTEX_RECURSIVE => ptr::drop_in_place(&mut (*mutex).u.reentrant),
+        libc::PTHREAD_MUTEX_NORMAL => ManuallyDrop::drop(&mut (*mutex).u.normal),
+        libc::PTHREAD_MUTEX_RECURSIVE => ManuallyDrop::drop(&mut (*mutex).u.reentrant),
         libc::PTHREAD_MUTEX_ERRORCHECK => unimplemented!("PTHREAD_MUTEX_ERRORCHECK"),
         other => unimplemented!("unsupported pthread mutex kind {}", other),
     }
@@ -237,10 +238,13 @@ unsafe extern "C" fn pthread_mutex_init(
     };
 
     match kind as i32 {
-        libc::PTHREAD_MUTEX_NORMAL => ptr::write(&mut (*mutex).u.normal, RawMutex::INIT),
-        libc::PTHREAD_MUTEX_RECURSIVE => {
-            ptr::write(&mut (*mutex).u.reentrant, RawReentrantMutex::INIT)
+        libc::PTHREAD_MUTEX_NORMAL => {
+            ptr::write(&mut (*mutex).u.normal, ManuallyDrop::new(RawMutex::INIT))
         }
+        libc::PTHREAD_MUTEX_RECURSIVE => ptr::write(
+            &mut (*mutex).u.reentrant,
+            ManuallyDrop::new(RawReentrantMutex::INIT),
+        ),
         libc::PTHREAD_MUTEX_ERRORCHECK => unimplemented!("PTHREAD_MUTEX_ERRORCHECK"),
         other => unimplemented!("unsupported pthread mutex kind {}", other),
     }
