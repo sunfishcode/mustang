@@ -4,7 +4,7 @@ use rustix::fs::{AtFlags, Mode, OFlags};
 use alloc::vec::Vec;
 use core::ffi::CStr;
 
-use crate::{Errno, set_errno};
+use crate::{set_errno, Errno};
 
 use libc::{c_char, c_int};
 
@@ -13,11 +13,7 @@ extern "C" {
 }
 
 #[no_mangle]
-unsafe extern "C" fn execl(
-    path: *const c_char, 
-    arg: *const c_char,
-    mut argv: ...
-) -> c_int {
+unsafe extern "C" fn execl(path: *const c_char, arg: *const c_char, mut argv: ...) -> c_int {
     let mut vec = Vec::new();
     vec.push(arg);
 
@@ -28,16 +24,12 @@ unsafe extern "C" fn execl(
             break;
         }
     }
-    
+
     execv(path, vec.as_ptr())
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn execle(
-    path: *const c_char, 
-    arg: *const c_char,
-    mut argv: ...
-) -> c_int {
+pub unsafe extern "C" fn execle(path: *const c_char, arg: *const c_char, mut argv: ...) -> c_int {
     let mut vec = Vec::new();
     vec.push(arg);
 
@@ -53,11 +45,7 @@ pub unsafe extern "C" fn execle(
 }
 
 #[no_mangle]
-unsafe extern "C" fn execlp(
-    file: *const c_char, 
-    arg: *const c_char,
-    mut argv: ...
-) -> c_int {
+unsafe extern "C" fn execlp(file: *const c_char, arg: *const c_char, mut argv: ...) -> c_int {
     let mut vec = Vec::new();
     vec.push(arg);
 
@@ -68,25 +56,26 @@ unsafe extern "C" fn execlp(
             break;
         }
     }
-    
+
     execvp(file, vec.as_ptr())
 }
 
 #[no_mangle]
-unsafe extern "C" fn execv(
-    prog: *const c_char, 
-    argv: *const *const c_char
-) -> c_int {
+unsafe extern "C" fn execv(prog: *const c_char, argv: *const *const c_char) -> c_int {
     execve(prog, argv, environ as *const _)
 }
 
 #[no_mangle]
 unsafe extern "C" fn execve(
-    prog: *const c_char, 
-    argv: *const *const c_char, 
-    envp: *const *const c_char
+    prog: *const c_char,
+    argv: *const *const c_char,
+    envp: *const *const c_char,
 ) -> c_int {
-    let err = rustix::runtime::execve(CStr::from_ptr(prog), argv as *const *const _, envp as *const *const _);
+    let err = rustix::runtime::execve(
+        CStr::from_ptr(prog),
+        argv as *const *const _,
+        envp as *const *const _,
+    );
 
     set_errno(Errno(err.raw_os_error()));
     -1
@@ -103,7 +92,7 @@ unsafe extern "C" fn execvp(file: *const c_char, argv: *const *const c_char) -> 
         return -1;
     }
 
-    let path = _getenv(rustix::cstr!("PATH"));
+    let path = crate::env::_getenv(rustix::cstr!("PATH"));
     let path = if path.is_null() {
         rustix::cstr!("/bin:/usr/bin")
     } else {
@@ -177,11 +166,17 @@ unsafe extern "C" fn execvp(file: *const c_char, argv: *const *const c_char) -> 
 
 #[no_mangle]
 unsafe extern "C" fn fexecve(
-    fd: c_int, 
-    argv: *const *const c_char, 
-    envp: *const *const c_char
+    fd: c_int,
+    argv: *const *const c_char,
+    envp: *const *const c_char,
 ) -> c_int {
-    let err = rustix::runtime::execveat(BorrowedFd::borrow_raw(fd), rustix::cstr!("") ,argv as *const *const _, envp as *const *const _, AtFlags::EMPTY_PATH);
+    let err = rustix::runtime::execveat(
+        BorrowedFd::borrow_raw(fd),
+        rustix::cstr!(""),
+        argv as *const *const _,
+        envp as *const *const _,
+        AtFlags::EMPTY_PATH,
+    );
 
     // TODO: old kernel support
 
