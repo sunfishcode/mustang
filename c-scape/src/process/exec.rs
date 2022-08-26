@@ -4,11 +4,10 @@ use rustix::fs::{AtFlags, Mode, OFlags};
 use alloc::vec::Vec;
 use core::ffi::CStr;
 
-use crate::{set_errno, Errno};
 use crate::env::environ;
+use crate::{set_errno, Errno};
 
 use libc::{c_char, c_int};
-
 
 #[no_mangle]
 unsafe extern "C" fn execl(path: *const c_char, arg: *const c_char, mut argv: ...) -> c_int {
