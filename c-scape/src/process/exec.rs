@@ -5,12 +5,10 @@ use alloc::vec::Vec;
 use core::ffi::CStr;
 
 use crate::{set_errno, Errno};
+use crate::env::environ;
 
 use libc::{c_char, c_int};
 
-extern "C" {
-    static mut environ: *mut *mut c_char;
-}
 
 #[no_mangle]
 unsafe extern "C" fn execl(path: *const c_char, arg: *const c_char, mut argv: ...) -> c_int {
@@ -135,6 +133,7 @@ unsafe extern "C" fn execvp(file: *const c_char, argv: *const *const c_char) -> 
                 let fd_dec = rustix::path::DecInt::from_fd(&fd);
                 let fd_bytes = fd_dec.as_c_str().to_bytes_with_nul();
                 buf[PREFIX_LEN..PREFIX_LEN + fd_bytes.len()].copy_from_slice(fd_bytes);
+
                 error = rustix::runtime::execve(
                     CStr::from_bytes_with_nul_unchecked(&buf),
                     argv.cast(),
@@ -170,7 +169,7 @@ unsafe extern "C" fn fexecve(
     argv: *const *const c_char,
     envp: *const *const c_char,
 ) -> c_int {
-    let err = rustix::runtime::execveat(
+    let mut error = rustix::runtime::execveat(
         BorrowedFd::borrow_raw(fd),
         rustix::cstr!(""),
         argv as *const *const _,
@@ -178,8 +177,25 @@ unsafe extern "C" fn fexecve(
         AtFlags::EMPTY_PATH,
     );
 
-    // TODO: old kernel support
+    // If `execveat` is unsupported, emulate it with `execve`, without
+    // allocating. This trusts /proc/self/fd.
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    if let rustix::io::Errno::NOSYS = error {
+        const PREFIX: &[u8] = b"/proc/self/fd/";
+        const PREFIX_LEN: usize = PREFIX.len();
+        let mut buf = [0_u8; PREFIX_LEN + 20 + 1];
+        buf[..PREFIX_LEN].copy_from_slice(PREFIX);
+        let fd_dec = rustix::path::DecInt::from_fd(BorrowedFd::borrow_raw(fd));
+        let fd_bytes = fd_dec.as_c_str().to_bytes_with_nul();
+        buf[PREFIX_LEN..PREFIX_LEN + fd_bytes.len()].copy_from_slice(fd_bytes);
 
-    set_errno(Errno(err.raw_os_error()));
+        error = rustix::runtime::execve(
+            CStr::from_bytes_with_nul_unchecked(&buf),
+            argv.cast(),
+            environ.cast(),
+        );
+    }
+
+    set_errno(Errno(error.raw_os_error()));
     -1
 }

@@ -87,4 +87,4 @@ fn init_from_envp(envp: *mut *mut c_char) {
 }
 
 #[no_mangle]
-static mut environ: *mut *mut c_char = null_mut();
+pub(crate) static mut environ: *mut *mut c_char = null_mut();
