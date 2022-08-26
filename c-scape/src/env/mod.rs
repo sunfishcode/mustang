@@ -1,7 +1,5 @@
 use core::ptr::null_mut;
 use core::slice;
-#[cfg(target_vendor = "mustang")]
-use libc::c_ulong;
 use libc::{c_char, c_int};
 use rustix::ffi::CStr;
 
@@ -12,7 +10,7 @@ unsafe extern "C" fn getenv(key: *const c_char) -> *mut c_char {
     _getenv(key)
 }
 
-pub unsafe fn _getenv(key: &CStr) -> *mut c_char {
+pub(crate) unsafe fn _getenv(key: &CStr) -> *mut c_char {
     let mut ptr = environ;
     loop {
         let env = *ptr;
