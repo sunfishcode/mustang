@@ -1,18 +1,18 @@
 mod key;
 
+use crate::convert_res;
 use alloc::boxed::Box;
 use core::convert::TryInto;
-use core::ffi::c_void;
+use core::ffi::{c_void, CStr};
 use core::mem::ManuallyDrop;
 use core::ptr::{self, null_mut};
 use core::sync::atomic::Ordering::SeqCst;
 use core::sync::atomic::{AtomicBool, AtomicU32};
 use core::time::Duration;
+use libc::{c_char, c_int};
 use origin::lock_api::{self, RawMutex as _, RawReentrantMutex, RawRwLock as _};
 use origin::sync::{Condvar, RawMutex, RawRwLock};
 use origin::Thread;
-
-use libc::c_int;
 
 struct GetThreadId;
 
@@ -630,6 +630,20 @@ unsafe extern "C" fn pthread_attr_setstacksize(attr: *mut PthreadAttrT, stacksiz
     ));
     (*attr).stack_size = stacksize;
     0
+}
+
+#[no_mangle]
+unsafe extern "C" fn pthread_setname_np(thread: PthreadT, name: *const c_char) -> c_int {
+    libc!(libc::pthread_setname_np(thread.expose_addr() as _, name));
+
+    if thread == pthread_self() {
+        match convert_res(rustix::runtime::set_thread_name(CStr::from_ptr(name))) {
+            Some(()) => 0,
+            None => -1,
+        }
+    } else {
+        unimplemented!("pthread_setname_np on other threads")
+    }
 }
 
 #[no_mangle]
