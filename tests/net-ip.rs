@@ -1,6 +1,6 @@
 //! The following is derived from Rust's
 //! library/std/src/net/ip/tests.rs at revision
-//! 497ee321af3b8496eaccd7af7b437f18bab81abf.
+//! c1a5ec7faf6c32af2f0aae1af4420e1bb1a3a7fe.
 
 #![feature(ip)]
 #![feature(const_ip)]
@@ -35,6 +35,14 @@ fn test_from_str_ipv4() {
     assert_eq!(None, none);
     // no number between dots
     let none: Option<Ipv4Addr> = "255.0..1".parse().ok();
+    assert_eq!(None, none);
+    // octal
+    let none: Option<Ipv4Addr> = "255.0.0.01".parse().ok();
+    assert_eq!(None, none);
+    // octal zero
+    let none: Option<Ipv4Addr> = "255.0.0.00".parse().ok();
+    assert_eq!(None, none);
+    let none: Option<Ipv4Addr> = "255.0.00.0".parse().ok();
     assert_eq!(None, none);
 }
 
@@ -102,10 +110,10 @@ fn test_from_str_ipv4_in_ipv6() {
     let none: Option<Ipv4Addr> = "::127.0.0.1:".parse().ok();
     assert_eq!(None, none);
     // not enough groups
-    let none: Option<Ipv6Addr> = "1.2.3.4.5:127.0.0.1".parse().ok();
+    let none: Option<Ipv6Addr> = "1:2:3:4:5:127.0.0.1".parse().ok();
     assert_eq!(None, none);
     // too many groups
-    let none: Option<Ipv6Addr> = "1.2.3.4.5:6:7:127.0.0.1".parse().ok();
+    let none: Option<Ipv6Addr> = "1:2:3:4:5:6:7:127.0.0.1".parse().ok();
     assert_eq!(None, none);
 }
 
@@ -312,6 +320,7 @@ fn ip_properties() {
             let global: u8 = 1 << 2;
             let multicast: u8 = 1 << 3;
             let doc: u8 = 1 << 4;
+            let benchmarking: u8 = 1 << 5;
 
             if ($mask & unspec) == unspec {
                 assert!(ip!($s).is_unspecified());
@@ -342,6 +351,12 @@ fn ip_properties() {
             } else {
                 assert!(!ip!($s).is_documentation());
             }
+
+            if ($mask & benchmarking) == benchmarking {
+                assert!(ip!($s).is_benchmarking());
+            } else {
+                assert!(!ip!($s).is_benchmarking());
+            }
         }};
     }
 
@@ -350,6 +365,7 @@ fn ip_properties() {
     let global: u8 = 1 << 2;
     let multicast: u8 = 1 << 3;
     let doc: u8 = 1 << 4;
+    let benchmarking: u8 = 1 << 5;
 
     check!("0.0.0.0", unspec);
     check!("0.0.0.1");
@@ -368,9 +384,9 @@ fn ip_properties() {
     check!("239.255.255.255", global | multicast);
     check!("255.255.255.255");
     // make sure benchmarking addresses are not global
-    check!("198.18.0.0");
-    check!("198.18.54.2");
-    check!("198.19.255.255");
+    check!("198.18.0.0", benchmarking);
+    check!("198.18.54.2", benchmarking);
+    check!("198.19.255.255", benchmarking);
     // make sure addresses reserved for protocol assignment are not global
     check!("192.0.0.0");
     check!("192.0.0.255");
@@ -393,14 +409,15 @@ fn ip_properties() {
     check!("fe80:ffff::");
     check!("febf:ffff::");
     check!("fec0::", global);
-    check!("ff01::", multicast);
-    check!("ff02::", multicast);
-    check!("ff03::", multicast);
-    check!("ff04::", multicast);
-    check!("ff05::", multicast);
-    check!("ff08::", multicast);
+    check!("ff01::", global | multicast);
+    check!("ff02::", global | multicast);
+    check!("ff03::", global | multicast);
+    check!("ff04::", global | multicast);
+    check!("ff05::", global | multicast);
+    check!("ff08::", global | multicast);
     check!("ff0e::", global | multicast);
     check!("2001:db8:85a3::8a2e:370:7334", doc);
+    check!("2001:2::ac32:23ff:21", benchmarking);
     check!("102:304:506:708:90a:b0c:d0e:f10", global);
 }
 
@@ -555,21 +572,22 @@ fn ipv6_properties() {
             assert_eq!(&ip!($s).octets(), octets);
             assert_eq!(Ipv6Addr::from(*octets), ip!($s));
 
-            let unspecified: u16 = 1 << 0;
-            let loopback: u16 = 1 << 1;
-            let unique_local: u16 = 1 << 2;
-            let global: u16 = 1 << 3;
-            let unicast_link_local: u16 = 1 << 4;
-            let unicast_global: u16 = 1 << 7;
-            let documentation: u16 = 1 << 8;
-            let multicast_interface_local: u16 = 1 << 9;
-            let multicast_link_local: u16 = 1 << 10;
-            let multicast_realm_local: u16 = 1 << 11;
-            let multicast_admin_local: u16 = 1 << 12;
-            let multicast_site_local: u16 = 1 << 13;
-            let multicast_organization_local: u16 = 1 << 14;
-            let multicast_global: u16 = 1 << 15;
-            let multicast: u16 = multicast_interface_local
+            let unspecified: u32 = 1 << 0;
+            let loopback: u32 = 1 << 1;
+            let unique_local: u32 = 1 << 2;
+            let global: u32 = 1 << 3;
+            let unicast_link_local: u32 = 1 << 4;
+            let unicast_global: u32 = 1 << 7;
+            let documentation: u32 = 1 << 8;
+            let benchmarking: u32 = 1 << 16;
+            let multicast_interface_local: u32 = 1 << 9;
+            let multicast_link_local: u32 = 1 << 10;
+            let multicast_realm_local: u32 = 1 << 11;
+            let multicast_admin_local: u32 = 1 << 12;
+            let multicast_site_local: u32 = 1 << 13;
+            let multicast_organization_local: u32 = 1 << 14;
+            let multicast_global: u32 = 1 << 15;
+            let multicast: u32 = multicast_interface_local
                 | multicast_admin_local
                 | multicast_global
                 | multicast_link_local
@@ -612,6 +630,11 @@ fn ipv6_properties() {
             } else {
                 assert!(!ip!($s).is_documentation());
             }
+            if ($mask & benchmarking) == benchmarking {
+                assert!(ip!($s).is_benchmarking());
+            } else {
+                assert!(!ip!($s).is_benchmarking());
+            }
             if ($mask & multicast) != 0 {
                 assert!(ip!($s).multicast_scope().is_some());
                 assert!(ip!($s).is_multicast());
@@ -650,20 +673,21 @@ fn ipv6_properties() {
         }
     }
 
-    let unspecified: u16 = 1 << 0;
-    let loopback: u16 = 1 << 1;
-    let unique_local: u16 = 1 << 2;
-    let global: u16 = 1 << 3;
-    let unicast_link_local: u16 = 1 << 4;
-    let unicast_global: u16 = 1 << 7;
-    let documentation: u16 = 1 << 8;
-    let multicast_interface_local: u16 = 1 << 9;
-    let multicast_link_local: u16 = 1 << 10;
-    let multicast_realm_local: u16 = 1 << 11;
-    let multicast_admin_local: u16 = 1 << 12;
-    let multicast_site_local: u16 = 1 << 13;
-    let multicast_organization_local: u16 = 1 << 14;
-    let multicast_global: u16 = 1 << 15;
+    let unspecified: u32 = 1 << 0;
+    let loopback: u32 = 1 << 1;
+    let unique_local: u32 = 1 << 2;
+    let global: u32 = 1 << 3;
+    let unicast_link_local: u32 = 1 << 4;
+    let unicast_global: u32 = 1 << 7;
+    let documentation: u32 = 1 << 8;
+    let benchmarking: u32 = 1 << 16;
+    let multicast_interface_local: u32 = 1 << 9;
+    let multicast_link_local: u32 = 1 << 10;
+    let multicast_realm_local: u32 = 1 << 11;
+    let multicast_admin_local: u32 = 1 << 12;
+    let multicast_site_local: u32 = 1 << 13;
+    let multicast_organization_local: u32 = 1 << 14;
+    let multicast_global: u32 = 1 << 15;
 
     check!(
         "::",
@@ -686,6 +710,72 @@ fn ipv6_properties() {
     check!(
         "1::",
         &[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        global | unicast_global
+    );
+
+    check!(
+        "::ffff:127.0.0.1",
+        &[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0x7f, 0, 0, 1],
+        unicast_global
+    );
+
+    check!(
+        "64:ff9b:1::",
+        &[0, 0x64, 0xff, 0x9b, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        unicast_global
+    );
+
+    check!(
+        "100::",
+        &[0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        unicast_global
+    );
+
+    check!(
+        "2001::",
+        &[0x20, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        unicast_global
+    );
+
+    check!(
+        "2001:1::1",
+        &[0x20, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        global | unicast_global
+    );
+
+    check!(
+        "2001:1::2",
+        &[0x20, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2],
+        global | unicast_global
+    );
+
+    check!(
+        "2001:3::",
+        &[0x20, 1, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        global | unicast_global
+    );
+
+    check!(
+        "2001:4:112::",
+        &[0x20, 1, 0, 4, 1, 0x12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        global | unicast_global
+    );
+
+    check!(
+        "2001:20::",
+        &[0x20, 1, 0, 0x20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        global | unicast_global
+    );
+
+    check!(
+        "2001:30::",
+        &[0x20, 1, 0, 0x30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        unicast_global
+    );
+
+    check!(
+        "2001:200::",
+        &[0x20, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         global | unicast_global
     );
 
@@ -758,37 +848,37 @@ fn ipv6_properties() {
     check!(
         "ff01::",
         &[0xff, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        multicast_interface_local
+        multicast_interface_local | global
     );
 
     check!(
         "ff02::",
         &[0xff, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        multicast_link_local
+        multicast_link_local | global
     );
 
     check!(
         "ff03::",
         &[0xff, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        multicast_realm_local
+        multicast_realm_local | global
     );
 
     check!(
         "ff04::",
         &[0xff, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        multicast_admin_local
+        multicast_admin_local | global
     );
 
     check!(
         "ff05::",
         &[0xff, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        multicast_site_local
+        multicast_site_local | global
     );
 
     check!(
         "ff08::",
         &[0xff, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        multicast_organization_local
+        multicast_organization_local | global
     );
 
     check!(
@@ -801,6 +891,12 @@ fn ipv6_properties() {
         "2001:db8:85a3::8a2e:370:7334",
         &[0x20, 1, 0xd, 0xb8, 0x85, 0xa3, 0, 0, 0, 0, 0x8a, 0x2e, 3, 0x70, 0x73, 0x34],
         documentation
+    );
+
+    check!(
+        "2001:2::ac32:23ff:21",
+        &[0x20, 1, 0, 2, 0, 0, 0, 0, 0, 0, 0xac, 0x32, 0x23, 0xff, 0, 0x21],
+        benchmarking
     );
 
     check!(
@@ -855,7 +951,7 @@ fn ipv4_from_constructors() {
 }
 
 #[test]
-fn ipv6_from_contructors() {
+fn ipv6_from_constructors() {
     assert_eq!(Ipv6Addr::LOCALHOST, Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1));
     assert!(Ipv6Addr::LOCALHOST.is_loopback());
     assert_eq!(Ipv6Addr::UNSPECIFIED, Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0));
@@ -1014,6 +1110,9 @@ fn ipv6_const() {
     const IS_DOCUMENTATION: bool = IP_ADDRESS.is_documentation();
     assert!(!IS_DOCUMENTATION);
 
+    const IS_BENCHMARKING: bool = IP_ADDRESS.is_benchmarking();
+    assert!(!IS_BENCHMARKING);
+
     const IS_UNICAST_GLOBAL: bool = IP_ADDRESS.is_unicast_global();
     assert!(!IS_UNICAST_GLOBAL);
 
@@ -1050,4 +1149,27 @@ fn ip_const() {
 
     const IS_IP_V6: bool = IP_ADDRESS.is_ipv6();
     assert!(!IS_IP_V6);
+}
+
+#[test]
+fn structural_match() {
+    // test that all IP types can be structurally matched upon
+
+    const IPV4: Ipv4Addr = Ipv4Addr::LOCALHOST;
+    match IPV4 {
+        Ipv4Addr::LOCALHOST => {}
+        _ => unreachable!(),
+    }
+
+    const IPV6: Ipv6Addr = Ipv6Addr::LOCALHOST;
+    match IPV6 {
+        Ipv6Addr::LOCALHOST => {}
+        _ => unreachable!(),
+    }
+
+    const IP: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
+    match IP {
+        IpAddr::V4(Ipv4Addr::LOCALHOST) => {}
+        _ => unreachable!(),
+    }
 }
