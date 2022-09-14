@@ -26,7 +26,7 @@ unsafe extern "C" fn execl(path: *const c_char, arg: *const c_char, mut argv: ..
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn execle(path: *const c_char, arg: *const c_char, mut argv: ...) -> c_int {
+unsafe extern "C" fn execle(path: *const c_char, arg: *const c_char, mut argv: ...) -> c_int {
     let mut vec = Vec::new();
     vec.push(arg);
 
