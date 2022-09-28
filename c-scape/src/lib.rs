@@ -358,6 +358,21 @@ unsafe extern "C" fn prctl(
     }
 }
 
+#[cfg(target_os = "linux")]
+#[no_mangle]
+unsafe extern "C" fn pthread_setname_np(
+    thread: libc::pthread_t,
+    name: *const libc::c_char,
+) -> c_int {
+    libc!(libc::pthread_setname_np(thread, name));
+    match convert_res(rustix::runtime::set_thread_name(CStr::from_ptr(
+        name as *const _,
+    ))) {
+        Some(()) => 0,
+        None => -1,
+    }
+}
+
 #[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn raise(_sig: c_int) -> c_int {
