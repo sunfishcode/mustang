@@ -335,7 +335,7 @@ unsafe extern "C" fn sched_getaffinity(
 
 // In Linux, `prctl`'s arguments are described as `unsigned long`, however we
 // use pointer types in order to preserve provenance.
-#[cfg(target_os = "android")]
+#[cfg(any(target_os = "android", target_os = "linux"))]
 #[no_mangle]
 unsafe extern "C" fn prctl(
     option: c_int,
