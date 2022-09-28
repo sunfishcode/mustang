@@ -335,7 +335,7 @@ unsafe extern "C" fn sched_getaffinity(
 
 // In Linux, `prctl`'s arguments are described as `unsigned long`, however we
 // use pointer types in order to preserve provenance.
-#[cfg(any(target_os = "android", target_os = "linux"))]
+#[cfg(target_os = "android")]
 #[no_mangle]
 unsafe extern "C" fn prctl(
     option: c_int,
@@ -355,6 +355,21 @@ unsafe extern "C" fn prctl(
             }
         }
         _ => unimplemented!("unrecognized prctl op {}", option),
+    }
+}
+
+#[cfg(target_os = "linux")]
+#[no_mangle]
+unsafe extern "C" fn pthread_setname_np(
+    thread: libc::pthread_t,
+    name: *const libc::c_char
+) -> c_int {
+    libc!(libc::pthread_setname_np(thread, name));
+    match convert_res(rustix::runtime::set_thread_name(CStr::from_ptr(
+        name as *const _,
+    ))) {
+        Some(()) => 0,
+        None => -1,
     }
 }
 
