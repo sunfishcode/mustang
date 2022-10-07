@@ -1,5 +1,4 @@
 use core::ptr::null_mut;
-use core::slice;
 use libc::{c_int, c_void};
 
 // Obsolescent
@@ -23,7 +22,7 @@ unsafe extern "C" fn memchr(s: *const c_void, c: c_int, len: usize) -> *mut c_vo
     // [memchr crate](https://crates.io/crates/memchr)
     for i in 0..len {
         if *s.cast::<u8>().add(i) == c as u8 {
-            return s.cast::<u8>().add(i).cast::<c_void>();
+            return s.cast::<u8>().add(i).cast::<c_void>() as *mut c_void;
         }
     }
     null_mut()
@@ -38,7 +37,7 @@ unsafe extern "C" fn memrchr(s: *const c_void, c: c_int, len: usize) -> *mut c_v
     // requirements that we can't meet here.
     for i in 0..len {
         if *s.cast::<u8>().add(len - i - 1) == c as u8 {
-            return s.cast::<u8>().add(len - i - 1).cast::<c_void>();
+            return s.cast::<u8>().add(len - i - 1).cast::<c_void>() as *mut c_void;
         }
     }
     null_mut()
