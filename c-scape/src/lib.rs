@@ -49,7 +49,7 @@ use core::convert::TryInto;
 use core::ffi::c_void;
 #[cfg(not(target_os = "wasi"))]
 use core::mem::{size_of, zeroed};
-use core::ptr::{self, null, null_mut};
+use core::ptr::{self, copy_nonoverlapping, null, null_mut};
 use core::slice;
 use errno::{set_errno, Errno};
 use error_str::error_str;
@@ -131,14 +131,18 @@ unsafe extern "C" fn strerror(errnum: c_int) -> *mut c_char {
 unsafe extern "C" fn __xpg_strerror_r(errnum: c_int, buf: *mut c_char, buflen: usize) -> c_int {
     libc!(libc::strerror_r(errnum, buf, buflen));
 
+    if buflen == 0 {
+        return libc::ERANGE;
+    }
+
     let message = match error_str(rustix::io::Errno::from_raw_os_error(errnum)) {
         Some(s) => s.to_owned(),
         None => format!("Unknown error {}", errnum),
     };
-    let min = core::cmp::min(buflen, message.len());
-    let out = slice::from_raw_parts_mut(buf.cast::<u8>(), min);
-    out.copy_from_slice(message.as_bytes());
-    out[out.len() - 1] = b'\0';
+
+    let min = core::cmp::min(buflen - 1, message.len());
+    copy_nonoverlapping(message.as_ptr().cast(), buf, min);
+    buf.add(min).write(b'\0' as libc::c_char);
     0
 }
 
