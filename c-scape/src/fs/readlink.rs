@@ -1,5 +1,6 @@
 use alloc::vec::Vec;
 use core::ffi::CStr;
+use core::ptr::copy_nonoverlapping;
 use rustix::fd::BorrowedFd;
 
 use libc::{c_char, c_int};
@@ -32,6 +33,6 @@ unsafe extern "C" fn readlinkat(
     };
     let bytes = path.as_bytes();
     let min = core::cmp::min(bytes.len(), bufsiz);
-    core::slice::from_raw_parts_mut(buf.cast(), min).copy_from_slice(bytes);
+    copy_nonoverlapping(bytes.as_ptr(), buf.cast(), min);
     min as isize
 }
