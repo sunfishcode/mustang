@@ -16,7 +16,6 @@ mod use_libc;
 
 mod nss;
 mod printf;
-mod rand48;
 mod strtod;
 mod strtol;
 mod time;

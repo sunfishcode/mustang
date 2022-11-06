@@ -65,4 +65,3 @@ See the [libc-replacement example] for more details.
 [mustang]: https://crates.io/crates/mustang
 [tz-rs]: https://crates.io/crates/tz-rs
 [printf-compat]: https://crates.io/crates/printf-compat
-[rand]: https://crates.io/crates/rand

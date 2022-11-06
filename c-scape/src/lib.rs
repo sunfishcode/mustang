@@ -92,6 +92,8 @@ mod net;
 #[cfg(not(target_os = "wasi"))]
 mod process;
 
+mod rand48;
+
 // threads
 #[cfg(feature = "threads")]
 #[cfg(target_vendor = "mustang")]
@@ -152,6 +154,7 @@ unsafe extern "C" fn getrandom(buf: *mut c_void, buflen: usize, flags: u32) -> i
     if buflen == 0 {
         return 0;
     }
+
     let flags = rustix::rand::GetRandomFlags::from_bits(flags & !0x4).unwrap();
     match convert_res(rustix::rand::getrandom(
         slice::from_raw_parts_mut(buf.cast::<u8>(), buflen),
@@ -160,6 +163,39 @@ unsafe extern "C" fn getrandom(buf: *mut c_void, buflen: usize, flags: u32) -> i
         Some(num) => num as isize,
         None => -1,
     }
+}
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+#[no_mangle]
+unsafe extern "C" fn getentropy(buf: *mut c_void, buflen: usize) -> i32 {
+    libc!(libc::getentropy(buf, buflen));
+
+    if buflen == 0 {
+        return 0;
+    }
+
+    if buflen >= 256 {
+        set_errno(Errno(libc::EIO));
+        return -1;
+    }
+
+    let flags = rustix::rand::GetRandomFlags::empty();
+    let slice = slice::from_raw_parts_mut(buf.cast::<u8>(), buflen);
+
+    let mut filled = 0usize;
+
+    while filled < buflen {
+        match rustix::rand::getrandom(&mut slice[filled..], flags) {
+            Ok(num) => filled += num,
+            Err(rustix::io::Errno::INTR) => {}
+            Err(err) => {
+                set_errno(Errno(err.raw_os_error()));
+                return -1;
+            }
+        }
+    }
+
+    return 0;
 }
 
 // process

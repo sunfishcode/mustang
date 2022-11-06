@@ -19,7 +19,6 @@ errno = { version = "0.2.8", default-features = false }
 c-scape = { path = "../c-scape" }
 tz-rs = "0.6.11"
 printf-compat = "0.1.1"
-rand = "0.8.5"
 log = { version = "0.4.14", default-features = false }
 
 [dev-dependencies]
