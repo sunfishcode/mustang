@@ -66,7 +66,7 @@ unsafe extern "C" fn lrand48() -> c_long {
 unsafe extern "C" fn nrand48(x_subi: *mut [c_ushort; 3]) -> c_long {
     //libc!(libc::nrand48(xsubi));
 
-    (next_lcong(x_subi, addr_of!((*STORAGE.get()).data)) >> 17) as i64
+    (next_lcong(x_subi, addr_of!((*STORAGE.get()).data)) >> 17) as c_long
 }
 
 #[no_mangle]
