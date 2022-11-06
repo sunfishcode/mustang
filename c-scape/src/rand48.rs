@@ -3,6 +3,9 @@ use libc::{c_double, c_long, c_ushort};
 use core::cell::SyncUnsafeCell;
 use core::ptr::{addr_of, addr_of_mut};
 
+#[cfg(test)]
+static_assertions::assert_eq_size!(c_ushort, u16);
+
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 struct LCongData {
