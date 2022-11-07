@@ -11,7 +11,7 @@ repository = "https://github.com/sunfishcode/mustang"
 edition = "2021"
 
 [dependencies]
-rustix = { version = "0.35.6", default-features = false, features = ["fs", "itoa", "net", "param", "process", "rand", "termios", "thread", "time"] }
+rustix = { version = "0.36.1", default-features = false, features = ["fs", "itoa", "net", "param", "process", "rand", "termios", "thread", "time"] }
 # We use the libc crate for C ABI types and constants, but we don't depend on
 # the actual platform libc.
 libc = { version = "0.2.126", default-features = false }
