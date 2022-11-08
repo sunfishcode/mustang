@@ -15,7 +15,6 @@ libm = "0.2.1"
 rustix = { version = "0.36.1", default-features = false, features = ["fs", "itoa", "net", "param", "process", "rand", "termios", "thread", "time"] }
 memoffset = "0.6"
 realpath-ext = { version = "0.1.0", default-features = false }
-memchr = { version = "2.4.1", default-features = false }
 sync-resolve = { version = "0.3.0", optional = true }
 origin = { path = "../origin", default-features = false, version = "^0.5.0" }
 log = { version = "0.4.14", default-features = false }

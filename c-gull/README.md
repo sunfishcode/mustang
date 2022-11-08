@@ -17,7 +17,7 @@ c-gull is a libc implementation. It is an implementation of the ABI described
 by the [libc] crate.
 
 It is implemented in terms of crates written in Rust, such as [c-scape],
-[rustix], [origin], [sync-resolve], [libm], [realpath-ext], [memchr], [tz-rs],
+[rustix], [origin], [sync-resolve], [libm], [realpath-ext], [tz-rs],
 [printf-compat], and [rand].
 
 Currently it only supports `*-*-linux-gnu` ABIs, though other ABIs could be
@@ -61,7 +61,6 @@ See the [libc-replacement example] for more details.
 [libm]: https://crates.io/crates/libm
 [libc]: https://crates.io/crates/libc
 [realpath-ext]: https://crates.io/crates/realpath-ext
-[memchr]: https://crates.io/crates/memchr
 [mustang]: https://crates.io/crates/mustang
 [tz-rs]: https://crates.io/crates/tz-rs
 [printf-compat]: https://crates.io/crates/printf-compat

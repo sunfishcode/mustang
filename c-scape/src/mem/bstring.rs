@@ -1,5 +1,4 @@
 use core::ptr::null_mut;
-use core::slice;
 use libc::{c_int, c_void};
 
 // Obsolescent
@@ -15,11 +14,18 @@ unsafe extern "C" fn bcmp(a: *const c_void, b: *const c_void, len: usize) -> c_i
 unsafe extern "C" fn memchr(s: *const c_void, c: c_int, len: usize) -> *mut c_void {
     libc!(libc::memchr(s, c, len));
 
-    let slice: &[u8] = slice::from_raw_parts(s.cast(), len);
-    match memchr::memchr(c as u8, slice) {
-        None => null_mut(),
-        Some(i) => s.cast::<u8>().add(i) as *mut c_void,
+    // It's tempting to use the [memchr crate] to optimize this. However its
+    // API requires a Rust slice, which requires that all `len` bytes of the
+    // buffer be accessible, while the C `memchr` API guarantees that it stops
+    // accessing memory at the first byte that matches.
+    //
+    // [memchr crate](https://crates.io/crates/memchr)
+    for i in 0..len {
+        if *s.cast::<u8>().add(i) == c as u8 {
+            return s.cast::<u8>().add(i).cast::<c_void>() as *mut c_void;
+        }
     }
+    null_mut()
 }
 
 // Extension: GNU
@@ -27,11 +33,14 @@ unsafe extern "C" fn memchr(s: *const c_void, c: c_int, len: usize) -> *mut c_vo
 unsafe extern "C" fn memrchr(s: *const c_void, c: c_int, len: usize) -> *mut c_void {
     libc!(libc::memrchr(s, c, len));
 
-    let slice: &[u8] = slice::from_raw_parts(s.cast(), len);
-    match memchr::memrchr(c as u8, slice) {
-        None => null_mut(),
-        Some(i) => s.cast::<u8>().add(i) as *mut c_void,
+    // As above, it's tempting to use the memchr crate, but the C API here has
+    // requirements that we can't meet here.
+    for i in 0..len {
+        if *s.cast::<u8>().add(len - i - 1) == c as u8 {
+            return s.cast::<u8>().add(len - i - 1).cast::<c_void>() as *mut c_void;
+        }
     }
+    null_mut()
 }
 
 #[no_mangle]
