@@ -3,7 +3,7 @@ mod opendir;
 #[cfg(not(target_os = "wasi"))]
 mod readdir;
 
-use rustix::io::OwnedFd;
+use rustix::fd::OwnedFd;
 
 union LibcDirStorage {
     dirent: libc::dirent,
