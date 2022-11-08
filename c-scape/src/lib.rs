@@ -50,6 +50,7 @@ use core::ffi::c_void;
 #[cfg(not(target_os = "wasi"))]
 use core::mem::{size_of, zeroed};
 use core::ptr::{self, copy_nonoverlapping, null, null_mut};
+use core::slice;
 use errno::{set_errno, Errno};
 use error_str::error_str;
 #[cfg(target_vendor = "mustang")]
