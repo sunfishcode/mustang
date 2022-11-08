@@ -1,6 +1,6 @@
 use core::ffi::CStr;
 
-use core::ptr::null_mut;
+use core::ptr::{copy_nonoverlapping, null_mut};
 use errno::{set_errno, Errno};
 use libc::{c_char, c_void, malloc, memcpy};
 
@@ -21,7 +21,7 @@ unsafe extern "C" fn realpath(path: *const c_char, resolved_path: *mut c_char) -
                     set_errno(Errno(libc::ENOMEM));
                     return null_mut();
                 }
-                core::slice::from_raw_parts_mut(ptr, len).copy_from_slice(&buf[..len]);
+                copy_nonoverlapping(buf.as_ptr().cast(), ptr, len);
                 *ptr.add(len) = b'\0';
                 ptr.cast::<c_char>()
             } else {

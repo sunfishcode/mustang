@@ -2,11 +2,12 @@ mod inet;
 
 #[cfg(feature = "sync-resolve")]
 use alloc::string::ToString;
+use alloc::vec;
 use core::convert::TryInto;
 use core::ffi::{c_void, CStr};
 #[cfg(not(target_os = "wasi"))]
 use core::mem::{size_of, zeroed};
-use core::ptr::null_mut;
+use core::ptr::{copy_nonoverlapping, null_mut};
 use core::slice;
 use errno::{set_errno, Errno};
 use libc::{c_char, c_int, c_uint};
@@ -590,12 +591,20 @@ unsafe extern "C" fn recv(fd: c_int, ptr: *mut c_void, len: usize, flags: c_int)
     libc!(libc::recv(fd, ptr, len, flags));
 
     let flags = RecvFlags::from_bits(flags as _).unwrap();
+
+    // `slice::from_raw_parts_mut` assumes that the memory is initialized,
+    // which our C API here doesn't guarantee. Since rustix currently requires
+    // a slice, use a temporary copy.
+    let mut tmp = vec![0u8; len];
     match convert_res(rustix::net::recv(
         BorrowedFd::borrow_raw(fd),
-        slice::from_raw_parts_mut(ptr.cast::<u8>(), len),
+        &mut tmp,
         flags,
     )) {
-        Some(nread) => nread as isize,
+        Some(nread) => {
+            copy_nonoverlapping(tmp.as_ptr(), ptr.cast::<u8>(), len);
+            nread as isize
+        }
         None => -1,
     }
 }
@@ -614,12 +623,18 @@ unsafe extern "C" fn recvfrom(
     libc!(libc::recvfrom(fd, buf, len, flags, from.cast(), from_len));
 
     let flags = RecvFlags::from_bits(flags as _).unwrap();
+
+    // `slice::from_raw_parts_mut` assumes that the memory is initialized,
+    // which our C API here doesn't guarantee. Since rustix currently requires
+    // a slice, use a temporary copy.
+    let mut tmp = vec![0u8; len];
     match convert_res(rustix::net::recvfrom(
         BorrowedFd::borrow_raw(fd),
-        slice::from_raw_parts_mut(buf.cast::<u8>(), len),
+        &mut tmp,
         flags,
     )) {
         Some((nread, addr)) => {
+            copy_nonoverlapping(tmp.as_ptr(), buf.cast::<u8>(), len);
             if let Some(addr) = addr {
                 let encoded_len = addr.write(from);
                 *from_len = encoded_len.try_into().unwrap();
