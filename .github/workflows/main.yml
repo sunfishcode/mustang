@@ -11,7 +11,7 @@ jobs:
     name: Rustfmt
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: true
     - uses: ./.github/actions/install-rust
@@ -68,7 +68,7 @@ jobs:
             host_target: riscv64gc-unknown-linux-gnu
             mustang_target: riscv64gc-mustang-linux-gnu
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: true
     - uses: ./.github/actions/install-rust
@@ -81,7 +81,7 @@ jobs:
         rustup target add ${{ matrix.target }}
       if: matrix.target != ''
 
-    - uses: actions/cache@v2
+    - uses: actions/cache@v3
       with:
         path: ${{ runner.tool_cache }}/qemu
         key: qemu-${{ matrix.target }}-${{ env.QEMU_BUILD_VERSION }}-patched
