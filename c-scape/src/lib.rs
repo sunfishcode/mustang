@@ -399,6 +399,60 @@ unsafe extern "C" fn prctl(
                 None => -1,
             }
         }
+        libc::PR_GET_PDEATHSIG => match convert_res(rustix::process::parent_process_death_signal())
+        {
+            Some(signal) => {
+                let sig = signal.map(|s| s as u32 as c_int).unwrap_or(0);
+                arg2.cast::<c_int>().write(sig);
+                0
+            }
+            None => -1,
+        },
+        libc::PR_SET_PDEATHSIG => {
+            let arg2_i32 =
+                match convert_res(i32::try_from(arg2.addr()).map_err(|_| rustix::io::Errno::RANGE))
+                {
+                    Some(arg2_i32) => arg2_i32,
+                    None => return -1,
+                };
+            // rustix converts any invalid signal to `None`, but only 0 should get mapped to `None`;
+            // any other invalid signal is an error
+            let sig = if arg2_i32 == 0 {
+                None
+            } else {
+                match convert_res(
+                    rustix::process::Signal::from_raw(arg2_i32).ok_or(rustix::io::Errno::RANGE),
+                ) {
+                    Some(s) => Some(s),
+                    None => return -1,
+                }
+            };
+            match convert_res(rustix::process::set_parent_process_death_signal(sig)) {
+                Some(()) => 0,
+                None => -1,
+            }
+        }
+        libc::PR_GET_DUMPABLE => match convert_res(rustix::process::dumpable_behavior()) {
+            Some(dumpable) => dumpable as i32,
+            None => -1,
+        },
+        libc::PR_SET_DUMPABLE => {
+            let arg2_i32 =
+                match convert_res(i32::try_from(arg2.addr()).map_err(|_| rustix::io::Errno::RANGE))
+                {
+                    Some(arg2_i32) => arg2_i32,
+                    None => return -1,
+                };
+            let dumpable = match convert_res(rustix::process::DumpableBehavior::try_from(arg2_i32))
+            {
+                Some(dumpable) => dumpable,
+                None => return -1,
+            };
+            match convert_res(rustix::process::set_dumpable_behavior(dumpable)) {
+                Some(()) => 0,
+                None => -1,
+            }
+        }
         _ => unimplemented!("unrecognized prctl op {}", option),
     }
 }
