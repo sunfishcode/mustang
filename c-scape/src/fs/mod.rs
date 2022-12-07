@@ -11,6 +11,7 @@ mod readlink;
 mod realpath;
 mod remove;
 mod rename;
+mod sendfile;
 mod stat;
 mod symlink;
 mod sync;
