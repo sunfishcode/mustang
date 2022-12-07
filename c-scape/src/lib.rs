@@ -92,6 +92,7 @@ mod net;
 #[cfg(not(target_os = "wasi"))]
 mod process;
 
+mod rand;
 mod rand48;
 
 // threads
