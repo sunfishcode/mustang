@@ -4,7 +4,7 @@ use rand::Rng;
 use rand_core::SeedableRng;
 use rand_pcg::Pcg32;
 
-use core::cell::SyncUnsafeCell;
+use origin::sync::Mutex;
 
 #[cfg(test)]
 static_assertions::assert_eq_size!(c_uint, u32);
@@ -12,7 +12,7 @@ static_assertions::assert_eq_size!(c_uint, u32);
 // We use PCG32 here, which takes just 16 bytes and offers us a relatively nice
 // non-cryptographic RNG for most applications.
 // TODO: Remove the option once Pcg32 has seedable const fn things
-static STATE: SyncUnsafeCell<Option<Pcg32>> = SyncUnsafeCell::new(None);
+static STATE: Mutex<Option<Pcg32>> = Mutex::new(None);
 
 #[no_mangle]
 unsafe extern "C" fn rand() -> c_int {
@@ -20,12 +20,13 @@ unsafe extern "C" fn rand() -> c_int {
 
     // POSIX requires that if the user hasn't initialized the RNG, it behaves
     // as-if srand(1) was called.
-    if *STATE.get() == None {
-        srand(1);
+    let mut guard = STATE.lock();
+    if *guard == None {
+        internal_seed(&mut guard, 1);
     }
 
     // Sample using a uniform distribution
-    (*STATE.get())
+    (*guard)
         .as_mut()
         .unwrap()
         .gen_range(0..libc::RAND_MAX) as c_int
@@ -35,7 +36,11 @@ unsafe extern "C" fn rand() -> c_int {
 unsafe extern "C" fn srand(seed: c_uint) {
     libc!(libc::srand(seed));
 
-    *STATE.get() = Some(Pcg32::seed_from_u64(seed as u64));
+    internal_seed(&mut STATE.lock(), seed);
+}
+
+fn internal_seed(state: &mut Option<Pcg32>, seed: c_uint) {
+    *state = Some(Pcg32::seed_from_u64(u64::from(seed)));
 }
 
 // `rand_r` gives us at most 32 bits of internal state, which is quite frankly
