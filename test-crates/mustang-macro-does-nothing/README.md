@@ -18,7 +18,7 @@ mustang-macro-does-nothing v0.0.0 (mustang/test-crates/mustang-macro-does-nothin
     ├── c-gull v0.5.1 (mustang/c-gull)
     │   ├── c-scape v0.5.1 (mustang/c-scape)
     │   │   ├── errno v0.2.8
-    │   │   │   └── libc v0.2.126
-    │   │   ├── libc v0.2.126
+    │   │   │   └── libc v0.2.138
+    │   │   ├── libc v0.2.138
 ...
 ```

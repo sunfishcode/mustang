@@ -18,7 +18,7 @@ c-scape = { path = "c-scape", version = "^0.6.1" }
 c-gull = { path = "c-gull", version = "^0.6.1" }
 similar-asserts = "1.1.0"
 rand = "0.8.4"
-libc = "0.2.126"
+libc = "0.2.138"
 
 # Test that the ctor crate works under mustang.
 ctor = "0.1.21"
