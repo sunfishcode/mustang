@@ -19,7 +19,7 @@ unsafe extern "C" fn splice(
 
     let off_in: *mut u64 = checked_cast!(off_in);
     let off_out: *mut u64 = checked_cast!(off_out);
-    
+
     match convert_res(rustix::io::splice(
         BorrowedFd::borrow_raw(fd_in),
         off_in.as_mut(),
