@@ -1,10 +1,12 @@
 use libc::{c_double, c_long, c_ushort};
 
 use core::cell::SyncUnsafeCell;
-use core::ptr::{addr_of, addr_of_mut};
+use core::ptr::addr_of;
 
 #[cfg(test)]
 static_assertions::assert_eq_size!(c_ushort, u16);
+#[cfg(test)]
+static_assertions::assert_type_eq_all!(c_double, f64);
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
@@ -43,42 +45,50 @@ unsafe fn next_lcong(x_subi: *mut [c_ushort; 3], data: *const LCongData) -> u64 
 
 #[no_mangle]
 unsafe extern "C" fn drand48() -> c_double {
-    // libc!(libc::drand48());
+    libc!(libc::drand48());
 
-    erand48(addr_of_mut!((*STORAGE.get()).x_subi))
+    erand48((*STORAGE.get()).x_subi.as_mut_ptr())
 }
 
 #[no_mangle]
-unsafe extern "C" fn erand48(x_subi: *mut [c_ushort; 3]) -> c_double {
-    //libc!(libc::erand48(xsubi));
-    const TO_DIVIDE: c_double = (2i64 << 48) as c_double;
-    next_lcong(x_subi, addr_of!((*STORAGE.get()).data)) as c_double / TO_DIVIDE
+unsafe extern "C" fn erand48(x_subi: *mut c_ushort) -> c_double {
+    libc!(libc::erand48(x_subi));
+
+    let x_subi: *mut [c_ushort; 3] = x_subi.cast();
+
+    let next_integral = next_lcong(x_subi, addr_of!((*STORAGE.get()).data));
+
+    (next_integral >> 11) as f64 * f64::exp2(-53.0)
 }
 
 #[no_mangle]
 unsafe extern "C" fn lrand48() -> c_long {
-    //libc!(libc::lrand48());
+    libc!(libc::lrand48());
 
-    nrand48(addr_of_mut!((*STORAGE.get()).x_subi))
+    nrand48((*STORAGE.get()).x_subi.as_mut_ptr())
 }
 
 #[no_mangle]
-unsafe extern "C" fn nrand48(x_subi: *mut [c_ushort; 3]) -> c_long {
-    //libc!(libc::nrand48(xsubi));
+unsafe extern "C" fn nrand48(x_subi: *mut c_ushort) -> c_long {
+    libc!(libc::nrand48(x_subi));
+
+    let x_subi: *mut [c_ushort; 3] = x_subi.cast();
 
     (next_lcong(x_subi, addr_of!((*STORAGE.get()).data)) >> 17) as c_long
 }
 
 #[no_mangle]
 unsafe extern "C" fn mrand48() -> c_long {
-    //libc!(libc::mrand48());
+    libc!(libc::mrand48());
 
-    jrand48(addr_of_mut!((*STORAGE.get()).x_subi))
+    jrand48((*STORAGE.get()).x_subi.as_mut_ptr())
 }
 
 #[no_mangle]
-unsafe extern "C" fn jrand48(x_subi: *mut [c_ushort; 3]) -> c_long {
-    //libc!(libc::jrand48(xsubi));
+unsafe extern "C" fn jrand48(x_subi: *mut c_ushort) -> c_long {
+    libc!(libc::jrand48(x_subi));
+
+    let x_subi: *mut [c_ushort; 3] = x_subi.cast();
 
     // Cast to i32 so the sign extension works properly
     (next_lcong(x_subi, addr_of!((*STORAGE.get()).data)) >> 16) as i32 as c_long
@@ -86,7 +96,7 @@ unsafe extern "C" fn jrand48(x_subi: *mut [c_ushort; 3]) -> c_long {
 
 #[no_mangle]
 unsafe extern "C" fn srand48(seed: c_long) {
-    //libc!(libc::srand48(seedval));
+    libc!(libc::srand48(seed));
 
     seed48(&mut [0x330e, seed as c_ushort, (seed >> 16) as c_ushort]);
 }
@@ -102,8 +112,10 @@ unsafe extern "C" fn seed48(seed: *mut [c_ushort; 3]) -> *mut c_ushort {
 }
 
 #[no_mangle]
-unsafe extern "C" fn lcong48(param: *mut [c_ushort; 7]) {
-    //libc!(libc::lcong48(param));
+unsafe extern "C" fn lcong48(param: *mut c_ushort) {
+    libc!(libc::lcong48(param));
+
+    let param: *mut [c_ushort; 7] = param.cast();
 
     *STORAGE.get().cast::<[c_ushort; 7]>() = *param;
 }
