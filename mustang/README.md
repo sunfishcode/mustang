@@ -42,6 +42,6 @@ See the [mustang-macro-does-nothing example] for more details.
 
 [mustang-macro-does-nothing example]: https://github.com/sunfishcode/mustang/blob/main/test-crates/mustang-macro-does-nothing/README.md
 [Mustang]: https://github.com/sunfishcode/mustang/
-[here]: https://github.com/sunfishcode/mustang#usage
+[here]: https://github.com/sunfishcode/mustang/blob/main/README.md#usage
 [dlmalloc]: https://crates.io/crates/dlmalloc
 [wee\_alloc]: https://crates.io/crates/wee_alloc
