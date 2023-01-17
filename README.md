@@ -40,6 +40,7 @@ for its part is experimental and has lots of `unsafe`.
 [Rust-idiomatic]: https://docs.rs/origin/latest/origin/
 [`c-scape`]: https://github.com/sunfishcode/mustang/tree/main/c-scape
 [`c-gull`]: https://github.com/sunfishcode/mustang/tree/main/c-gull
+[`mustang`]: https://github.com/sunfishcode/mustang/tree/main/mustang
 [supported by Rust]: https://doc.rust-lang.org/nightly/rustc/platform-support.html
 
 ## Usage
