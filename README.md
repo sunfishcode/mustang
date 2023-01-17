@@ -19,20 +19,27 @@ do not depend on any part of libc or crt1.o, and do not link in any C code.
 Why? For fun! And to exercise some components built for other purposes (such as
 [`rustix`]) but which happen to also be part of what's needed to do what
 Mustang is doing. And in the future, possibly also for experimenting with new
-kinds of platform ABIs and new forms of process argument passing.
+kinds of platform ABIs.
 
-Mustang isn't about making anything safer, for the foreseeable future. The
-major libc implementations are extraordinarily well tested and mature. Mustang
-for its part is experimental and has lots of `unsafe`.
+Mustang is organized as 4 crates:
 
-This also isn't about building a complete libc. It currently includes some
-things with libc-compatible interfaces, just enough to allow it to slide in
-underneath `std`, however even this may not always be necessary. We'll see.
+ - [`origin`], a [Rust-idiomatic] library for program and thread startup and shutdown
+ - [`c-scape`], the `no_std` part of a libc implementation
+ - [`c-gull`], the `std`-using part of a libc implementation
+ - [`mustang`], packages the above into a usable target
 
 Mustang currently runs on Rust Nightly on Linux on x86-64, x86, aarch64, and
 riscv64. It aims to support all Linux versions [supported by Rust], though
 at this time it's only tested on relatively recent versions.
 
+Mustang isn't about making anything safer, for the foreseeable future. The
+major libc implementations are extraordinarily well tested and mature. Mustang
+for its part is experimental and has lots of `unsafe`.
+
+[`origin`]: https://github.com/sunfishcode/mustang/tree/main/origin
+[Rust-idiomatic]: https://docs.rs/origin/latest/origin/
+[`c-scape`]: https://github.com/sunfishcode/mustang/tree/main/c-scape
+[`c-gull`]: https://github.com/sunfishcode/mustang/tree/main/c-gull
 [supported by Rust]: https://doc.rust-lang.org/nightly/rustc/platform-support.html
 
 ## Usage
@@ -178,8 +185,12 @@ simplify and optimize by changing code to call into the Rust interfaces
 directly. This can eliminate many uses of raw pointers and C-style
 NUL-terminated strings, so it can be much safer.
 
+Another similar project is [tiny-std]. Similar to steed, tiny-std contains its
+own implementation of std.
+
 [relibc]: https://gitlab.redox-os.org/redox-os/relibc/
 [steed]: https://github.com/japaric/steed
+[tiny-std]: https://github.com/MarcusGrass/tiny-std
 
 [`steed`]: https://github.com/japaric/steed
 [build-std]: https://doc.rust-lang.org/cargo/reference/unstable.html#build-std
