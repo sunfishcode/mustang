@@ -16,7 +16,7 @@ rustix = { version = "0.36.1", default-features = false, features = ["fs", "itoa
 # the actual platform libc.
 libc = { version = "0.2.138", default-features = false }
 errno = { version = "0.2.8", default-features = false }
-c-scape = { path = "../c-scape", version = "0.6.1" }
+c-scape = { path = "../c-scape", version = "0.6.1", features = ["std"] }
 tz-rs = "0.6.11"
 printf-compat = "0.1.1"
 log = { version = "0.4.14", default-features = false }
