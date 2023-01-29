@@ -293,4 +293,3 @@ fn bench_socket_pipe_socket_copy(b: &mut test::Bencher) {
         );
     });
 }
-
