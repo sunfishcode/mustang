@@ -6,7 +6,6 @@
 
 mustang::can_run_this!();
 
-/* FIXME(mustang): Needs `sendfile` and `splice`.
 mod sys_common;
 
 use std::fs::OpenOptions;
@@ -294,4 +293,3 @@ fn bench_socket_pipe_socket_copy(b: &mut test::Bencher) {
         );
     });
 }
-*/
