@@ -4,6 +4,7 @@
 #![feature(c_variadic)]
 #![deny(fuzzy_provenance_casts)]
 #![deny(lossy_provenance_casts)]
+#![cfg_attr(not(feature = "std"), no_std)]
 
 extern crate c_scape;
 
@@ -14,14 +15,18 @@ pub use libc::*;
 #[macro_use]
 mod use_libc;
 
+#[cfg(feature = "std")]
 mod nss;
+#[cfg(feature = "std")]
 mod printf;
+#[cfg(feature = "std")]
 mod strtod;
+#[cfg(feature = "std")]
 mod strtol;
+#[cfg(feature = "std")]
 mod time;
 
-use std::ffi::CStr;
-
+#[cfg(feature = "std")]
 #[no_mangle]
 unsafe extern "C" fn __assert_fail(
     expr: *const c_char,
@@ -29,6 +34,7 @@ unsafe extern "C" fn __assert_fail(
     line: c_int,
     func: *const c_char,
 ) -> ! {
+    use std::ffi::CStr;
     //libc!(libc::__assert_fail(expr, file, line, func));
 
     eprintln!(

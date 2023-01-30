@@ -11,19 +11,20 @@ repository = "https://github.com/sunfishcode/mustang"
 edition = "2021"
 
 [dependencies]
-rustix = { version = "0.36.1", default-features = false, features = ["fs", "itoa", "net", "param", "process", "rand", "termios", "thread", "time"] }
 # We use the libc crate for C ABI types and constants, but we don't depend on
 # the actual platform libc.
 libc = { version = "0.2.138", default-features = false }
-errno = { version = "0.2.8", default-features = false }
-c-scape = { path = "../c-scape", version = "0.6.1", features = ["std"] }
-tz-rs = "0.6.11"
-printf-compat = "0.1.1"
-log = { version = "0.4.14", default-features = false }
+c-scape = { path = "../c-scape", version = "0.6.1", default-features = false }
+errno = { version = "0.2.8", default-features = false, optional = true }
+tz-rs = { version = "0.6.11", optional = true }
+printf-compat = { version = "0.1.1", optional = true}
+log = { version = "0.4.14", default-features = false, optional = true }
+rustix = { version = "0.36.1", default-features = false, optional = true, features = ["fs", "itoa", "net", "param", "process", "rand", "termios", "thread", "time"] }
 
 [dev-dependencies]
 libc = "0.2.138"
 
 [features]
-default = ["threads"]
+default = ["threads", "std"]
 threads = ["c-scape/threads"]
+std = ["c-scape/default", "rustix", "log", "printf-compat", "tz-rs", "errno"]
