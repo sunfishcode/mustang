@@ -192,3 +192,17 @@ jobs:
         cargo +nightly-2022-11-17 run --target=${{ matrix.host_target }}
       env:
         RUST_BACKTRACE: 1
+
+    - name: test mustang-nostd as program
+      working-directory: test-crates/mustang-nostd
+      run: |
+        cargo +nightly-2022-11-17 run -Zbuild-std=core,alloc --target=../../mustang/target-specs/${{ matrix.mustang_target }}.json
+      env:
+        RUST_BACKTRACE: 1
+
+    - name: test mustang-nostd as tests
+      working-directory: test-crates/mustang-nostd
+      run: |
+        cargo +nightly-2022-11-17 test -Zbuild-std=core,alloc,test,std --target=../../mustang/target-specs/${{ matrix.mustang_target }}.json
+      env:
+        RUST_BACKTRACE: 1
