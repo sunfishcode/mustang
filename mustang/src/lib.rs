@@ -25,7 +25,6 @@ macro_rules! can_run_this {
     () => {};
 }
 
-#[cfg(feature = "std")]
 #[cfg(target_vendor = "mustang")]
 extern crate c_gull;
 #[cfg(target_vendor = "mustang")]

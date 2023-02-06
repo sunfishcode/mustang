@@ -33,7 +33,7 @@ features = [
 
 [target.'cfg(target_vendor = "mustang")'.dependencies]
 origin = { path = "../origin", default-features = false, version = "^0.6.1" }
-c-gull = { path = "../c-gull", version = "^0.6.1", optional = true }
+c-gull = { path = "../c-gull", version = "^0.6.1", default-features = false }
 
 # A general-purpose `global_allocator` implementation.
 dlmalloc = { version = "0.2", features = ["global"], optional = true }
@@ -47,4 +47,4 @@ threads = ["origin/threads", "c-gull/threads"]
 env_logger = ["origin/env_logger"]
 log = ["origin/log"]
 max_level_off = ["origin/max_level_off"]
-std = ["c-gull"]
+std = ["c-gull/default"]

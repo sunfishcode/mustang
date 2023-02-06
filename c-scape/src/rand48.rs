@@ -58,7 +58,7 @@ unsafe extern "C" fn erand48(x_subi: *mut c_ushort) -> c_double {
 
     let next_integral = next_lcong(x_subi, addr_of!((*STORAGE.get()).data));
 
-    (next_integral >> 11) as f64 * f64::exp2(-53.0)
+    (next_integral >> 11) as f64 * libm::exp2(-53.0)
 }
 
 #[no_mangle]

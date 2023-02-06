@@ -1,0 +1,12 @@
+[package]
+name = "mustang-nostd"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# The mustang crate provides the `can_run_this!()` macro.
+mustang = { path = "../../mustang", default-features = false, features = ["threads", "default-alloc"] }
+
+[workspace]
