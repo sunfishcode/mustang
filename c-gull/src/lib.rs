@@ -20,6 +20,8 @@ mod nss;
 #[cfg(feature = "std")]
 mod printf;
 #[cfg(feature = "std")]
+mod resolve;
+#[cfg(feature = "std")]
 mod strtod;
 #[cfg(feature = "std")]
 mod strtol;
