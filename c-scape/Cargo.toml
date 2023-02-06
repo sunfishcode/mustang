@@ -15,7 +15,6 @@ libm = "0.2.1"
 rustix = { version = "0.36.1", default-features = false, features = ["fs", "itoa", "net", "param", "process", "rand", "termios", "thread", "time"] }
 memoffset = "0.8.0"
 realpath-ext = { version = "0.1.0", default-features = false }
-sync-resolve = { version = "0.3.0", optional = true }
 origin = { path = "../origin", default-features = false, version = "^0.6.1" }
 log = { version = "0.4.14", default-features = false }
 # We use the libc crate for C ABI types and constants, but we don't depend on
@@ -38,8 +37,6 @@ paste = "1.0.5"
 once_cell = "1.8.0"
 
 [features]
-default = ["threads", "resolve", "net"]
+default = ["threads", "std"]
 threads = ["origin/threads", "origin/set_thread_id"]
-resolve = ["sync-resolve", "std"]
 std = ["rustix/std"]
-net = []

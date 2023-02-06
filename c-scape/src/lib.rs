@@ -85,7 +85,6 @@ mod mem;
 mod mmap;
 
 // net
-#[cfg(feature = "net")]
 mod net;
 
 // process
