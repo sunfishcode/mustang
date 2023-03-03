@@ -93,7 +93,7 @@ unsafe extern "C" fn copy_file_range(
         off_in,
         BorrowedFd::borrow_raw(fd_out),
         off_out,
-        len as u64,
+        len,
     )) {
         Some(n) => n as _,
         None => -1,
