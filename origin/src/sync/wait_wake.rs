@@ -40,7 +40,7 @@ pub fn futex_wait(futex: &AtomicU32, expected: u32, timeout: Option<Duration>) -
         // absolute time rather than a relative time.
         let r = unsafe {
             rustix::thread::futex(
-                futex.as_mut_ptr(),
+                futex.as_ptr(),
                 FutexOperation::WaitBitset,
                 FutexFlags::PRIVATE,
                 expected,
@@ -66,7 +66,7 @@ pub fn futex_wake(futex: &AtomicU32) -> bool {
     use core::ptr::{null, null_mut};
     unsafe {
         rustix::thread::futex(
-            futex.as_mut_ptr(),
+            futex.as_ptr(),
             FutexOperation::Wake,
             FutexFlags::PRIVATE,
             1,
@@ -83,7 +83,7 @@ pub fn futex_wake_all(futex: &AtomicU32) {
     use core::ptr::{null, null_mut};
     unsafe {
         rustix::thread::futex(
-            futex.as_mut_ptr(),
+            futex.as_ptr(),
             FutexOperation::Wake,
             FutexFlags::PRIVATE,
             i32::MAX as u32,
