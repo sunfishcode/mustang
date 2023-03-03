@@ -40,7 +40,7 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
     let env = "gnu";
 
     let mut command = Command::new("cargo");
-    command.arg("+nightly-2022-11-17").arg("run").arg("--quiet");
+    command.arg("+nightly-2023-03-02").arg("run").arg("--quiet");
     if !features.is_empty() {
         command
             .arg("--no-default-features")

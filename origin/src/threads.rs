@@ -617,7 +617,7 @@ pub fn create_thread(
             | CloneFlags::CHILD_CLEARTID
             | CloneFlags::CHILD_SETTID
             | CloneFlags::PARENT_SETTID;
-        let thread_id_ptr = (*metadata).thread.thread_id.as_mut_ptr();
+        let thread_id_ptr = (*metadata).thread.thread_id.as_ptr();
         #[cfg(target_arch = "x86_64")]
         let clone_res = clone(
             flags.bits(),
@@ -729,7 +729,7 @@ unsafe fn wait_for_thread_exit(thread: Thread) {
         // as arranged by the `CloneFlags::CHILD_CLEARTID` flag,
         // and Linux doesn't use the private flag for the wake.
         match futex(
-            thread_id.as_mut_ptr(),
+            thread_id.as_ptr(),
             FutexOperation::Wait,
             FutexFlags::empty(),
             id_value.as_raw_nonzero().get(),

@@ -1,6 +1,4 @@
 #![feature(lang_items)]
-// TODO: Remove when updating toolchain for tests
-#![feature(default_alloc_error_handler)]
 #![no_std]
 // When testing we do not want to use our main function
 #![cfg_attr(not(test), no_main)]
