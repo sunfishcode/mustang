@@ -45,7 +45,7 @@ unsafe extern "C" fn getpwuid_r(
     let dec_int = DecInt::new(uid);
     let name = OsStr::from_bytes(dec_int.as_bytes());
     let mut command = Command::new("getent");
-    command.arg("passwd").arg(&name);
+    command.arg("passwd").arg(name);
     getpw_r(command, pwd, buf, buflen, result)
 }
 
@@ -78,7 +78,7 @@ unsafe extern "C" fn getgrgid_r(
     let dec_int = DecInt::new(gid);
     let name = OsStr::from_bytes(dec_int.as_bytes());
     let mut command = Command::new("getent");
-    command.arg("group").arg(&name);
+    command.arg("group").arg(name);
     getgr_r(command, grp, buf, buflen, result)
 }
 
