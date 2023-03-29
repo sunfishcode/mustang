@@ -7,6 +7,8 @@ mod pipe;
 mod poll;
 mod read;
 mod splice;
+#[cfg(any(target_os = "android", target_os = "linux"))]
+mod timerfd;
 mod write;
 
 use rustix::fd::{BorrowedFd, IntoRawFd};
