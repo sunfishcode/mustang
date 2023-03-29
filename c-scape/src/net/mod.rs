@@ -244,6 +244,16 @@ unsafe extern "C" fn getsockopt(
                 optval,
                 optlen,
             ),
+            libc::SO_ERROR => sockopt::get_socket_error(fd).map(|err| {
+                write::<i32>(
+                    match err {
+                        Ok(()) => 0,
+                        Err(errno) => errno.raw_os_error(),
+                    },
+                    optval.cast::<i32>(),
+                    optlen,
+                )
+            }),
             _ => unimplemented!("unimplemented getsockopt SOL_SOCKET optname {:?}", optname),
         },
         libc::IPPROTO_IP => match optname {
