@@ -8,15 +8,20 @@
 /// cast.
 macro_rules! checked_cast {
     ($ptr:expr) => {{
-        let target_ptr = $ptr.cast();
-        let target = crate::use_libc::Pad::new(core::ptr::read(target_ptr));
+        let src_ptr = $ptr;
+        let target_ptr = src_ptr.cast();
 
-        // Uses the fact that the compiler checks for size equality,
-        // when transmuting between types.
-        let size_check = core::mem::transmute(core::ptr::read($ptr));
-        target.compare_size(size_check);
-        let align_check = core::mem::transmute(crate::use_libc::Pad::new(core::ptr::read($ptr)));
-        target.compare_alignment(align_check);
+        if !src_ptr.is_null() {
+            let target = crate::use_libc::Pad::new(core::ptr::read(target_ptr));
+
+            // Uses the fact that the compiler checks for size equality,
+            // when transmuting between types.
+            let size_check = core::mem::transmute(core::ptr::read(src_ptr));
+            target.compare_size(size_check);
+            let align_check =
+                core::mem::transmute(crate::use_libc::Pad::new(core::ptr::read(src_ptr)));
+            target.compare_alignment(align_check);
+        }
 
         target_ptr
     }};

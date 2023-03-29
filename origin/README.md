@@ -22,7 +22,7 @@ shutdown are traditionally implemented in libpthread functions
 `pthread_create`, `pthread_join`, `pthread_detach`, and so on. Origin provides
 its own implementations of this functionality, written in Rust.
 
-For an C-ABI-compatible interface to this functionality, see [c-scape].
+For a C-ABI-compatible interface to this functionality, see [c-scape].
 
 This is part of the [Mustang] project, building Rust programs written entirely
 in Rust. When compiled for non-mustang targets, this library uses the system

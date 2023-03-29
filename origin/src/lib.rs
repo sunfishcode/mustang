@@ -3,7 +3,6 @@
 #![feature(asm_const)]
 #![feature(naked_functions)]
 #![feature(link_llvm_intrinsics)]
-#![feature(atomic_mut_ptr)]
 #![feature(strict_provenance)]
 #![deny(fuzzy_provenance_casts)]
 #![deny(lossy_provenance_casts)]

@@ -4,7 +4,6 @@
 #![feature(thread_local)] // for `__errno_location`
 #![feature(c_variadic)] // for `ioctl` etc.
 #![feature(rustc_private)] // for compiler-builtins
-#![feature(atomic_mut_ptr)] // for `RawMutex`
 #![feature(strict_provenance)]
 #![feature(inline_const)]
 #![feature(sync_unsafe_cell)]
