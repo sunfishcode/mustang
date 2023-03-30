@@ -41,3 +41,24 @@ unsafe extern "C" fn fgetxattr(
     set_errno(Errno(libc::ENOTSUP));
     -1
 }
+
+#[no_mangle]
+unsafe extern "C" fn listxattr(path: *const c_char, list: *mut c_char, size: size_t) -> ssize_t {
+    libc!(libc::listxattr(path, list, size));
+    set_errno(Errno(libc::ENOTSUP));
+    -1
+}
+
+#[no_mangle]
+unsafe extern "C" fn llistxattr(path: *const c_char, list: *mut c_char, size: size_t) -> ssize_t {
+    libc!(libc::llistxattr(path, list, size));
+    set_errno(Errno(libc::ENOTSUP));
+    -1
+}
+
+#[no_mangle]
+unsafe extern "C" fn flistxattr(fd: c_int, list: *mut c_char, size: size_t) -> ssize_t {
+    libc!(libc::flistxattr(fd, list, size));
+    set_errno(Errno(libc::ENOTSUP));
+    -1
+}
