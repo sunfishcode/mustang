@@ -17,6 +17,7 @@ mod symlink;
 mod sync;
 mod truncate;
 mod utime;
+mod xattr;
 
 use core::ffi::CStr;
 use rustix::fd::BorrowedFd;
