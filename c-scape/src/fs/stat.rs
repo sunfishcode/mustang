@@ -150,3 +150,52 @@ unsafe extern "C" fn fstat64(fd: c_int, stat_: *mut libc::stat64) -> c_int {
         None => -1,
     }
 }
+
+#[no_mangle]
+unsafe extern "C" fn statfs64(path: *const c_char, stat_: *mut libc::statfs64) -> c_int {
+    libc!(libc::statfs64(path, stat_));
+    let stat_: *mut rustix::fs::StatFs = checked_cast!(stat_);
+
+    match convert_res(rustix::fs::statfs(CStr::from_ptr(path.cast()))) {
+        Some(r) => {
+            *stat_ = r;
+            0
+        }
+        None => -1,
+    }
+}
+
+#[no_mangle]
+unsafe extern "C" fn statfs(path: *const c_char, stat_: *mut libc::statfs) -> c_int {
+    libc!(libc::statfs(path, stat_));
+
+    match convert_res(rustix::fs::statfs(CStr::from_ptr(path.cast()))) {
+        Some(r) => {
+            #[cfg(target_os = "linux")]
+            {
+                // TODO: This doesn't assign `f_fsid` because the Rust libc crate
+                // declares it with private fields.
+                let mut converted = core::mem::zeroed::<libc::statfs>();
+                converted.f_type = r.f_type.try_into().unwrap();
+                converted.f_bsize = r.f_bsize.try_into().unwrap();
+                converted.f_blocks = r.f_blocks.try_into().unwrap();
+                converted.f_bfree = r.f_bfree.try_into().unwrap();
+                converted.f_bavail = r.f_bavail.try_into().unwrap();
+                converted.f_files = r.f_files.try_into().unwrap();
+                converted.f_ffree = r.f_ffree.try_into().unwrap();
+                converted.f_namelen = r.f_namelen.try_into().unwrap();
+                converted.f_frsize = r.f_frsize.try_into().unwrap();
+
+                *stat_ = converted;
+            }
+
+            #[cfg(not(target_os = "linux"))]
+            {
+                *stat_ = r;
+            }
+
+            0
+        }
+        None => -1,
+    }
+}

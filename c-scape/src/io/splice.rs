@@ -32,3 +32,25 @@ unsafe extern "C" fn splice(
         None => -1,
     }
 }
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+#[no_mangle]
+unsafe extern "C" fn vmsplice(
+    fd: c_int,
+    iov: *const libc::iovec,
+    nr_segs: usize,
+    flags: libc::c_uint,
+) -> libc::ssize_t {
+    libc!(libc::vmsplice(fd, iov, nr_segs, flags));
+
+    let bufs = core::slice::from_raw_parts(iov.cast::<rustix::io::IoSliceRaw>(), nr_segs);
+    let flags = SpliceFlags::from_bits(flags).unwrap();
+    match convert_res(rustix::io::vmsplice(
+        BorrowedFd::borrow_raw(fd),
+        bufs,
+        flags,
+    )) {
+        Some(num) => num.try_into().unwrap(),
+        None => -1,
+    }
+}
