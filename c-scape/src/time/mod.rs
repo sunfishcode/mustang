@@ -3,6 +3,8 @@ use core::convert::TryInto;
 use errno::{set_errno, Errno};
 use libc::c_int;
 
+use crate::convert_res;
+
 fn rustix_timespec_to_libc_timespec(
     rustix_time: rustix::time::Timespec,
 ) -> Result<libc::timespec, core::num::TryFromIntError> {
@@ -92,5 +94,26 @@ unsafe extern "C" fn nanosleep(req: *const libc::timespec, rem: *mut libc::times
             set_errno(Errno(err.raw_os_error()));
             -1
         }
+    }
+}
+
+#[no_mangle]
+unsafe extern "C" fn clock_settime(id: c_int, tp: *mut libc::timespec) -> c_int {
+    libc!(libc::clock_settime(id, tp));
+
+    let id = match id {
+        libc::CLOCK_MONOTONIC => rustix::time::ClockId::Monotonic,
+        libc::CLOCK_REALTIME => rustix::time::ClockId::Realtime,
+        _ => panic!("unimplemented clock({})", id),
+    };
+
+    let timespec = rustix::time::Timespec {
+        tv_sec: (*tp).tv_sec.into(),
+        tv_nsec: (*tp).tv_nsec as _,
+    };
+
+    match convert_res(rustix::time::clock_settime(id, timespec)) {
+        Some(()) => 0,
+        None => -1,
     }
 }
