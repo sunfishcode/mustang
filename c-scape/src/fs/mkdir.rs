@@ -27,3 +27,27 @@ unsafe extern "C" fn mkdirat(fd: c_int, pathname: *const c_char, mode: libc::mod
         None => -1,
     }
 }
+
+#[no_mangle]
+unsafe extern "C" fn mkfifo(pathname: *const c_char, mode: libc::mode_t) -> c_int {
+    libc!(libc::mkfifo(pathname, mode));
+
+    mkfifoat(libc::AT_FDCWD, pathname, mode)
+}
+
+#[no_mangle]
+unsafe extern "C" fn mkfifoat(fd: c_int, pathname: *const c_char, mode: libc::mode_t) -> c_int {
+    libc!(libc::mkfifoat(fd, pathname, mode));
+
+    let mode = Mode::from_bits((mode & !libc::S_IFMT) as _).unwrap();
+    match convert_res(rustix::fs::mknodat(
+        BorrowedFd::borrow_raw(fd),
+        CStr::from_ptr(pathname.cast()),
+        rustix::fs::FileType::Fifo,
+        mode,
+        0,
+    )) {
+        Some(()) => 0,
+        None => -1,
+    }
+}
