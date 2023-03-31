@@ -3,6 +3,7 @@ mod access;
 mod chmod;
 mod dir;
 mod fcntl;
+mod inotify;
 mod link;
 mod lseek;
 mod mkdir;
