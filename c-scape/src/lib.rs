@@ -555,9 +555,6 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> *mut c_void {
             let buf = args.arg::<*mut c_void>();
             let len = args.arg::<usize>();
             let flags = args.arg::<u32>();
-            libc!(ptr::invalid_mut(
-                libc::syscall(libc::SYS_getrandom, buf, len, flags) as _
-            ));
             ptr::invalid_mut(getrandom(buf, len, flags) as _)
         }
         #[cfg(feature = "threads")]
@@ -621,17 +618,11 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> *mut c_void {
         }
         libc::SYS_epoll_create1 => {
             let flags = args.arg::<c_int>();
-            libc!(ptr::invalid_mut(
-                libc::syscall(libc::SYS_epoll_create1, flags) as _
-            ));
             ptr::invalid_mut(epoll_create(flags) as isize as usize)
         }
         libc::SYS_timerfd_create => {
             let clockid = args.arg::<c_int>();
             let flags = args.arg::<c_int>();
-            libc!(ptr::invalid_mut(
-                libc::syscall(libc::SYS_timerfd_create, clockid, flags) as _
-            ));
             ptr::invalid_mut(timerfd_create(clockid, flags) as isize as usize)
         }
         libc::SYS_timerfd_settime => {
@@ -639,14 +630,14 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> *mut c_void {
             let flags = args.arg::<c_int>();
             let new_value = args.arg::<*const libc::itimerspec>();
             let old_value = args.arg::<*mut libc::itimerspec>();
-            libc!(ptr::invalid_mut(libc::syscall(
-                libc::SYS_timerfd_settime,
-                fd,
-                flags,
-                new_value,
-                old_value
-            ) as _));
             ptr::invalid_mut(timerfd_settime(fd, flags, new_value, old_value) as isize as usize)
+        }
+        libc::SYS_utimensat => {
+            let fd = args.arg::<c_int>();
+            let path = args.arg::<*const c_char>();
+            let times = args.arg::<*const libc::timespec>();
+            let flags = args.arg::<c_int>();
+            ptr::invalid_mut(utimensat(fd, path, times, flags) as isize as usize)
         }
         _ => unimplemented!("syscall({:?})", number),
     }
