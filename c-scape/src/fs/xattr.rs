@@ -43,6 +43,45 @@ unsafe extern "C" fn fgetxattr(
 }
 
 #[no_mangle]
+unsafe extern "C" fn setxattr(
+    path: *const c_char,
+    name: *const c_char,
+    value: *const c_void,
+    size: size_t,
+    flags: c_int,
+) -> c_int {
+    libc!(libc::setxattr(path, name, value, size, flags));
+    set_errno(Errno(libc::ENOTSUP));
+    -1
+}
+
+#[no_mangle]
+unsafe extern "C" fn lsetxattr(
+    path: *const c_char,
+    name: *const c_char,
+    value: *const c_void,
+    size: size_t,
+    flags: c_int,
+) -> c_int {
+    libc!(libc::lsetxattr(path, name, value, size, flags));
+    set_errno(Errno(libc::ENOTSUP));
+    -1
+}
+
+#[no_mangle]
+unsafe extern "C" fn fsetxattr(
+    fd: c_int,
+    name: *const c_char,
+    value: *const c_void,
+    size: size_t,
+    flags: c_int,
+) -> c_int {
+    libc!(libc::fsetxattr(fd, name, value, size, flags));
+    set_errno(Errno(libc::ENOTSUP));
+    -1
+}
+
+#[no_mangle]
 unsafe extern "C" fn listxattr(path: *const c_char, list: *mut c_char, size: size_t) -> ssize_t {
     libc!(libc::listxattr(path, list, size));
     set_errno(Errno(libc::ENOTSUP));
