@@ -414,8 +414,8 @@ unsafe extern "C" fn prctl(
                     Some(arg2_i32) => arg2_i32,
                     None => return -1,
                 };
-            // rustix converts any invalid signal to `None`, but only 0 should get mapped to `None`;
-            // any other invalid signal is an error
+            // rustix converts any invalid signal to `None`, but only 0 should get mapped
+            // to `None`; any other invalid signal is an error
             let sig = if arg2_i32 == 0 {
                 None
             } else {

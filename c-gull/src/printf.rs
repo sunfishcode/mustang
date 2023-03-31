@@ -14,8 +14,7 @@ use libc::{c_char, c_int, c_void};
 use printf_compat::{format, output};
 use rustix::fd::{FromRawFd, IntoRawFd};
 use std::cmp::min;
-use std::ffi::CStr;
-use std::ffi::VaList;
+use std::ffi::{CStr, VaList};
 use std::io::{stderr as rust_stderr, stdout as rust_stdout, Write};
 use std::ptr::copy_nonoverlapping;
 

@@ -1,4 +1,6 @@
-use core::{ffi::CStr, mem::zeroed, ptr::null_mut};
+use core::ffi::CStr;
+use core::mem::zeroed;
+use core::ptr::null_mut;
 
 use errno::{set_errno, Errno};
 use libc::{c_char, c_int};
