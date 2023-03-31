@@ -25,6 +25,7 @@ unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
     const TCGETS: c_long = libc::TCGETS as c_long;
     const FIONBIO: c_long = libc::FIONBIO as c_long;
     const TIOCGWINSZ: c_long = libc::TIOCGWINSZ as c_long;
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64"))]
     const FICLONE: c_long = libc::FICLONE as c_long;
     match request {
         TCGETS => {
@@ -59,6 +60,8 @@ unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
                 None => -1,
             }
         }
+        // TODO: Enable this on more architectures when libc is updated.
+        #[cfg(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64"))]
         FICLONE => {
             let src_fd = args.arg::<c_int>();
             libc!(libc::ioctl(fd, libc::FICLONE, src_fd));
