@@ -7,6 +7,7 @@ mod gid;
 mod groups;
 mod kill;
 mod pid;
+mod rlimit;
 mod sid;
 mod uid;
 mod umask;
