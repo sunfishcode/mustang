@@ -88,12 +88,12 @@ fn rlimit_to_rustix(limit: libc::rlimit) -> Rlimit {
         current: if limit.rlim_cur == RLIM_INFINITY {
             None
         } else {
-            Some(limit.rlim_cur)
+            Some(limit.rlim_cur.into())
         },
         maximum: if limit.rlim_max == RLIM_INFINITY {
             None
         } else {
-            Some(limit.rlim_max)
+            Some(limit.rlim_max.into())
         },
     }
 }
@@ -116,11 +116,11 @@ fn rlimit64_to_rustix(limit: libc::rlimit64) -> Rlimit {
 fn rustix_to_rlimit(limit: Rlimit) -> libc::rlimit {
     libc::rlimit {
         rlim_cur: match limit.current {
-            Some(lim) => lim,
+            Some(lim) => lim.try_into().unwrap(),
             None => RLIM_INFINITY,
         },
         rlim_max: match limit.maximum {
-            Some(lim) => lim,
+            Some(lim) => lim.try_into().unwrap(),
             None => RLIM_INFINITY,
         },
     }
