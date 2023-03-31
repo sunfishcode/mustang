@@ -23,3 +23,20 @@ unsafe extern "C" fn fdatasync(fd: c_int) -> c_int {
         None => -1,
     }
 }
+
+#[no_mangle]
+unsafe extern "C" fn syncfs(fd: c_int) -> c_int {
+    libc!(libc::syncfs(fd));
+
+    match convert_res(rustix::fs::syncfs(BorrowedFd::borrow_raw(fd))) {
+        Some(()) => 0,
+        None => -1,
+    }
+}
+
+#[no_mangle]
+unsafe extern "C" fn sync() {
+    libc!(libc::sync());
+
+    rustix::fs::sync()
+}
