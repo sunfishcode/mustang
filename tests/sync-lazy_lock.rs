@@ -2,7 +2,7 @@
 //! library/std/src/sync/lazy_lock/tests.rs at revision
 //! c1a2db3372a4d6896744919284f3287650a38ab7.
 
-#![feature(once_cell)]
+#![feature(lazy_cell)]
 
 mustang::can_run_this!();
 

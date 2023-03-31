@@ -2,7 +2,8 @@
 //! library/std/src/lazy/tests.rs at revision
 //! 497ee321af3b8496eaccd7af7b437f18bab81abf.
 
-#![feature(once_cell)]
+#![feature(once_cell_try)]
+#![feature(lazy_cell)]
 
 mustang::can_run_this!();
 
