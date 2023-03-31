@@ -102,19 +102,62 @@ unsafe extern "C" fn copy_file_range(
 }
 
 #[no_mangle]
-unsafe extern "C" fn chown() {
-    //libc!(libc::chown());
-    unimplemented!("chown")
+unsafe extern "C" fn chown(
+    pathname: *const c_char,
+    owner: libc::uid_t,
+    group: libc::gid_t,
+) -> c_int {
+    libc!(libc::chown(pathname, owner, group));
+
+    let pathname = CStr::from_ptr(pathname);
+    let owner = Some(rustix::process::Uid::from_raw(owner));
+    let group = Some(rustix::process::Gid::from_raw(group));
+    let flags = rustix::fs::AtFlags::empty();
+    match convert_res(rustix::fs::chownat(
+        rustix::fs::cwd(),
+        pathname,
+        owner,
+        group,
+        flags,
+    )) {
+        Some(()) => 0,
+        None => -1,
+    }
 }
 
 #[no_mangle]
-unsafe extern "C" fn lchown() {
-    //libc!(libc::lchown());
-    unimplemented!("lchown")
+unsafe extern "C" fn lchown(
+    pathname: *const c_char,
+    owner: libc::uid_t,
+    group: libc::gid_t,
+) -> c_int {
+    libc!(libc::lchown(pathname, owner, group));
+
+    let pathname = CStr::from_ptr(pathname);
+    let owner = Some(rustix::process::Uid::from_raw(owner));
+    let group = Some(rustix::process::Gid::from_raw(group));
+    let flags = rustix::fs::AtFlags::SYMLINK_NOFOLLOW;
+    match convert_res(rustix::fs::chownat(
+        rustix::fs::cwd(),
+        pathname,
+        owner,
+        group,
+        flags,
+    )) {
+        Some(()) => 0,
+        None => -1,
+    }
 }
 
 #[no_mangle]
-unsafe extern "C" fn fchown() {
-    //libc!(libc::fchown());
-    unimplemented!("fchown")
+unsafe extern "C" fn fchown(fd: c_int, owner: libc::uid_t, group: libc::gid_t) -> c_int {
+    libc!(libc::fchown(fd, owner, group));
+
+    let fd = BorrowedFd::borrow_raw(fd);
+    let owner = Some(rustix::process::Uid::from_raw(owner));
+    let group = Some(rustix::process::Gid::from_raw(group));
+    match convert_res(rustix::fs::fchown(fd, owner, group)) {
+        Some(()) => 0,
+        None => -1,
+    }
 }
