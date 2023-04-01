@@ -166,9 +166,9 @@ fn tm_to_date_time(tm: &tm, time_zone: &TimeZone) -> Result<DateTime, Errno> {
         }
         tm_isdst => {
             let time_type = if tm_isdst > 0 {
-                std_time_type
-            } else {
                 dst_time_type.unwrap_or(std_time_type)
+            } else {
+                std_time_type
             };
             match DateTime::new(
                 tm_year + 1900,
