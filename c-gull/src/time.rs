@@ -248,11 +248,10 @@ fn date_time_to_tm(date_time: DateTime) -> tm {
     let tm_zone = {
         let mut timezone_names = TIMEZONE_NAMES.lock().unwrap();
         timezone_names.get_or_init(|| HashSet::new());
-        timezone_names
-            .get_mut()
-            .unwrap()
-            .get_or_insert(CString::new(local_time_type.time_zone_designation()).unwrap())
-            .as_ptr()
+        let cstr = CString::new(local_time_type.time_zone_designation()).unwrap();
+        // TODO: Use `get_or_insert` when `hash_set_entry` is stabilized.
+        timezone_names.get_mut().unwrap().insert(cstr.clone());
+        timezone_names.get().unwrap().get(&cstr).unwrap().as_ptr()
     };
 
     tm {

@@ -2,7 +2,6 @@
 #![no_builtins] // don't let LLVM optimize our `memcpy` into a `memcpy` call
 #![feature(strict_provenance)]
 #![feature(c_variadic)]
-#![feature(hash_set_entry)]
 #![deny(fuzzy_provenance_casts)]
 #![deny(lossy_provenance_casts)]
 #![cfg_attr(not(feature = "std"), no_std)]
