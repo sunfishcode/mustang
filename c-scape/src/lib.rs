@@ -92,6 +92,7 @@ mod process;
 
 mod rand;
 mod rand48;
+mod termios;
 
 // threads
 #[cfg(feature = "threads")]
