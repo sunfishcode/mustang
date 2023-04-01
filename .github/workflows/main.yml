@@ -30,17 +30,17 @@ jobs:
         include:
           - build: ubuntu
             os: ubuntu-latest
-            rust: nightly-2023-03-17
+            rust: nightly-2023-03-31
             host_target: x86_64-unknown-linux-gnu
             mustang_target: x86_64-mustang-linux-gnu
           - build: ubuntu-18.04
             os: ubuntu-18.04
-            rust: nightly-2023-03-17
+            rust: nightly-2023-03-31
             host_target: x86_64-unknown-linux-gnu
             mustang_target: x86_64-mustang-linux-gnu
           - build: i686-linux
             os: ubuntu-latest
-            rust: nightly-2023-03-17
+            rust: nightly-2023-03-31
             target: i686-unknown-linux-gnu
             gcc_package: gcc-i686-linux-gnu
             gcc: i686-linux-gnu-gcc
@@ -49,7 +49,7 @@ jobs:
             mustang_target: i686-mustang-linux-gnu
           - build: aarch64-linux
             os: ubuntu-latest
-            rust: nightly-2023-03-17
+            rust: nightly-2023-03-31
             target: aarch64-unknown-linux-gnu
             gcc_package: gcc-aarch64-linux-gnu
             gcc: aarch64-linux-gnu-gcc
@@ -59,7 +59,7 @@ jobs:
             mustang_target: aarch64-mustang-linux-gnu
           - build: riscv64-linux
             os: ubuntu-latest
-            rust: nightly-2023-03-17
+            rust: nightly-2023-03-31
             target: riscv64gc-unknown-linux-gnu
             gcc_package: gcc-riscv64-linux-gnu
             gcc: riscv64-linux-gnu-gcc
@@ -140,28 +140,28 @@ jobs:
 
     - name: Install rust-src
       run: |
-        rustup component add rust-src --toolchain nightly-2023-03-17-x86_64-unknown-linux-gnu
+        rustup component add rust-src --toolchain nightly-2023-03-31-x86_64-unknown-linux-gnu
 
     - name: cargo check non-mustang
       run: |
         # Check that the code compiles on non-mustang targets.
-        cargo +nightly-2023-03-17 check --all --target=${{ matrix.host_target }}
+        cargo +nightly-2023-03-31 check --all --target=${{ matrix.host_target }}
 
     - name: cargo test
       run: |
-        cargo +nightly-2023-03-17 test --verbose -Z build-std --target=mustang/target-specs/${{ matrix.mustang_target }}.json -- ${{ matrix.test_args }} -- --nocapture
+        cargo +nightly-2023-03-31 test --verbose -Z build-std --target=mustang/target-specs/${{ matrix.mustang_target }}.json -- ${{ matrix.test_args }} -- --nocapture
       env:
         RUST_BACKTRACE: 1
 
     - name: cargo test --release
       run: |
-        cargo +nightly-2023-03-17 test --verbose --release -Z build-std --target=mustang/target-specs/${{ matrix.mustang_target }}.json  -- ${{ matrix.test_args }}
+        cargo +nightly-2023-03-31 test --verbose --release -Z build-std --target=mustang/target-specs/${{ matrix.mustang_target }}.json  -- ${{ matrix.test_args }}
       env:
         RUST_BACKTRACE: 1
 
     - name: test mustang_use_libc
       run: |
-        RUSTFLAGS=--cfg=mustang_use_libc cargo +nightly-2023-03-17 check --workspace -Z build-std --target=mustang/target-specs/${{ matrix.mustang_target }}.json
+        RUSTFLAGS=--cfg=mustang_use_libc cargo +nightly-2023-03-31 check --workspace -Z build-std --target=mustang/target-specs/${{ matrix.mustang_target }}.json
       env:
         RUST_BACKTRACE: 1
 
@@ -182,27 +182,27 @@ jobs:
     - name: test libc-replacement in non-mustang mode
       working-directory: test-crates/libc-replacement
       run: |
-        cargo +nightly-2023-03-17 run --target=${{ matrix.host_target }}
+        cargo +nightly-2023-03-31 run --target=${{ matrix.host_target }}
       env:
         RUST_BACKTRACE: 1
 
     - name: test origin-as-just-a-library in non-mustang mode
       working-directory: test-crates/origin-as-just-a-library
       run: |
-        cargo +nightly-2023-03-17 run --target=${{ matrix.host_target }}
+        cargo +nightly-2023-03-31 run --target=${{ matrix.host_target }}
       env:
         RUST_BACKTRACE: 1
 
     - name: test mustang-nostd as program
       working-directory: test-crates/mustang-nostd
       run: |
-        cargo +nightly-2023-03-17 run -Zbuild-std=core,alloc --target=../../mustang/target-specs/${{ matrix.mustang_target }}.json
+        cargo +nightly-2023-03-31 run -Zbuild-std=core,alloc --target=../../mustang/target-specs/${{ matrix.mustang_target }}.json
       env:
         RUST_BACKTRACE: 1
 
     - name: test mustang-nostd as tests
       working-directory: test-crates/mustang-nostd
       run: |
-        cargo +nightly-2023-03-17 test -Zbuild-std=core,alloc,test,std --target=../../mustang/target-specs/${{ matrix.mustang_target }}.json
+        cargo +nightly-2023-03-31 test -Zbuild-std=core,alloc,test,std --target=../../mustang/target-specs/${{ matrix.mustang_target }}.json
       env:
         RUST_BACKTRACE: 1
