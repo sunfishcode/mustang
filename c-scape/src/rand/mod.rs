@@ -55,5 +55,5 @@ unsafe extern "C" fn rand_r(seed: *mut c_uint) -> c_int {
 
     z = (z ^ (z >> 15)) * (z | 1);
     z ^= z + (z ^ (z >> 7)) * (z | 61);
-    return (z ^ (z >> 14)) as c_int;
+    (z ^ (z >> 14)) as c_int
 }

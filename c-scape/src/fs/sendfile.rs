@@ -42,7 +42,8 @@ unsafe extern "C" fn sendfile(
         // Safe cast as we checked above
         *offset = offset_64 as off_t;
     }
-    return res;
+
+    res
 }
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
