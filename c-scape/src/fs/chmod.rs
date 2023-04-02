@@ -34,7 +34,7 @@ unsafe extern "C" fn fchmodat(
     libc!(libc::fchmodat(fd, pathname, mode, flags));
 
     if flags != 0 {
-        todo!("flags support in fchmodat");
+        unimplemented!("flags support in fchmodat");
     }
 
     let mode = Mode::from_bits((mode & !libc::S_IFMT) as _).unwrap();

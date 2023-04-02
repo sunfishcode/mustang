@@ -297,8 +297,7 @@ unsafe extern "C" fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c
         // functions it asks for.
         #[cfg(any(target_os = "android", target_os = "linux"))]
         if CStr::from_ptr(symbol.cast()).to_bytes() == b"statx" {
-            todo!()
-            // return statx as *mut c_void;
+            return statx as *mut c_void;
         }
         #[cfg(any(target_os = "android", target_os = "linux"))]
         if CStr::from_ptr(symbol.cast()).to_bytes() == b"getrandom" {
@@ -306,8 +305,7 @@ unsafe extern "C" fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c
         }
         #[cfg(any(target_os = "android", target_os = "linux"))]
         if CStr::from_ptr(symbol.cast()).to_bytes() == b"copy_file_range" {
-            // return copy_file_range as *mut c_void;
-            todo!()
+            return copy_file_range as *mut c_void;
         }
         #[cfg(any(target_os = "android", target_os = "linux"))]
         if CStr::from_ptr(symbol.cast()).to_bytes() == b"clone3" {
