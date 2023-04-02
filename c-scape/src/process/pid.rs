@@ -1,3 +1,4 @@
+use crate::convert_res;
 use libc::{c_int, pid_t};
 use rustix::process::Pid;
 
@@ -22,4 +23,14 @@ unsafe extern "C" fn getppid() -> pid_t {
 unsafe extern "C" fn setpgid(pid: pid_t, pgid: pid_t) -> c_int {
     libc!(libc::setpgid(pid, pgid));
     unimplemented!("setpgid")
+}
+
+#[no_mangle]
+unsafe extern "C" fn getpgid(pid: pid_t) -> pid_t {
+    libc!(libc::getpgid(pid));
+
+    match convert_res(rustix::process::getpgid(Pid::from_raw(pid as _))) {
+        Some(pid) => Pid::as_raw(Some(pid)) as _,
+        None => -1,
+    }
 }
