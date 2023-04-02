@@ -89,7 +89,7 @@ unsafe extern "C" fn execvp(file: *const c_char, argv: *const *const c_char) -> 
         return -1;
     }
 
-    let path = crate::env::_getenv(rustix::cstr!("PATH"));
+    let path = crate::env::_getenv(b"PATH");
     let path = if path.is_null() {
         rustix::cstr!("/bin:/usr/bin")
     } else {

@@ -19,6 +19,8 @@ c-gull = { path = "c-gull", version = "^0.8.3" }
 similar-asserts = "1.1.0"
 rand = "0.8.4"
 libc = "0.2.138"
+cfg-if = "1.0.0"
+rand_xorshift = "0.3.0"
 
 # Test that the ctor crate works under mustang.
 ctor = "0.1.21"
