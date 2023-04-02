@@ -642,6 +642,15 @@ pub fn create_thread(
             Box::into_raw(Box::new(fn_)),
         );
         if clone_res >= 0 {
+            #[cfg(feature = "log")]
+            log::trace!(
+                "Thread[{:?}] launched thread Thread[{:?}] with stack_size={} and guard_size={}",
+                current_thread_id(),
+                clone_res,
+                stack_size,
+                guard_size
+            );
+
             Ok(Thread(&mut (*metadata).thread))
         } else {
             Err(io::Errno::from_raw_os_error(-clone_res as i32))
