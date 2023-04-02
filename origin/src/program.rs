@@ -184,7 +184,7 @@ pub fn exit(status: c_int) -> ! {
         let mut dtors = DTORS.lock();
         if let Some(dtor) = dtors.pop() {
             #[cfg(feature = "log")]
-            log::trace!("Calling `at_exit`-registered function",);
+            log::trace!("Calling `at_exit`-registered function");
 
             dtor();
         } else {
