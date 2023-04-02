@@ -66,7 +66,7 @@ pub(crate) const fn error_str(e: Errno) -> Option<&'static str> {
         Errno::NOSTR => "Not a STREAM",
         Errno::NOSYS => "Functionality not supported",
         Errno::NOTCONN => "The socket is not connected",
-        Errno::NOTDIR => "Not a directory or a symbolic link to a directory",
+        Errno::NOTDIR => "Not a directory",
         Errno::NOTEMPTY => "Directory not empty",
         Errno::NOTRECOVERABLE => "State not recoverable",
         Errno::NOTSOCK => "Not a socket",
