@@ -74,15 +74,15 @@ unsafe extern "C" fn localtime(time: *const time_t) -> *mut tm {
 unsafe extern "C" fn localtime_r(time: *const time_t, result: *mut tm) -> *mut tm {
     libc!(libc::localtime_r(time, result));
 
-    let time_zone_local = match TimeZone::local() {
-        Ok(time_zone_local) => time_zone_local,
+    let time_zone = match time_zone() {
+        Ok(time_zone) => time_zone,
         Err(err) => {
             set_errno(tz_error_to_errno(err));
             return null_mut();
         }
     };
 
-    let local_time_type = match time_zone_local.find_local_time_type((*time).into()) {
+    let local_time_type = match time_zone.find_local_time_type((*time).into()) {
         Ok(local_time_type) => local_time_type,
         Err(_err) => {
             set_errno(Errno(libc::EIO));
@@ -197,8 +197,8 @@ unsafe extern "C" fn mktime(tm: *mut tm) -> time_t {
 
     clear_timezone(&mut lock);
 
-    let time_zone_local = match TimeZone::local() {
-        Ok(time_zone_local) => time_zone_local,
+    let time_zone = match time_zone() {
+        Ok(time_zone) => time_zone,
         Err(err) => {
             set_errno(tz_error_to_errno(err));
             return -1;
@@ -206,20 +206,19 @@ unsafe extern "C" fn mktime(tm: *mut tm) -> time_t {
     };
 
     let utc;
-    let (std_time_type, dst_time_type) =
-        if let Some(extra_rule) = time_zone_local.as_ref().extra_rule() {
-            match extra_rule {
-                TransitionRule::Fixed(local_time_type) => (local_time_type, None),
-                TransitionRule::Alternate(alternate_time_type) => {
-                    (alternate_time_type.std(), Some(alternate_time_type.dst()))
-                }
+    let (std_time_type, dst_time_type) = if let Some(extra_rule) = time_zone.as_ref().extra_rule() {
+        match extra_rule {
+            TransitionRule::Fixed(local_time_type) => (local_time_type, None),
+            TransitionRule::Alternate(alternate_time_type) => {
+                (alternate_time_type.std(), Some(alternate_time_type.dst()))
             }
-        } else {
-            utc = LocalTimeType::utc();
-            (&utc, None)
-        };
+        }
+    } else {
+        utc = LocalTimeType::utc();
+        (&utc, None)
+    };
 
-    let date_time = match tm_to_date_time(&*tm, &time_zone_local) {
+    let date_time = match tm_to_date_time(&*tm, &time_zone) {
         Ok(date_time) => date_time,
         Err(errno) => {
             set_errno(errno);
@@ -327,15 +326,15 @@ unsafe extern "C" fn timegm(tm: *mut tm) -> time_t {
 unsafe extern "C" fn timelocal(tm: *mut tm) -> time_t {
     //libc!(libc::timelocal(tm)); // TODO: upstream
 
-    let time_zone_local = match TimeZone::local() {
-        Ok(time_zone_local) => time_zone_local,
+    let time_zone = match time_zone() {
+        Ok(time_zone) => time_zone,
         Err(err) => {
             set_errno(tz_error_to_errno(err));
             return -1;
         }
     };
 
-    let date_time = match tm_to_date_time(&*tm, &time_zone_local) {
+    let date_time = match tm_to_date_time(&*tm, &time_zone) {
         Ok(date_time) => date_time,
         Err(errno) => {
             set_errno(errno);
@@ -362,12 +361,12 @@ unsafe extern "C" fn tzset() {
 
     clear_timezone(&mut lock);
 
-    let time_zone_local = match TimeZone::local() {
-        Ok(time_zone_local) => time_zone_local,
-        Err(_err) => return,
+    let time_zone = match time_zone() {
+        Ok(time_zone) => time_zone,
+        Err(_) => return,
     };
 
-    if let Some(extra_rule) = time_zone_local.as_ref().extra_rule() {
+    if let Some(extra_rule) = time_zone.as_ref().extra_rule() {
         match extra_rule {
             TransitionRule::Fixed(local_time_type) => {
                 set_timezone(&mut lock, local_time_type, None);
@@ -378,6 +377,13 @@ unsafe extern "C" fn tzset() {
                 set_timezone(&mut lock, std, Some(dst));
             }
         }
+    }
+}
+
+fn time_zone() -> Result<TimeZone, TzError> {
+    match std::env::var("TZ") {
+        Ok(tz) => TimeZone::from_posix_tz(&tz),
+        Err(_) => TimeZone::local(),
     }
 }
 
