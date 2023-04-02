@@ -322,9 +322,8 @@ fn test_add_to_env() {
     );
 }
 
-// FIXME(mustang): add setenv/unsetenv
 #[test]
-#[cfg_attr(any(target_os = "vxworks", target_vendor = "mustang"), ignore)]
+#[cfg_attr(target_os = "vxworks", ignore)]
 fn test_capture_env_at_spawn() {
     use std::env;
 
