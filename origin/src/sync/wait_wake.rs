@@ -1,6 +1,6 @@
 //! The following is derived from Rust's
 //! library/std/src/sys/unix/futex.rs at revision
-//! 6fd7e9010db6be7605241c39eab7c5078ee2d5bd.
+//! f3579268372723bc4ff7b76090c090aa7b9e6a3a.
 
 use core::sync::atomic::AtomicU32;
 use core::time::Duration;
@@ -36,9 +36,9 @@ pub fn futex_wait(futex: &AtomicU32, expected: u32, timeout: Option<Duration>) -
             return true;
         }
 
-        // Use FUTEX_WAIT_BITSET rather than FUTEX_WAIT to be able to give an
-        // absolute time rather than a relative time.
         let r = unsafe {
+            // Use FUTEX_WAIT_BITSET rather than FUTEX_WAIT to be able to give an
+            // absolute time rather than a relative time.
             rustix::thread::futex(
                 futex.as_ptr(),
                 FutexOperation::WaitBitset,

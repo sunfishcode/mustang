@@ -1,6 +1,6 @@
 //! The following is derived from Rust's
-//! library/std/src/sys/unix/locks/futex.rs at revision
-//! 6fd7e9010db6be7605241c39eab7c5078ee2d5bd.
+//! library/std/src/sys/unix/locks/futex_condvar.rs at revision
+//! 98815742cf2e914ee0d7142a02322cf939c47834.
 
 use super::wait_wake::{futex_wait, futex_wake, futex_wake_all};
 use crate::sync::RawMutex;
@@ -34,12 +34,12 @@ impl Condvar {
     // All the memory orderings here are `Relaxed`,
     // because synchronization is done by unlocking and locking the mutex.
 
-    pub unsafe fn notify_one(&self) {
+    pub fn notify_one(&self) {
         self.futex.fetch_add(1, Relaxed);
         futex_wake(&self.futex);
     }
 
-    pub unsafe fn notify_all(&self) {
+    pub fn notify_all(&self) {
         self.futex.fetch_add(1, Relaxed);
         futex_wake_all(&self.futex);
     }

@@ -42,11 +42,11 @@ unsafe impl lock_api::RawMutex for RawMutex {
     const INIT: Self = Self(MovableMutex::new());
 
     fn lock(&self) {
-        unsafe { self.0.lock() }
+        self.0.lock()
     }
 
     fn try_lock(&self) -> bool {
-        unsafe { self.0.try_lock() }
+        self.0.try_lock()
     }
 
     unsafe fn unlock(&self) {
@@ -60,11 +60,11 @@ unsafe impl lock_api::RawRwLock for RawRwLock {
     const INIT: Self = Self(MovableRwLock::new());
 
     fn lock_shared(&self) {
-        unsafe { self.0.read() }
+        self.0.read()
     }
 
     fn try_lock_shared(&self) -> bool {
-        unsafe { self.0.try_read() }
+        self.0.try_read()
     }
 
     unsafe fn unlock_shared(&self) {
@@ -72,11 +72,11 @@ unsafe impl lock_api::RawRwLock for RawRwLock {
     }
 
     fn lock_exclusive(&self) {
-        unsafe { self.0.write() }
+        self.0.write()
     }
 
     fn try_lock_exclusive(&self) -> bool {
-        unsafe { self.0.try_write() }
+        self.0.try_write()
     }
 
     unsafe fn unlock_exclusive(&self) {
