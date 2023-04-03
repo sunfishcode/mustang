@@ -1,6 +1,6 @@
 //! The following is derived from Rust's
-//! library/std/src/sys/unix/locks/futex.rs at revision
-//! 6fd7e9010db6be7605241c39eab7c5078ee2d5bd.
+//! library/std/src/sys/unix/locks/futex_mutex.rs at revision
+//! 98815742cf2e914ee0d7142a02322cf939c47834.
 
 use super::wait_wake::{futex_wait, futex_wake};
 use core::sync::atomic::{
@@ -26,12 +26,12 @@ impl Mutex {
     }
 
     #[inline]
-    pub unsafe fn try_lock(&self) -> bool {
+    pub fn try_lock(&self) -> bool {
         self.futex.compare_exchange(0, 1, Acquire, Relaxed).is_ok()
     }
 
     #[inline]
-    pub unsafe fn lock(&self) {
+    pub fn lock(&self) {
         if self.futex.compare_exchange(0, 1, Acquire, Relaxed).is_err() {
             self.lock_contended();
         }
@@ -56,7 +56,7 @@ impl Mutex {
             // We avoid an unnecessary write if it as already set to 2,
             // to be friendlier for the caches.
             if state != 2 && self.futex.swap(2, Acquire) == 0 {
-                // We changed it from 0 to 2, so we just succesfully locked it.
+                // We changed it from 0 to 2, so we just successfully locked it.
                 return;
             }
 
