@@ -1,8 +1,10 @@
 //! The following is derived from Rust's
 //! library/std/src/fs/tests.rs at revision
-//! ef59ab738e9e6b6021294cd31901ee42c81b67ec.
+//! defa2456246a8272ceace9c1cdccdf2e4c36175e.
 
 #![feature(io_error_uncategorized)]
+#![feature(read_buf)]
+#![feature(maybe_uninit_uninit_array)]
 
 mustang::can_run_this!();
 
@@ -12,7 +14,8 @@ use std::io::prelude::*;
 
 use std::env;
 use std::fs::{self, File, OpenOptions};
-use std::io::{ErrorKind, SeekFrom};
+use std::io::{BorrowedBuf, ErrorKind, SeekFrom};
+use std::mem::MaybeUninit;
 use std::path::Path;
 use std::str;
 use std::sync::Arc;
@@ -444,6 +447,23 @@ fn file_test_io_seek_read_write() {
         assert_eq!(check!(read.seek_read(&mut buf, 15)), 0);
     }
     check!(fs::remove_file(&filename));
+}
+
+#[test]
+fn file_test_read_buf() {
+    let tmpdir = tmpdir();
+    let filename = &tmpdir.join("test");
+    check!(fs::write(filename, &[1, 2, 3, 4]));
+
+    let mut buf: [MaybeUninit<u8>; 128] = MaybeUninit::uninit_array();
+    let mut buf = BorrowedBuf::from(buf.as_mut_slice());
+    let mut file = check!(File::open(filename));
+    check!(file.read_buf(buf.unfilled()));
+    assert_eq!(buf.filled(), &[1, 2, 3, 4]);
+    // File::read_buf should omit buffer initialization.
+    assert_eq!(buf.init_len(), 4);
+
+    check!(fs::remove_file(filename));
 }
 
 #[test]
@@ -1646,4 +1666,81 @@ fn read_large_dir() {
     for entry in fs::read_dir(tmpdir.path()).unwrap() {
         entry.unwrap();
     }
+}
+
+/// Test the fallback for getting the metadata of files like hiberfil.sys that
+/// Windows holds a special lock on, preventing normal means of querying
+/// metadata. See #96980.
+///
+/// Note this fails in CI because `hiberfil.sys` does not actually exist there.
+/// Therefore it's marked as ignored.
+#[test]
+#[ignore]
+#[cfg(windows)]
+fn hiberfil_sys() {
+    let hiberfil = Path::new(r"C:\hiberfil.sys");
+    assert_eq!(true, hiberfil.try_exists().unwrap());
+    fs::symlink_metadata(hiberfil).unwrap();
+    fs::metadata(hiberfil).unwrap();
+    assert_eq!(true, hiberfil.exists());
+}
+
+/// Test that two different ways of obtaining the FileType give the same result.
+/// Cf. https://github.com/rust-lang/rust/issues/104900
+#[test]
+fn test_eq_direntry_metadata() {
+    let tmpdir = tmpdir();
+    let file_path = tmpdir.join("file");
+    File::create(file_path).unwrap();
+    for e in fs::read_dir(tmpdir.path()).unwrap() {
+        let e = e.unwrap();
+        let p = e.path();
+        let ft1 = e.file_type().unwrap();
+        let ft2 = p.metadata().unwrap().file_type();
+        assert_eq!(ft1, ft2);
+    }
+}
+
+/// Regression test for https://github.com/rust-lang/rust/issues/50619.
+#[test]
+#[cfg(target_os = "linux")]
+fn test_read_dir_infinite_loop() {
+    use std::io::ErrorKind;
+    use std::process::Command;
+
+    // Create a zombie child process
+    let Ok(mut child) = Command::new("echo").spawn() else { return };
+
+    // Make sure the process is (un)dead
+    match child.kill() {
+        // InvalidInput means the child already exited
+        Err(e) if e.kind() != ErrorKind::InvalidInput => return,
+        _ => {}
+    }
+
+    // open() on this path will succeed, but readdir() will fail
+    let id = child.id();
+    let path = format!("/proc/{id}/net");
+
+    // Skip the test if we can't open the directory in the first place
+    let Ok(dir) = fs::read_dir(path) else { return };
+
+    // Check for duplicate errors
+    assert!(dir.filter(|e| e.is_err()).take(2).count() < 2);
+}
+
+#[test]
+fn rename_directory() {
+    let tmpdir = tmpdir();
+    let old_path = tmpdir.join("foo/bar/baz");
+    fs::create_dir_all(&old_path).unwrap();
+    let test_file = &old_path.join("temp.txt");
+
+    File::create(test_file).unwrap();
+
+    let new_path = tmpdir.join("quux/blat");
+    fs::create_dir_all(&new_path).unwrap();
+    fs::rename(&old_path, &new_path.join("newdir")).unwrap();
+    assert!(new_path.join("newdir").is_dir());
+    assert!(new_path.join("newdir/temp.txt").exists());
 }
