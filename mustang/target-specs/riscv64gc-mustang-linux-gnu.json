@@ -3,19 +3,24 @@
   "code-model": "medium",
   "cpu": "generic-rv64",
   "crt-static-respected": true,
-  "data-layout": "e-m:e-p:64:64-i64:64-i128:128-n64-S128",
+  "data-layout": "e-m:e-p:64:64-i64:64-i128:128-n32:64-S128",
   "dynamic-linking": false,
   "env": "gnu",
-  "executables": true,
   "features": "+m,+a,+f,+d,+c",
   "has-rpath": true,
   "has-thread-local": true,
+  "is-builtin": false,
   "llvm-abiname": "lp64d",
   "llvm-target": "riscv64-unknown-linux-gnu",
   "max-atomic-width": 64,
   "os": "linux",
   "position-independent-executables": true,
   "relro-level": "full",
+  "supported-split-debuginfo": [
+    "packed",
+    "unpacked",
+    "off"
+  ],
   "target-family": [
     "unix"
   ],
