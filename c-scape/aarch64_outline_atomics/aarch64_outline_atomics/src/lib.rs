@@ -1,7 +1,3 @@
-#![feature(strict_provenance)]
-#![deny(fuzzy_provenance_casts)]
-#![deny(lossy_provenance_casts)]
-
 use core::sync::atomic::Ordering::{AcqRel, Acquire, Relaxed, Release};
 use core::sync::atomic::{AtomicU32, AtomicU64, AtomicU8};
 
@@ -273,4 +269,24 @@ unsafe extern "C" fn __aarch64_cas8_relax(x: u64, y: u64, p: *mut AtomicU64) -> 
     {
         Ok(r) | Err(r) => r,
     }
+}
+
+#[no_mangle]
+unsafe extern "C" fn __aarch64_ldset8_relax(x: u8, p: *mut AtomicU8) -> u8 {
+    (*p).fetch_or(x, Relaxed)
+}
+
+#[no_mangle]
+unsafe extern "C" fn __aarch64_ldset8_rel(x: u8, p: *mut AtomicU8) -> u8 {
+    (*p).fetch_or(x, Release)
+}
+
+#[no_mangle]
+unsafe extern "C" fn __aarch64_ldset8_acq(x: u8, p: *mut AtomicU8) -> u8 {
+    (*p).fetch_or(x, Acquire)
+}
+
+#[no_mangle]
+unsafe extern "C" fn __aarch64_ldset8_acq_rel(x: u8, p: *mut AtomicU8) -> u8 {
+    (*p).fetch_or(x, AcqRel)
 }

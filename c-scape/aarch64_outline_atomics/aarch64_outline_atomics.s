@@ -860,4 +860,72 @@ __aarch64_cas8_relax:
 	.size	__aarch64_cas8_relax, .Lfunc_end47-__aarch64_cas8_relax
 	.cfi_endproc
 
+	.section	.text.__aarch64_ldset8_relax,"ax",@progbits
+	.globl	__aarch64_ldset8_relax
+	.p2align	2
+	.type	__aarch64_ldset8_relax,@function
+__aarch64_ldset8_relax:
+	.cfi_startproc
+.LBB48_1:
+	ldxrb	w8, [x1]
+	orr	w9, w8, w0
+	stxrb	w10, w9, [x1]
+	cbnz	w10, .LBB48_1
+	mov	w0, w8
+	ret
+.Lfunc_end48:
+	.size	__aarch64_ldset8_relax, .Lfunc_end48-__aarch64_ldset8_relax
+	.cfi_endproc
+
+	.section	.text.__aarch64_ldset8_rel,"ax",@progbits
+	.globl	__aarch64_ldset8_rel
+	.p2align	2
+	.type	__aarch64_ldset8_rel,@function
+__aarch64_ldset8_rel:
+	.cfi_startproc
+.LBB49_1:
+	ldxrb	w8, [x1]
+	orr	w9, w8, w0
+	stlxrb	w10, w9, [x1]
+	cbnz	w10, .LBB49_1
+	mov	w0, w8
+	ret
+.Lfunc_end49:
+	.size	__aarch64_ldset8_rel, .Lfunc_end49-__aarch64_ldset8_rel
+	.cfi_endproc
+
+	.section	.text.__aarch64_ldset8_acq,"ax",@progbits
+	.globl	__aarch64_ldset8_acq
+	.p2align	2
+	.type	__aarch64_ldset8_acq,@function
+__aarch64_ldset8_acq:
+	.cfi_startproc
+.LBB50_1:
+	ldaxrb	w8, [x1]
+	orr	w9, w8, w0
+	stxrb	w10, w9, [x1]
+	cbnz	w10, .LBB50_1
+	mov	w0, w8
+	ret
+.Lfunc_end50:
+	.size	__aarch64_ldset8_acq, .Lfunc_end50-__aarch64_ldset8_acq
+	.cfi_endproc
+
+	.section	.text.__aarch64_ldset8_acq_rel,"ax",@progbits
+	.globl	__aarch64_ldset8_acq_rel
+	.p2align	2
+	.type	__aarch64_ldset8_acq_rel,@function
+__aarch64_ldset8_acq_rel:
+	.cfi_startproc
+.LBB51_1:
+	ldaxrb	w8, [x1]
+	orr	w9, w8, w0
+	stlxrb	w10, w9, [x1]
+	cbnz	w10, .LBB51_1
+	mov	w0, w8
+	ret
+.Lfunc_end51:
+	.size	__aarch64_ldset8_acq_rel, .Lfunc_end51-__aarch64_ldset8_acq_rel
+	.cfi_endproc
+
 	.section	".note.GNU-stack","",@progbits
