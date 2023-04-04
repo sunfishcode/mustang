@@ -5,10 +5,9 @@
   "data-layout": "e-m:e-p:32:32-Fi8-i64:64-v128:64:128-a:0:32-n32-S64",
   "dynamic-linking": false,
   "env": "gnu",
-  "executables": true,
   "features": "+soft-float,+strict-align",
-  "has-thread-local": true,
   "has-rpath": true,
+  "has-thread-local": true,
   "has-thumb-interworking": true,
   "is-builtin": false,
   "llvm-target": "armv5te-unknown-linux-gnueabi",
@@ -16,6 +15,11 @@
   "os": "linux",
   "position-independent-executables": true,
   "relro-level": "full",
+  "supported-split-debuginfo": [
+    "packed",
+    "unpacked",
+    "off"
+  ],
   "target-family": [
     "unix"
   ],
@@ -24,7 +28,8 @@
   "pre-link-args": {
     "gcc": [
       "-nostartfiles",
-      "-Wl,--undefined=memset"
+      "-Wl,--undefined=memset",
+      "-Wl,--undefined=_Unwind_Backtrace"
     ]
   },
   "vendor": "mustang"
