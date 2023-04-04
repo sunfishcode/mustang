@@ -26,15 +26,15 @@ jobs:
       QEMU_BUILD_VERSION: 7.0.0
     strategy:
       matrix:
-        build: [ubuntu, ubuntu-18.04, i686-linux, aarch64-linux, riscv64-linux]
+        build: [ubuntu, ubuntu-20.04, i686-linux, aarch64-linux, riscv64-linux]
         include:
           - build: ubuntu
             os: ubuntu-latest
             rust: nightly-2023-03-31
             host_target: x86_64-unknown-linux-gnu
             mustang_target: x86_64-mustang-linux-gnu
-          - build: ubuntu-18.04
-            os: ubuntu-18.04
+          - build: ubuntu-20.04
+            os: ubuntu-20.04
             rust: nightly-2023-03-31
             host_target: x86_64-unknown-linux-gnu
             mustang_target: x86_64-mustang-linux-gnu
