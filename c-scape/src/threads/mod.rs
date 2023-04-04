@@ -420,7 +420,7 @@ unsafe extern "C" fn pthread_condattr_setclock(
     ));
     let _ = (attr, clock_id);
     rustix::io::write(
-        &rustix::io::stderr(),
+        rustix::io::stderr(),
         b"unimplemented: pthread_condattr_setclock\n",
     )
     .ok();
@@ -478,7 +478,7 @@ unsafe extern "C" fn pthread_cond_wait(cond: *mut PthreadCondT, lock: *mut Pthre
         checked_cast!(lock)
     ));
     match (*lock).kind.load(SeqCst) as i32 {
-        libc::PTHREAD_MUTEX_NORMAL => (*cond).inner.wait(&mut (*lock).u.normal),
+        libc::PTHREAD_MUTEX_NORMAL => (*cond).inner.wait(&(*lock).u.normal),
         libc::PTHREAD_MUTEX_RECURSIVE => unimplemented!("PTHREAD_MUTEX_RECURSIVE"),
         libc::PTHREAD_MUTEX_ERRORCHECK => unimplemented!("PTHREAD_MUTEX_ERRORCHECK"),
         other => unimplemented!("unsupported pthread mutex kind {}", other),
@@ -504,7 +504,7 @@ unsafe extern "C" fn pthread_cond_timedwait(
     );
     match (*lock).kind.load(SeqCst) as i32 {
         libc::PTHREAD_MUTEX_NORMAL => {
-            if (*cond).inner.wait_timeout(&mut (*lock).u.normal, duration) {
+            if (*cond).inner.wait_timeout(&(*lock).u.normal, duration) {
                 0
             } else {
                 libc::ETIMEDOUT

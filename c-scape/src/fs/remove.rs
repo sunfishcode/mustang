@@ -27,7 +27,7 @@ unsafe extern "C" fn unlinkat(fd: c_int, pathname: *const c_char, flags: c_int) 
     let fd = BorrowedFd::borrow_raw(fd);
     let flags = AtFlags::from_bits(flags as _).unwrap();
     match convert_res(rustix::fs::unlinkat(
-        &fd,
+        fd,
         CStr::from_ptr(pathname.cast()),
         flags,
     )) {

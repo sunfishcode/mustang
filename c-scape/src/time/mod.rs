@@ -49,7 +49,8 @@ unsafe extern "C" fn time(t: *mut libc::time_t) -> libc::time_t {
     if !t.is_null() {
         *t = ts.tv_sec;
     }
-    return ts.tv_sec;
+
+    ts.tv_sec
 }
 
 #[no_mangle]
@@ -69,7 +70,8 @@ unsafe extern "C" fn gettimeofday(t: *mut libc::timeval, _tz: *mut libc::timezon
         (*t).tv_sec = ts.tv_sec;
         (*t).tv_usec = ts.tv_nsec / 1000;
     }
-    return 0;
+
+    0
 }
 
 #[no_mangle]

@@ -204,7 +204,7 @@ unsafe extern "C" fn getentropy(buf: *mut c_void, buflen: usize) -> i32 {
         }
     }
 
-    return 0;
+    0
 }
 
 // process
@@ -656,7 +656,7 @@ unsafe extern "C" fn posix_spawnp() {
 unsafe extern "C" fn posix_spawnattr_destroy(_ptr: *const c_void) -> c_int {
     //libc!(libc::posix_spawn_spawnattr_destroy(ptr));
     rustix::io::write(
-        &rustix::io::stderr(),
+        rustix::io::stderr(),
         b"unimplemented: posix_spawn_spawnattr_destroy\n",
     )
     .ok();
@@ -668,7 +668,7 @@ unsafe extern "C" fn posix_spawnattr_destroy(_ptr: *const c_void) -> c_int {
 unsafe extern "C" fn posix_spawnattr_init(_ptr: *const c_void) -> c_int {
     //libc!(libc::posix_spawnattr_init(ptr));
     rustix::io::write(
-        &rustix::io::stderr(),
+        rustix::io::stderr(),
         b"unimplemented: posix_spawnattr_init\n",
     )
     .ok();
@@ -722,7 +722,7 @@ unsafe extern "C" fn posix_spawn_file_actions_addchdir_np() {
 unsafe extern "C" fn posix_spawn_file_actions_destroy(_ptr: *const c_void) -> c_int {
     //libc!(libc::posix_spawn_file_actions_destroy(ptr));
     rustix::io::write(
-        &rustix::io::stderr(),
+        rustix::io::stderr(),
         b"unimplemented: posix_spawn_file_actions_destroy\n",
     )
     .ok();
@@ -734,7 +734,7 @@ unsafe extern "C" fn posix_spawn_file_actions_destroy(_ptr: *const c_void) -> c_
 unsafe extern "C" fn posix_spawn_file_actions_init(_ptr: *const c_void) -> c_int {
     //libc!(libc::posix_spawn_file_actions_init(ptr));
     rustix::io::write(
-        &rustix::io::stderr(),
+        rustix::io::stderr(),
         b"unimplemented: posix_spawn_file_actions_init\n",
     )
     .ok();

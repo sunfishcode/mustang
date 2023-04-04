@@ -31,7 +31,7 @@ unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
         TCGETS => {
             libc!(libc::ioctl(fd, libc::TCGETS));
             let fd = BorrowedFd::borrow_raw(fd);
-            match convert_res(rustix::termios::tcgetattr(&fd)) {
+            match convert_res(rustix::termios::tcgetattr(fd)) {
                 Some(x) => {
                     args.arg::<*mut rustix::termios::Termios>().write(x);
                     0
@@ -44,7 +44,7 @@ unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
             let value = *ptr != 0;
             libc!(libc::ioctl(fd, libc::FIONBIO, value as c_int));
             let fd = BorrowedFd::borrow_raw(fd);
-            match convert_res(rustix::io::ioctl_fionbio(&fd, value)) {
+            match convert_res(rustix::io::ioctl_fionbio(fd, value)) {
                 Some(()) => 0,
                 None => -1,
             }
@@ -52,7 +52,7 @@ unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
         TIOCGWINSZ => {
             libc!(libc::ioctl(fd, libc::TIOCGWINSZ));
             let fd = BorrowedFd::borrow_raw(fd);
-            match convert_res(rustix::termios::tcgetwinsize(&fd)) {
+            match convert_res(rustix::termios::tcgetwinsize(fd)) {
                 Some(x) => {
                     args.arg::<*mut rustix::termios::Winsize>().write(x);
                     0
@@ -67,7 +67,7 @@ unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
             libc!(libc::ioctl(fd, libc::FICLONE, src_fd));
             let fd = BorrowedFd::borrow_raw(fd);
             let src_fd = BorrowedFd::borrow_raw(src_fd);
-            match convert_res(rustix::io::ioctl_ficlone(&fd, &src_fd)) {
+            match convert_res(rustix::io::ioctl_ficlone(fd, src_fd)) {
                 Some(()) => 0,
                 None => -1,
             }

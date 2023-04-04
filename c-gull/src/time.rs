@@ -104,24 +104,24 @@ unsafe extern "C" fn localtime_r(time: *const time_t, result: *mut tm) -> *mut t
 }
 
 fn tm_to_date_time(tm: &tm, time_zone: &TimeZone) -> Result<DateTime, Errno> {
-    let tm_year = (*tm).tm_year;
-    let tm_mon: u8 = match (*tm).tm_mon.try_into() {
+    let tm_year = tm.tm_year;
+    let tm_mon: u8 = match tm.tm_mon.try_into() {
         Ok(tm_mon) => tm_mon,
         Err(_err) => return Err(Errno(libc::EOVERFLOW)),
     };
-    let tm_mday = match (*tm).tm_mday.try_into() {
+    let tm_mday = match tm.tm_mday.try_into() {
         Ok(tm_mday) => tm_mday,
         Err(_err) => return Err(Errno(libc::EOVERFLOW)),
     };
-    let tm_hour = match (*tm).tm_hour.try_into() {
+    let tm_hour = match tm.tm_hour.try_into() {
         Ok(tm_hour) => tm_hour,
         Err(_err) => return Err(Errno(libc::EOVERFLOW)),
     };
-    let tm_min = match (*tm).tm_min.try_into() {
+    let tm_min = match tm.tm_min.try_into() {
         Ok(tm_min) => tm_min,
         Err(_err) => return Err(Errno(libc::EOVERFLOW)),
     };
-    let tm_sec = match (*tm).tm_sec.try_into() {
+    let tm_sec = match tm.tm_sec.try_into() {
         Ok(tm_sec) => tm_sec,
         Err(_err) => return Err(Errno(libc::EOVERFLOW)),
     };
@@ -139,7 +139,7 @@ fn tm_to_date_time(tm: &tm, time_zone: &TimeZone) -> Result<DateTime, Errno> {
         (&utc, None)
     };
 
-    let date_time = match (*tm).tm_isdst {
+    let date_time = match tm.tm_isdst {
         tm_isdst if tm_isdst < 0 => {
             match DateTime::find(
                 tm_year + 1900,
@@ -246,7 +246,7 @@ fn date_time_to_tm(date_time: DateTime) -> tm {
 
     let tm_zone = {
         let mut timezone_names = TIMEZONE_NAMES.lock().unwrap();
-        timezone_names.get_or_init(|| HashSet::new());
+        timezone_names.get_or_init(HashSet::new);
         let cstr = CString::new(local_time_type.time_zone_designation()).unwrap();
         // TODO: Use `get_or_insert` when `hash_set_entry` is stabilized.
         timezone_names.get_mut().unwrap().insert(cstr.clone());
