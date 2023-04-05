@@ -23,7 +23,7 @@ cfg-if = "1.0.0"
 rand_xorshift = "0.3.0"
 
 # Test that the ctor crate works under mustang.
-ctor = "0.1.21"
+ctor = "0.2.0"
 
 # Check if rustup is installed for tests
 which = "4.4.0"
