@@ -1,6 +1,6 @@
 //! The following is derived from Rust's
-//! library/std/src/sys/unix/process/process_common/tests.rs at revision
-//! e27d9df4319bd822e64f620676543d31e9c7ae2c.
+//! library/std/src/sys/unix/process/process_unix/tests.rs at revision
+//! 0b35f448f8e9f39ed6fc1c494eeb331afba513bc.
 
 mustang::can_run_this!();
 
@@ -9,7 +9,7 @@ use std::panic::catch_unwind;
 use std::process::Command;
 
 // Many of the other aspects of this situation, including heap alloc concurrency
-// safety etc., are tested in src/test/ui/process/process-panic-after-fork.rs
+// safety etc., are tested in tests/ui/process/process-panic-after-fork.rs
 
 #[test]
 fn exitstatus_display_tests() {
@@ -25,17 +25,17 @@ fn exitstatus_display_tests() {
     t(0x00000, "exit status: 0");
     t(0x0ff00, "exit status: 255");
 
-    // On MacOS, 0x0137f is WIFCONTINUED, not WIFSTOPPED.  Probably *BSD is similar.
+    // On MacOS, 0x0137f is WIFCONTINUED, not WIFSTOPPED. Probably *BSD is similar.
     //   https://github.com/rust-lang/rust/pull/82749#issuecomment-790525956
     // The purpose of this test is to test our string formatting, not our understanding of the wait
-    // status magic numbers.  So restrict these to Linux.
+    // status magic numbers. So restrict these to Linux.
     if cfg!(target_os = "linux") {
         t(0x0137f, "stopped (not terminated) by signal: 19 (SIGSTOP)");
         t(0x0ffff, "continued (WIFCONTINUED)");
     }
 
     // Testing "unrecognised wait status" is hard because the wait.h macros typically
-    // assume that the value came from wait and isn't mad.  With the glibc I have here
+    // assume that the value came from wait and isn't mad. With the glibc I have here
     // this works:
     if cfg!(all(target_os = "linux", target_env = "gnu")) {
         t(0x000ff, "unrecognised wait status: 255 0xff");
