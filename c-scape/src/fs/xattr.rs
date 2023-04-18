@@ -29,7 +29,10 @@ unsafe extern "C" fn getxattr(
     let mut tmp = vec![0u8; len];
     match convert_res(rustix::fs::getxattr(path, name, &mut tmp)) {
         Some(size) => {
-            copy_nonoverlapping(tmp.as_ptr(), value.cast(), len);
+            // If `len` is 0, `value` could be null.
+            if len != 0 {
+                copy_nonoverlapping(tmp.as_ptr(), value.cast(), len);
+            }
             size as ssize_t
         }
         None => -1,
@@ -53,7 +56,10 @@ unsafe extern "C" fn lgetxattr(
     let mut tmp = vec![0u8; len];
     match convert_res(rustix::fs::lgetxattr(path, name, &mut tmp)) {
         Some(size) => {
-            copy_nonoverlapping(tmp.as_ptr(), value.cast(), len);
+            // If `len` is 0, `value` could be null.
+            if len != 0 {
+                copy_nonoverlapping(tmp.as_ptr(), value.cast(), len);
+            }
             size as ssize_t
         }
         None => -1,
@@ -77,7 +83,10 @@ unsafe extern "C" fn fgetxattr(
     let mut tmp = vec![0u8; len];
     match convert_res(rustix::fs::fgetxattr(fd, name, &mut tmp)) {
         Some(size) => {
-            copy_nonoverlapping(tmp.as_ptr(), value.cast(), len);
+            // If `len` is 0, `value` could be null.
+            if len != 0 {
+                copy_nonoverlapping(tmp.as_ptr(), value.cast(), len);
+            }
             size as ssize_t
         }
         None => -1,
@@ -155,7 +164,10 @@ unsafe extern "C" fn listxattr(path: *const c_char, list: *mut c_char, len: size
     let mut tmp = vec![0; len];
     match convert_res(rustix::fs::listxattr(path, &mut tmp)) {
         Some(size) => {
-            copy_nonoverlapping(tmp.as_ptr(), list.cast(), len);
+            // If `len` is 0, `value` could be null.
+            if len != 0 {
+                copy_nonoverlapping(tmp.as_ptr(), list.cast(), len);
+            }
             size as ssize_t
         }
         None => -1,
@@ -173,7 +185,10 @@ unsafe extern "C" fn llistxattr(path: *const c_char, list: *mut c_char, len: siz
     let mut tmp = vec![0; len];
     match convert_res(rustix::fs::llistxattr(path, &mut tmp)) {
         Some(size) => {
-            copy_nonoverlapping(tmp.as_ptr(), list.cast(), len);
+            // If `len` is 0, `value` could be null.
+            if len != 0 {
+                copy_nonoverlapping(tmp.as_ptr(), list.cast(), len);
+            }
             size as ssize_t
         }
         None => -1,
@@ -191,7 +206,10 @@ unsafe extern "C" fn flistxattr(fd: c_int, list: *mut c_char, len: size_t) -> ss
     let mut tmp = vec![0; len];
     match convert_res(rustix::fs::flistxattr(fd, &mut tmp)) {
         Some(size) => {
-            copy_nonoverlapping(tmp.as_ptr(), list.cast(), len);
+            // If `len` is 0, `value` could be null.
+            if len != 0 {
+                copy_nonoverlapping(tmp.as_ptr(), list.cast(), len);
+            }
             size as ssize_t
         }
         None => -1,
