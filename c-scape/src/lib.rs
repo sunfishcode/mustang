@@ -49,7 +49,6 @@ use core::ffi::c_void;
 #[cfg(not(target_os = "wasi"))]
 use core::mem::{size_of, zeroed};
 use core::ptr::{self, copy_nonoverlapping, null, null_mut};
-use core::slice;
 use errno::{set_errno, Errno};
 use error_str::error_str;
 #[cfg(target_vendor = "mustang")]
@@ -189,12 +188,15 @@ unsafe extern "C" fn getentropy(buf: *mut c_void, buflen: usize) -> i32 {
     }
 
     let flags = rustix::rand::GetRandomFlags::empty();
-    let slice = slice::from_raw_parts_mut(buf.cast::<u8>(), buflen);
 
     let mut filled = 0usize;
 
+    // `slice::from_raw_parts_mut` assumes that the memory is initialized,
+    // which our C API here doesn't guarantee. Since rustix currently requires
+    // a slice, use a temporary copy.
+    let mut tmp = alloc::vec![0u8; buflen];
     while filled < buflen {
-        match rustix::rand::getrandom(&mut slice[filled..], flags) {
+        match rustix::rand::getrandom(&mut tmp[filled..], flags) {
             Ok(num) => filled += num,
             Err(rustix::io::Errno::INTR) => {}
             Err(err) => {
@@ -203,6 +205,8 @@ unsafe extern "C" fn getentropy(buf: *mut c_void, buflen: usize) -> i32 {
             }
         }
     }
+
+    core::ptr::copy_nonoverlapping(tmp.as_ptr(), buf.cast::<u8>(), buflen);
 
     0
 }
