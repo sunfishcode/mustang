@@ -12,7 +12,7 @@ use crate::convert_res;
 macro_rules! openat_impl {
     ($fd:expr, $pathname:ident, $flags:ident, $args:ident) => {{
         let flags = OFlags::from_bits($flags as _).unwrap();
-        let mode = if flags.contains(OFlags::CREATE) {
+        let mode = if flags.contains(OFlags::CREATE) || flags.contains(OFlags::TMPFILE) {
             let mode: libc::mode_t = $args.arg();
             Mode::from_bits((mode & !libc::S_IFMT) as _).unwrap()
         } else {
