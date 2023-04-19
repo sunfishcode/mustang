@@ -123,6 +123,7 @@ Known limitations in `mustang` include:
 
  - No support for dynamic linking yet.
  - Many missing features needed for libraries written in C.
+ - Custom signal handlers don't work yet.
 
 ## Background
 
