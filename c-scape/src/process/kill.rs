@@ -9,6 +9,21 @@ use crate::convert_res;
 unsafe extern "C" fn kill(pid: pid_t, sig: c_int) -> c_int {
     libc!(libc::kill(pid, sig));
 
+    if sig == 0 {
+        let res = if pid < 0 {
+            rustix::process::test_kill_process_group(Pid::from_raw(-pid as _).unwrap())
+        } else if let Some(pid) = Pid::from_raw(pid as _) {
+            rustix::process::test_kill_process(pid)
+        } else {
+            rustix::process::test_kill_current_process_group()
+        };
+
+        return match convert_res(res) {
+            Some(()) => 0,
+            None => -1,
+        };
+    }
+
     let sig = if let Some(sig) = Signal::from_raw(sig) {
         sig
     } else {
@@ -16,14 +31,12 @@ unsafe extern "C" fn kill(pid: pid_t, sig: c_int) -> c_int {
         return -1;
     };
 
-    let res = match pid {
-        n if n > 0 => {
-            rustix::process::kill_process(Pid::from_raw(pid.unsigned_abs()).unwrap(), sig)
-        }
-        n if n < 0 => {
-            rustix::process::kill_process_group(Pid::from_raw(pid.unsigned_abs()).unwrap(), sig)
-        }
-        _ => rustix::process::kill_current_process_group(sig),
+    let res = if pid < 0 {
+        rustix::process::kill_process_group(Pid::from_raw(-pid as _).unwrap(), sig)
+    } else if let Some(pid) = Pid::from_raw(pid as _) {
+        rustix::process::kill_process(pid, sig)
+    } else {
+        rustix::process::kill_current_process_group(sig)
     };
 
     match convert_res(res) {

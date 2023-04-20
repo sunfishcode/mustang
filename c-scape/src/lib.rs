@@ -91,6 +91,8 @@ mod process;
 
 mod rand;
 mod rand48;
+#[cfg(not(target_os = "wasi"))]
+mod signal;
 mod termios;
 
 // threads
@@ -474,13 +476,6 @@ unsafe extern "C" fn pthread_setname_np(
     }
 }
 
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn raise(_sig: c_int) -> c_int {
-    libc!(libc::raise(_sig));
-    unimplemented!("raise")
-}
-
 // nss
 
 #[cfg(not(feature = "std"))] // Avoid conflicting with c-gull's more complete `getpwuid_r`.
@@ -489,61 +484,6 @@ unsafe extern "C" fn raise(_sig: c_int) -> c_int {
 unsafe extern "C" fn getpwuid_r() {
     //libc!(libc::getpwuid_r());
     unimplemented!("getpwuid_r")
-}
-
-// signal
-
-#[no_mangle]
-unsafe extern "C" fn abort() {
-    libc!(libc::abort());
-    unimplemented!("abort")
-}
-
-#[no_mangle]
-unsafe extern "C" fn __stack_chk_fail() {
-    unimplemented!("__stack_chk_fail")
-}
-
-#[no_mangle]
-unsafe extern "C" fn signal(_num: c_int, _handler: usize) -> usize {
-    libc!(libc::signal(_num, _handler));
-
-    // Somehow no signals for this handler were ever delivered. How odd.
-    libc::SIG_DFL
-}
-
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn sigaction(_signum: c_int, _act: *const c_void, _oldact: *mut c_void) -> c_int {
-    libc!(libc::sigaction(_signum, _act.cast(), _oldact.cast()));
-
-    // No signals for this handler were ever delivered either. What a coincidence.
-    0
-}
-
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn sigaltstack(_ss: *const c_void, _old_ss: *mut c_void) -> c_int {
-    libc!(libc::sigaltstack(_ss.cast(), _old_ss.cast()));
-
-    // Somehow no signals were delivered and the stack wasn't ever used. What luck.
-    0
-}
-
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn sigaddset(_sigset: *mut c_void, _signum: c_int) -> c_int {
-    libc!(libc::sigaddset(_sigset.cast(), _signum));
-    // Signal sets are not used right now.
-    0
-}
-
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn sigemptyset(_sigset: *mut c_void) -> c_int {
-    libc!(libc::sigemptyset(_sigset.cast()));
-    // Signal sets are not used right now.
-    0
 }
 
 // syscall
@@ -847,6 +787,11 @@ unsafe extern "C" fn exit(status: c_int) -> ! {
 unsafe extern "C" fn _exit(status: c_int) -> ! {
     libc!(libc::_exit(status));
     origin::exit_immediately(status)
+}
+
+#[no_mangle]
+unsafe extern "C" fn __stack_chk_fail() {
+    unimplemented!("__stack_chk_fail")
 }
 
 // glibc versioning
