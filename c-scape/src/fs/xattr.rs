@@ -1,7 +1,4 @@
 //! Extended attributes.
-//!
-//! These are not yet implemented in rustix. For now, use stubs so that
-//! programs that use them can be linked.
 
 use crate::convert_res;
 use alloc::vec;

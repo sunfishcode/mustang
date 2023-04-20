@@ -2,7 +2,9 @@ use alloc::boxed::Box;
 use core::any::Any;
 use core::arch::asm;
 use core::ffi::c_void;
-use linux_raw_sys::general::{__NR_clone, __NR_exit, __NR_munmap};
+use linux_raw_sys::general::{
+    __NR_clone, __NR_exit, __NR_munmap, __NR_rt_sigreturn, __NR_sigreturn,
+};
 use rustix::process::RawPid;
 
 /// A wrapper around the Linux `clone` system call.
@@ -79,5 +81,31 @@ pub(super) unsafe fn munmap_and_exit_thread(map_addr: *mut c_void, map_len: usiz
         in("r0") map_addr,
         in("r1") map_len,
         options(noreturn, nostack)
+    );
+}
+
+/// Invoke the `__NR_rt_sigreturn` system call to return control from a signal
+/// handler.
+#[naked]
+pub(super) unsafe extern "C" fn return_from_signal_handler() {
+    asm!(
+        "mov r7,{__NR_rt_sigreturn}",
+        "swi 0",
+        "udf #16",
+        __NR_rt_sigreturn = const __NR_rt_sigreturn,
+        options(noreturn)
+    );
+}
+
+/// Invoke the appropriate system call to return control from a signal
+/// handler that does not use `SA_SIGINFO`.
+#[naked]
+pub(super) unsafe extern "C" fn return_from_signal_handler_noinfo() {
+    asm!(
+        "mov r7,{__NR_sigreturn}",
+        "swi 0",
+        "udf #16",
+        __NR_sigreturn = const __NR_sigreturn,
+        options(noreturn)
     );
 }

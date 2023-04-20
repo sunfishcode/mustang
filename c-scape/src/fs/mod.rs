@@ -7,6 +7,7 @@ mod inotify;
 mod link;
 mod lseek;
 mod mkdir;
+mod mknod;
 mod open;
 mod readlink;
 mod realpath;

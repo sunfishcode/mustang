@@ -177,6 +177,13 @@ unsafe extern "C" fn unsetenv(key: *const c_char) -> c_int {
     0
 }
 
+#[no_mangle]
+unsafe extern "C" fn getlogin() -> *mut c_char {
+    libc!(libc::getlogin());
+
+    getenv(rustix::cstr!("LOGNAME").as_ptr())
+}
+
 /// GLIBC and origin pass argc, argv, and envp to functions in .init_array, as
 /// a non-standard extension. Use priority 98 so that we run before any
 /// normal user-defined constructor functions and our own functions which

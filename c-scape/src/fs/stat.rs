@@ -1,10 +1,11 @@
-use core::ffi::CStr;
-use rustix::fd::BorrowedFd;
-use rustix::fs::AtFlags;
-
 use core::convert::TryInto;
+use core::ffi::CStr;
+use core::mem::size_of_val;
+use core::ptr::copy_nonoverlapping;
 use errno::{set_errno, Errno};
 use libc::{c_char, c_int, time_t};
+use rustix::fd::BorrowedFd;
+use rustix::fs::AtFlags;
 
 use crate::convert_res;
 
@@ -173,8 +174,6 @@ unsafe extern "C" fn statfs(path: *const c_char, stat_: *mut libc::statfs) -> c_
         Some(r) => {
             #[cfg(target_os = "linux")]
             {
-                // TODO: This doesn't assign `f_fsid` because the Rust libc crate
-                // declares it with private fields.
                 let mut converted = core::mem::zeroed::<libc::statfs>();
                 converted.f_type = r.f_type.try_into().unwrap();
                 converted.f_bsize = r.f_bsize.try_into().unwrap();
@@ -185,6 +184,16 @@ unsafe extern "C" fn statfs(path: *const c_char, stat_: *mut libc::statfs) -> c_
                 converted.f_ffree = r.f_ffree.try_into().unwrap();
                 converted.f_namelen = r.f_namelen.try_into().unwrap();
                 converted.f_frsize = r.f_frsize.try_into().unwrap();
+
+                // The libc crate declares `f_fsid` with private fields,
+                // perhaps because who even knows what this field means,
+                // but understanding is not required for the job here.
+                assert_eq!(size_of_val(&r.f_fsid), size_of_val(&converted.f_fsid));
+                copy_nonoverlapping(
+                    &r.f_fsid as *const _ as *const u8,
+                    &mut converted.f_fsid as *mut _ as *mut u8,
+                    size_of_val(&r.f_fsid),
+                );
 
                 *stat_ = converted;
             }

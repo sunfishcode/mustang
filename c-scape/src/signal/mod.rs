@@ -1,17 +1,23 @@
 use crate::convert_res;
-use core::mem::{size_of, size_of_val, transmute, zeroed};
+use core::mem::{align_of, size_of, size_of_val, transmute, zeroed};
 use core::ptr::copy_nonoverlapping;
 use errno::{set_errno, Errno};
 use libc::*;
+use rustix::process::Signal;
+use rustix::runtime::{How, Sigaction, Siginfo, Sigset, Stack};
 
 #[no_mangle]
 unsafe extern "C" fn signal(signal: c_int, handler: sighandler_t) -> sighandler_t {
     libc!(libc::signal(signal, handler));
 
-    use rustix::process::Signal;
-    use rustix::runtime::Sigaction;
+    let signal = match Signal::from_raw(signal) {
+        Some(signal) => signal,
+        None => {
+            set_errno(Errno(libc::EINVAL));
+            return SIG_ERR;
+        }
+    };
 
-    let signal = Signal::from_raw(signal).unwrap();
     let mut new = zeroed::<Sigaction>();
     new.sa_handler_kernel = transmute(handler);
     new.sa_flags = SA_RESTART as _;
@@ -26,10 +32,14 @@ unsafe extern "C" fn signal(signal: c_int, handler: sighandler_t) -> sighandler_
 unsafe extern "C" fn sigaction(signal: c_int, new: *const sigaction, old: *mut sigaction) -> c_int {
     libc!(libc::sigaction(signal, new, old));
 
-    use rustix::process::Signal;
-    use rustix::runtime::Sigaction;
+    let signal = match Signal::from_raw(signal) {
+        Some(signal) => signal,
+        None => {
+            set_errno(Errno(libc::EINVAL));
+            return -1;
+        }
+    };
 
-    let signal = Signal::from_raw(signal).unwrap();
     let new = if new.is_null() {
         None
     } else {
@@ -41,17 +51,16 @@ unsafe extern "C" fn sigaction(signal: c_int, new: *const sigaction, old: *mut s
             size_of_val(&zeroed::<Sigaction>().sa_mask),
         );
 
-        let new = Sigaction {
+        Some(Sigaction {
             sa_handler_kernel: transmute(new.sa_sigaction),
             sa_flags: new.sa_flags.try_into().unwrap(),
-            sa_restorer: transmute(new.sa_sigaction),
+            #[cfg(not(target_arch = "riscv64"))]
+            sa_restorer: transmute(new.sa_restorer),
             sa_mask,
-        };
-
-        Some(new)
+        })
     };
 
-    match convert_res(rustix::runtime::sigaction(signal, new)) {
+    match convert_res(origin::sigaction(signal, new)) {
         Some(old_action) => {
             if !old.is_null() {
                 let mut sa_mask = zeroed();
@@ -64,7 +73,10 @@ unsafe extern "C" fn sigaction(signal: c_int, new: *const sigaction, old: *mut s
                 let old_action = sigaction {
                     sa_sigaction: transmute(old_action.sa_handler_kernel),
                     sa_flags: old_action.sa_flags.try_into().unwrap(),
+                    #[cfg(not(target_arch = "riscv64"))]
                     sa_restorer: transmute(old_action.sa_restorer),
+                    #[cfg(target_arch = "riscv64")]
+                    sa_restorer: zeroed(),
                     sa_mask,
                 };
                 old.write(old_action);
@@ -76,11 +88,45 @@ unsafe extern "C" fn sigaction(signal: c_int, new: *const sigaction, old: *mut s
 }
 
 #[no_mangle]
+unsafe extern "C" fn sigprocmask(how: c_int, set: *const sigset_t, oldset: *mut sigset_t) -> c_int {
+    libc!(libc::sigprocmask(how, set, oldset));
+
+    let how = match how {
+        SIG_BLOCK => How::BLOCK,
+        SIG_UNBLOCK => How::UNBLOCK,
+        SIG_SETMASK => How::SETMASK,
+        _ => {
+            set_errno(Errno(EINVAL));
+            return -1;
+        }
+    };
+
+    if !oldset.is_null() {
+        oldset.write(zeroed());
+    }
+
+    assert!(size_of::<Sigset>() <= size_of::<sigset_t>());
+    assert!(align_of::<Sigset>() <= align_of::<sigset_t>());
+    let set: *const Sigset = set.cast();
+    let oldset: *mut Sigset = oldset.cast();
+
+    match convert_res(rustix::runtime::sigprocmask(how, &*set)) {
+        Some(old) => {
+            if !oldset.is_null() {
+                oldset.write(old);
+            }
+            0
+        }
+        None => -1,
+    }
+}
+
+#[no_mangle]
 unsafe extern "C" fn sigaltstack(new: *const stack_t, old: *mut stack_t) -> c_int {
     libc!(libc::sigaltstack(new, old));
 
-    let new: *const rustix::runtime::Stack = checked_cast!(new);
-    let old: *mut rustix::runtime::Stack = checked_cast!(old);
+    let new: *const Stack = checked_cast!(new);
+    let old: *mut Stack = checked_cast!(old);
 
     let new = if new.is_null() {
         None
@@ -104,7 +150,7 @@ unsafe extern "C" fn sigaltstack(new: *const stack_t, old: *mut stack_t) -> c_in
 unsafe extern "C" fn raise(sig: c_int) -> c_int {
     libc!(libc::raise(sig));
 
-    let sig = rustix::process::Signal::from_raw(sig).unwrap();
+    let sig = Signal::from_raw(sig).unwrap();
     match convert_res(rustix::runtime::tkill(rustix::thread::gettid(), sig)) {
         Some(()) => 0,
         None => -1,
@@ -115,7 +161,7 @@ unsafe extern "C" fn raise(sig: c_int) -> c_int {
 unsafe extern "C" fn abort() {
     libc!(libc::abort());
 
-    rustix::runtime::tkill(rustix::thread::gettid(), rustix::process::Signal::Abort).ok();
+    rustix::runtime::tkill(rustix::thread::gettid(), Signal::Abort).ok();
 
     unimplemented!("`abort()` when `SIGABRT` is ignored")
 }
@@ -125,7 +171,7 @@ unsafe extern "C" fn sigaddset(sigset: *mut sigset_t, signum: c_int) -> c_int {
     libc!(libc::sigaddset(sigset, signum));
 
     if signum == 0 || signum as usize - 1 >= size_of::<sigset_t>() * 8 {
-        set_errno(Errno(libc::EINVAL));
+        set_errno(Errno(EINVAL));
         return -1;
     }
 
@@ -141,7 +187,7 @@ unsafe extern "C" fn sigdelset(sigset: *mut sigset_t, signum: c_int) -> c_int {
     libc!(libc::sigdelset(sigset, signum));
 
     if signum == 0 || signum as usize - 1 >= size_of::<sigset_t>() * 8 {
-        set_errno(Errno(libc::EINVAL));
+        set_errno(Errno(EINVAL));
         return -1;
     }
 
@@ -173,11 +219,80 @@ unsafe extern "C" fn sigismember(sigset: *const sigset_t, signum: c_int) -> c_in
     libc!(libc::sigismember(sigset, signum));
 
     if signum == 0 || signum as usize - 1 >= size_of::<sigset_t>() * 8 {
-        set_errno(Errno(libc::EINVAL));
+        set_errno(Errno(EINVAL));
         return -1;
     }
 
     let sig_index = (signum - 1) as usize;
     let x = sigset.cast::<usize>().add(sig_index / 8).read();
     ((x & (1_usize << (sig_index % (8 * size_of::<usize>())))) != 0) as c_int
+}
+
+#[no_mangle]
+unsafe extern "C" fn sigwait(set: *const sigset_t, sig: *mut c_int) -> c_int {
+    libc!(libc::sigwait(set, sig));
+
+    assert!(size_of::<Sigset>() <= size_of::<sigset_t>());
+    assert!(align_of::<Sigset>() <= align_of::<sigset_t>());
+    let set: *const Sigset = set.cast();
+
+    match convert_res(rustix::runtime::sigwait(&*set)) {
+        Some(signum) => signum as _,
+        None => -1,
+    }
+}
+
+#[no_mangle]
+unsafe extern "C" fn sigwaitinfo(set: *const sigset_t, info: *mut siginfo_t) -> c_int {
+    libc!(libc::sigwaitinfo(set, info));
+
+    assert!(size_of::<Sigset>() <= size_of::<sigset_t>());
+    assert!(align_of::<Sigset>() <= align_of::<sigset_t>());
+    let set: *const Sigset = set.cast();
+
+    let info: *mut Siginfo = checked_cast!(info);
+
+    match convert_res(rustix::runtime::sigwaitinfo(&*set)) {
+        Some(info_value) => {
+            if !info.is_null() {
+                info.write(info_value);
+            }
+            0
+        }
+        None => -1,
+    }
+}
+
+#[no_mangle]
+unsafe extern "C" fn sigtimedwait(
+    set: *const sigset_t,
+    info: *mut siginfo_t,
+    timeout: *const timespec,
+) -> c_int {
+    libc!(libc::sigtimedwait(set, info, timeout));
+
+    let timeout = if timeout.is_null() {
+        None
+    } else {
+        Some(rustix::time::Timespec {
+            tv_sec: (*timeout).tv_sec.into(),
+            tv_nsec: (*timeout).tv_nsec as _,
+        })
+    };
+
+    assert!(size_of::<Sigset>() <= size_of::<sigset_t>());
+    assert!(align_of::<Sigset>() <= align_of::<sigset_t>());
+    let set: *const Sigset = set.cast();
+
+    let info: *mut Siginfo = checked_cast!(info);
+
+    match convert_res(rustix::runtime::sigtimedwait(&*set, timeout)) {
+        Some(info_value) => {
+            if !info.is_null() {
+                info.write(info_value);
+            }
+            0
+        }
+        None => -1,
+    }
 }
