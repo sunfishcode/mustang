@@ -1,6 +1,6 @@
 [package]
 name = "origin"
-version = "0.8.7"
+version = "0.8.8"
 authors = [
     "Dan Gohman <dev@sunfishcode.online>",
 ]
