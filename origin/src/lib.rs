@@ -14,6 +14,8 @@ extern crate alloc;
 pub mod sync;
 
 mod program;
+#[cfg(target_vendor = "mustang")]
+mod signal;
 #[cfg(feature = "threads")]
 #[cfg_attr(not(target_vendor = "mustang"), path = "threads_via_pthreads.rs")]
 mod threads;
@@ -28,6 +30,8 @@ mod threads;
 mod arch;
 
 pub use program::{at_exit, exit, exit_immediately};
+#[cfg(target_vendor = "mustang")]
+pub use signal::{sigaction, Sigaction};
 #[cfg(feature = "threads")]
 #[cfg(feature = "set_thread_id")]
 pub use threads::set_current_thread_id_after_a_fork;

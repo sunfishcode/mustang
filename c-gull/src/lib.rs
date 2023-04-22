@@ -2,6 +2,7 @@
 #![no_builtins] // don't let LLVM optimize our `memcpy` into a `memcpy` call
 #![feature(strict_provenance)]
 #![feature(c_variadic)]
+#![feature(sync_unsafe_cell)]
 #![deny(fuzzy_provenance_casts)]
 #![deny(lossy_provenance_casts)]
 #![cfg_attr(not(feature = "std"), no_std)]
@@ -26,6 +27,10 @@ mod strtod;
 #[cfg(feature = "std")]
 mod strtol;
 #[cfg(feature = "std")]
+mod sysconf;
+#[cfg(feature = "std")]
+mod termios;
+#[cfg(feature = "std")]
 mod time;
 
 #[cfg(feature = "std")]
@@ -47,4 +52,16 @@ unsafe extern "C" fn __assert_fail(
         CStr::from_ptr(func)
     );
     std::process::abort();
+}
+
+// utilities
+
+/// Convert a rustix `Result` into an `Option` with the error stored
+/// in `errno`.
+#[cfg(feature = "std")]
+fn convert_res<T>(result: Result<T, rustix::io::Errno>) -> Option<T> {
+    use errno::{set_errno, Errno};
+    result
+        .map_err(|err| set_errno(Errno(err.raw_os_error())))
+        .ok()
 }

@@ -92,6 +92,7 @@ mod process;
 mod rand;
 mod rand48;
 #[cfg(not(target_os = "wasi"))]
+#[cfg(target_vendor = "mustang")]
 mod signal;
 mod termios;
 
@@ -130,6 +131,7 @@ unsafe extern "C" fn strerror(errnum: c_int) -> *mut c_char {
     (*storage).as_mut_ptr()
 }
 
+// <https://refspecs.linuxfoundation.org/LSB_3.2.0/LSB-Core-generic/LSB-Core-generic/baselib-xpg-strerror_r-3.html>
 #[no_mangle]
 unsafe extern "C" fn __xpg_strerror_r(errnum: c_int, buf: *mut c_char, buflen: usize) -> c_int {
     libc!(libc::strerror_r(errnum, buf, buflen));
@@ -216,24 +218,38 @@ unsafe extern "C" fn getentropy(buf: *mut c_void, buflen: usize) -> i32 {
 // process
 
 #[no_mangle]
-unsafe extern "C" fn chroot(_name: *const c_char) -> c_int {
-    libc!(libc::chroot(_name));
-    unimplemented!("chroot")
-}
-
-#[no_mangle]
 unsafe extern "C" fn sysconf(name: c_int) -> c_long {
     libc!(libc::sysconf(name));
+
+    #[cfg(feature = "std")] // These are defined in c-gull.
+    #[cfg(not(target_os = "wasi"))]
+    extern "C" {
+        fn get_nprocs_conf() -> c_int;
+        fn get_nprocs() -> c_int;
+        fn get_phys_pages() -> c_long;
+        fn get_avphys_pages() -> c_long;
+    }
 
     match name {
         libc::_SC_PAGESIZE => rustix::param::page_size() as _,
         #[cfg(not(target_os = "wasi"))]
         libc::_SC_GETPW_R_SIZE_MAX => -1,
-        // TODO: Oddly, only ever one processor seems to be online.
-        #[cfg(not(target_os = "wasi"))]
-        libc::_SC_NPROCESSORS_ONLN => 1,
         #[cfg(any(target_os = "android", target_os = "linux", target_os = "wasi"))]
         libc::_SC_SYMLOOP_MAX => 40,
+        libc::_SC_HOST_NAME_MAX => 255,
+        libc::_SC_NGROUPS_MAX => 32,
+        #[cfg(feature = "std")]
+        #[cfg(not(target_os = "wasi"))]
+        libc::_SC_NPROCESSORS_CONF => get_nprocs_conf().into(),
+        #[cfg(feature = "std")]
+        #[cfg(not(target_os = "wasi"))]
+        libc::_SC_NPROCESSORS_ONLN => get_nprocs().into(),
+        #[cfg(feature = "std")]
+        #[cfg(not(target_os = "wasi"))]
+        libc::_SC_PHYS_PAGES => get_phys_pages(),
+        #[cfg(feature = "std")]
+        #[cfg(not(target_os = "wasi"))]
+        libc::_SC_AVPHYS_PAGES => get_avphys_pages(),
         _ => panic!("unrecognized sysconf({})", name),
     }
 }
@@ -481,9 +497,17 @@ unsafe extern "C" fn pthread_setname_np(
 #[cfg(not(feature = "std"))] // Avoid conflicting with c-gull's more complete `getpwuid_r`.
 #[cfg(not(target_os = "wasi"))]
 #[no_mangle]
-unsafe extern "C" fn getpwuid_r() {
-    //libc!(libc::getpwuid_r());
-    unimplemented!("getpwuid_r")
+unsafe extern "C" fn getpwuid_r(
+    _uid: uid_t,
+    _pwd: *mut passwd,
+    _buf: *mut c_char,
+    _buflen: usize,
+    _result: *mut *mut passwd,
+) -> c_int {
+    libc!(libc::getpwuid_r(_uid, _pwd, _buf, _buflen, _result));
+
+    // `getpwuid_r` is currently implemented in c-gull.
+    unimplemented!("getpwuid_r without the \"std\" feature")
 }
 
 // syscall
@@ -581,6 +605,14 @@ unsafe extern "C" fn syscall(number: c_long, mut args: ...) -> *mut c_void {
             let times = args.arg::<*const libc::timespec>();
             let flags = args.arg::<c_int>();
             ptr::invalid_mut(utimensat(fd, path, times, flags) as isize as usize)
+        }
+        libc::SYS_fdatasync => {
+            let fd = args.arg::<c_int>();
+            ptr::invalid_mut(fdatasync(fd) as isize as usize)
+        }
+        libc::SYS_syncfs => {
+            let fd = args.arg::<c_int>();
+            ptr::invalid_mut(syncfs(fd) as isize as usize)
         }
         _ => unimplemented!("syscall({:?})", number),
     }

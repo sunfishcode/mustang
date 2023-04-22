@@ -22,7 +22,14 @@ unsafe extern "C" fn getppid() -> pid_t {
 #[no_mangle]
 unsafe extern "C" fn setpgid(pid: pid_t, pgid: pid_t) -> c_int {
     libc!(libc::setpgid(pid, pgid));
-    unimplemented!("setpgid")
+
+    match convert_res(rustix::process::setpgid(
+        Pid::from_raw(pid as _),
+        Pid::from_raw(pgid as _),
+    )) {
+        Some(()) => 0,
+        None => -1,
+    }
 }
 
 #[no_mangle]

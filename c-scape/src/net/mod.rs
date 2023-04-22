@@ -7,8 +7,7 @@ use core::ffi::c_void;
 use core::mem::size_of;
 use core::ptr::copy_nonoverlapping;
 use core::slice;
-use errno::{set_errno, Errno};
-use libc::{c_char, c_int, c_uint};
+use libc::{c_int, c_uint};
 use rustix::fd::{BorrowedFd, IntoRawFd};
 use rustix::net::{
     AcceptFlags, AddressFamily, Ipv4Addr, Ipv6Addr, Protocol, RecvFlags, SendFlags, Shutdown,
@@ -428,23 +427,6 @@ unsafe extern "C" fn setsockopt(
         Some(()) => 0,
         None => -1,
     }
-}
-#[cfg(not(target_os = "wasi"))]
-#[no_mangle]
-unsafe extern "C" fn gethostname(name: *mut c_char, len: usize) -> c_int {
-    let uname = rustix::process::uname();
-    let nodename = uname.nodename();
-    if nodename.to_bytes().len() + 1 > len {
-        set_errno(Errno(libc::ENAMETOOLONG));
-        return -1;
-    }
-    libc::memcpy(
-        name.cast(),
-        nodename.to_bytes().as_ptr().cast(),
-        nodename.to_bytes().len(),
-    );
-    *name.add(nodename.to_bytes().len()) = 0;
-    0
 }
 
 #[no_mangle]

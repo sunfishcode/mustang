@@ -120,7 +120,25 @@ unsafe extern "C" fn vfprintf(file: *mut c_void, fmt: *const c_char, va_list: Va
     } else if file == stderr {
         format(fmt, va_list, output::io_write(&mut rust_stderr()))
     } else {
-        unimplemented!("vfprintf")
+        unimplemented!("vfprintf to a destination other than stdout or stderr")
+    }
+}
+
+#[no_mangle]
+unsafe extern "C" fn perror(user_message: *const c_char) {
+    libc!(libc::perror(user_message));
+
+    let errno_message = CStr::from_ptr(libc::strerror(errno::errno().0));
+    let user_message = if user_message.is_null() {
+        CStr::from_ptr(rustix::cstr!("").as_ptr())
+    } else {
+        CStr::from_ptr(user_message)
+    };
+
+    if user_message.to_bytes().is_empty() {
+        eprintln!("{:?}", errno_message);
+    } else {
+        eprintln!("{:?}: {:?}", user_message, errno_message);
     }
 }
 

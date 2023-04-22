@@ -3,11 +3,12 @@ mod key;
 use alloc::boxed::Box;
 use core::convert::TryInto;
 use core::ffi::c_void;
-use core::mem::ManuallyDrop;
+use core::mem::{align_of, size_of, zeroed, ManuallyDrop};
 use core::ptr::{self, null_mut};
 use core::sync::atomic::Ordering::SeqCst;
 use core::sync::atomic::{AtomicBool, AtomicU32};
 use core::time::Duration;
+use errno::{set_errno, Errno};
 use origin::lock_api::{self, RawMutex as _, RawReentrantMutex, RawRwLock as _};
 use origin::sync::{Condvar, RawMutex, RawRwLock};
 use origin::Thread;
@@ -361,9 +362,7 @@ const SIZEOF_PTHREAD_COND_T: usize = 48;
 struct PthreadCondT {
     inner: Condvar,
     attr: PthreadCondattrT,
-    pad: [u8; SIZEOF_PTHREAD_COND_T
-        - core::mem::size_of::<Condvar>()
-        - core::mem::size_of::<PthreadCondattrT>()],
+    pad: [u8; SIZEOF_PTHREAD_COND_T - size_of::<Condvar>() - size_of::<PthreadCondattrT>()],
 }
 
 libc_type!(PthreadCondT, pthread_cond_t);
@@ -456,9 +455,7 @@ unsafe extern "C" fn pthread_cond_init(
             inner: Condvar::new(),
             attr: ptr::read(attr),
             pad: [0_u8;
-                SIZEOF_PTHREAD_COND_T
-                    - core::mem::size_of::<Condvar>()
-                    - core::mem::size_of::<PthreadCondattrT>()],
+                SIZEOF_PTHREAD_COND_T - size_of::<Condvar>() - size_of::<PthreadCondattrT>()],
         },
     );
     0
@@ -616,10 +613,41 @@ unsafe extern "C" fn pthread_join(pthread: PthreadT, retval: *mut *mut c_void) -
 }
 
 #[no_mangle]
-unsafe extern "C" fn pthread_sigmask() -> c_int {
-    //libc!(libc::pthread_sigmask());
-    // not yet implemented, what is needed fo `std::Command` to work.
-    0
+unsafe extern "C" fn pthread_sigmask(
+    how: c_int,
+    set: *const libc::sigset_t,
+    oldset: *mut libc::sigset_t,
+) -> c_int {
+    libc!(libc::pthread_sigmask(how, set, oldset));
+
+    let how = match how {
+        libc::SIG_BLOCK => rustix::runtime::How::BLOCK,
+        libc::SIG_UNBLOCK => rustix::runtime::How::UNBLOCK,
+        libc::SIG_SETMASK => rustix::runtime::How::SETMASK,
+        _ => {
+            set_errno(Errno(libc::EINVAL));
+            return -1;
+        }
+    };
+
+    if !oldset.is_null() {
+        oldset.write(zeroed());
+    }
+
+    assert!(size_of::<rustix::runtime::Sigset>() <= size_of::<libc::sigset_t>());
+    assert!(align_of::<rustix::runtime::Sigset>() <= align_of::<libc::sigset_t>());
+    let set: *const rustix::runtime::Sigset = set.cast();
+    let oldset: *mut rustix::runtime::Sigset = oldset.cast();
+
+    match rustix::runtime::sigprocmask(how, &*set) {
+        Ok(old) => {
+            if !oldset.is_null() {
+                oldset.write(old);
+            }
+            0
+        }
+        Err(e) => e.raw_os_error(),
+    }
 }
 
 #[no_mangle]

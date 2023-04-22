@@ -555,3 +555,78 @@ unsafe extern "C" fn getgrgid(gid: gid_t) -> *mut libc::group {
         }
     }
 }
+
+#[no_mangle]
+unsafe extern "C" fn getgrouplist(
+    user: *const c_char,
+    group: gid_t,
+    groups: *mut gid_t,
+    ngroups: *mut c_int,
+) -> c_int {
+    libc!(libc::getgrouplist(user, group, groups, ngroups));
+
+    let user = OsStr::from_bytes(CStr::from_ptr(user).to_bytes());
+    let mut groups = groups;
+
+    let mut command = Command::new("getent");
+    command.arg("initgroups").arg(user);
+
+    let output = match command.output() {
+        Ok(output) => output,
+        Err(_err) => return -1,
+    };
+
+    match output.status.code() {
+        Some(0) => {}
+        Some(r) => panic!("unexpected exit status from `getent initgroups`: {}", r),
+        None => return -1,
+    }
+
+    let stdout = match str::from_utf8(&output.stdout) {
+        Ok(stdout) => stdout,
+        Err(_err) => return -1,
+    };
+    let stdout = match stdout.strip_suffix('\n') {
+        Some(stdout) => stdout,
+        None => return -1,
+    };
+
+    let mut parts = stdout.split_whitespace();
+    match parts.next() {
+        Some(part) => {
+            if part != user {
+                return -1;
+            }
+        }
+        None => return -1,
+    };
+
+    let ngroups_in = ngroups.read();
+    let mut ngroups_out = 0;
+
+    if ngroups_out == ngroups_in {
+        return -1;
+    }
+    ngroups_out += 1;
+    groups.write(group);
+    groups = groups.add(1);
+
+    for part in parts {
+        let gid: u32 = match part.parse() {
+            Ok(gid) => gid,
+            Err(_) => return -1,
+        };
+        if gid == group {
+            continue;
+        }
+        if ngroups_out == ngroups_in {
+            return -1;
+        }
+        ngroups_out += 1;
+        groups.write(gid);
+        groups = groups.add(1);
+    }
+
+    ngroups.write(ngroups_out);
+    ngroups_out
+}

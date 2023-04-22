@@ -91,6 +91,26 @@ unsafe extern "C" fn cfmakeraw(termios_p: *mut libc::termios) {
 }
 
 #[no_mangle]
+unsafe extern "C" fn cfgetospeed(termios_p: *const libc::termios) -> libc::speed_t {
+    libc!(libc::cfgetospeed(termios_p));
+
+    let termios = &*termios_p;
+    let termios = libc_to_termios(termios);
+
+    rustix::termios::cfgetospeed(&termios)
+}
+
+#[no_mangle]
+unsafe extern "C" fn cfgetispeed(termios_p: *const libc::termios) -> libc::speed_t {
+    libc!(libc::cfgetispeed(termios_p));
+
+    let termios = &*termios_p;
+    let termios = libc_to_termios(termios);
+
+    rustix::termios::cfgetispeed(&termios)
+}
+
+#[no_mangle]
 unsafe extern "C" fn tcgetattr(fd: c_int, termios_p: *mut libc::termios) -> c_int {
     libc!(libc::tcgetattr(fd, termios_p));
 
@@ -164,7 +184,20 @@ unsafe extern "C" fn tcsetattr(
     };
 
     let termios = *termios_p;
-    let termios = Termios2 {
+    let termios = libc_to_termios2(&termios);
+
+    match convert_res(rustix::termios::tcsetattr2(
+        BorrowedFd::borrow_raw(fd),
+        optional_actions,
+        &termios,
+    )) {
+        Some(()) => 0,
+        None => -1,
+    }
+}
+
+fn libc_to_termios2(termios: &libc::termios) -> Termios2 {
+    Termios2 {
         c_cc: [
             termios.c_cc[0],
             termios.c_cc[1],
@@ -193,14 +226,36 @@ unsafe extern "C" fn tcsetattr(
         c_line: termios.c_line,
         c_ispeed: termios.c_ispeed,
         c_ospeed: termios.c_ospeed,
-    };
+    }
+}
 
-    match convert_res(rustix::termios::tcsetattr2(
-        BorrowedFd::borrow_raw(fd),
-        optional_actions,
-        &termios,
-    )) {
-        Some(()) => 0,
-        None => -1,
+fn libc_to_termios(termios: &libc::termios) -> Termios {
+    Termios {
+        c_cc: [
+            termios.c_cc[0],
+            termios.c_cc[1],
+            termios.c_cc[2],
+            termios.c_cc[3],
+            termios.c_cc[4],
+            termios.c_cc[5],
+            termios.c_cc[6],
+            termios.c_cc[7],
+            termios.c_cc[8],
+            termios.c_cc[9],
+            termios.c_cc[10],
+            termios.c_cc[11],
+            termios.c_cc[12],
+            termios.c_cc[13],
+            termios.c_cc[14],
+            termios.c_cc[15],
+            termios.c_cc[16],
+            termios.c_cc[17],
+            termios.c_cc[18],
+        ],
+        c_cflag: termios.c_cflag,
+        c_iflag: termios.c_iflag,
+        c_oflag: termios.c_oflag,
+        c_lflag: termios.c_lflag,
+        c_line: termios.c_line,
     }
 }
