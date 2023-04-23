@@ -10,13 +10,17 @@
 //!
 //! [has differences with glibc]: https://docs.rs/printf-compat/0.1.1/printf_compat/output/fn.fmt_write.html#differences
 
-use libc::{c_char, c_int, c_void};
+use libc::{c_char, c_int, c_void, size_t};
 use printf_compat::{format, output};
 use rustix::fd::{FromRawFd, IntoRawFd};
 use std::cmp::min;
 use std::ffi::{CStr, VaList};
 use std::io::{stderr as rust_stderr, stdout as rust_stdout, Write};
 use std::ptr::copy_nonoverlapping;
+
+extern "C" {
+    fn __chk_fail();
+}
 
 #[no_mangle]
 unsafe extern "C" fn puts(s: *const c_char) -> c_int {
@@ -122,6 +126,64 @@ unsafe extern "C" fn vfprintf(file: *mut c_void, fmt: *const c_char, va_list: Va
     } else {
         unimplemented!("vfprintf to a destination other than stdout or stderr")
     }
+}
+
+// <http://refspecs.linux-foundation.org/LSB_4.0.0/LSB-Core-generic/LSB-Core-generic/libc---snprintf-chk-1.html>
+#[no_mangle]
+unsafe extern "C" fn __snprintf_chk(
+    ptr: *mut c_char,
+    len: size_t,
+    flag: c_int,
+    slen: size_t,
+    fmt: *const c_char,
+    mut args: ...
+) -> c_int {
+    if slen < len {
+        __chk_fail();
+    }
+
+    if flag > 0 {
+        unimplemented!("__USE_FORTIFY_LEVEL > 1");
+    }
+
+    let va_list = args.as_va_list();
+    vsnprintf(ptr, len, fmt, va_list)
+}
+
+// <https://refspecs.linuxbase.org/LSB_4.0.0/LSB-Core-generic/LSB-Core-generic/libc---vsnprintf-chk-1.html>
+#[no_mangle]
+unsafe extern "C" fn __vsnprintf_chk(
+    ptr: *mut c_char,
+    len: size_t,
+    flag: c_int,
+    slen: size_t,
+    fmt: *const c_char,
+    va_list: VaList,
+) -> c_int {
+    if slen < len {
+        __chk_fail();
+    }
+
+    if flag > 0 {
+        unimplemented!("__USE_FORTIFY_LEVEL > 1");
+    }
+
+    vsnprintf(ptr, len, fmt, va_list)
+}
+
+// <http://refspecs.linux-foundation.org/LSB_4.0.0/LSB-Core-generic/LSB-Core-generic/libc---memcpy-chk-1.html>
+#[no_mangle]
+unsafe extern "C" fn __memcpy_chk(
+    dest: *mut c_void,
+    src: *const c_void,
+    len: size_t,
+    destlen: size_t,
+) -> *mut c_void {
+    if destlen < len {
+        __chk_fail();
+    }
+
+    libc::memcpy(dest, src, len)
 }
 
 #[no_mangle]
