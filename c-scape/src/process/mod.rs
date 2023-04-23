@@ -14,7 +14,6 @@ mod sid;
 mod system;
 mod uid;
 mod umask;
-mod utmp;
 mod wait;
 
 // this entire module is

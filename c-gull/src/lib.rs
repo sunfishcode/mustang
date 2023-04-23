@@ -32,6 +32,8 @@ mod sysconf;
 mod termios;
 #[cfg(feature = "std")]
 mod time;
+#[cfg(feature = "std")]
+mod utmp;
 
 #[cfg(feature = "std")]
 #[no_mangle]
