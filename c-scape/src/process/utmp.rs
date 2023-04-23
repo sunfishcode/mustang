@@ -1,4 +1,5 @@
 use core::ptr::null_mut;
+use errno::{set_errno, Errno};
 
 #[no_mangle]
 unsafe extern "C" fn getutxent() -> *mut libc::utmpx {
@@ -21,6 +22,8 @@ unsafe extern "C" fn getutxline(_ut: *const libc::utmpx) -> *mut libc::utmpx {
 #[no_mangle]
 unsafe extern "C" fn pututxline(_ut: *const libc::utmpx) -> *mut libc::utmpx {
     libc!(libc::pututxline(_ut));
+
+    set_errno(Errno(libc::ENOTSUP));
     null_mut() // unimplemented
 }
 
