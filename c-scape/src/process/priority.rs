@@ -42,3 +42,13 @@ unsafe extern "C" fn setpriority(which: c_uint, who: id_t, prio: c_int) -> c_int
         None => -1,
     }
 }
+
+#[no_mangle]
+unsafe extern "C" fn nice(inc: c_int) -> c_int {
+    libc!(libc::nice(inc));
+
+    match convert_res(rustix::process::nice(inc)) {
+        Some(new) => new,
+        None => -1,
+    }
+}
