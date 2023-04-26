@@ -252,9 +252,12 @@ unsafe extern "C" fn sigwait(set: *const sigset_t, sig: *mut c_int) -> c_int {
     assert!(align_of::<Sigset>() <= align_of::<sigset_t>());
     let set: *const Sigset = set.cast();
 
-    match convert_res(rustix::runtime::sigwait(&*set)) {
-        Some(signum) => signum as _,
-        None => -1,
+    match rustix::runtime::sigwait(&*set) {
+        Ok(signum) => {
+            sig.write(signum as _);
+            0
+        }
+        Err(e) => e.raw_os_error(),
     }
 }
 

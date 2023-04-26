@@ -342,6 +342,13 @@ unsafe extern "C" fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c
         if CStr::from_ptr(symbol.cast()).to_bytes() == b"gnu_get_libc_version" {
             return gnu_get_libc_version as *mut c_void;
         }
+        #[cfg(any(target_os = "android", target_os = "linux"))]
+        if CStr::from_ptr(symbol.cast()).to_bytes() == b"epoll_create1" {
+            return epoll_create1 as *mut c_void;
+        }
+        if CStr::from_ptr(symbol.cast()).to_bytes() == b"pipe2" {
+            return pipe2 as *mut c_void;
+        }
     }
     unimplemented!("dlsym({:?})", CStr::from_ptr(symbol.cast()))
 }
