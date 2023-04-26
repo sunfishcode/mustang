@@ -430,6 +430,9 @@ pub(super) unsafe fn initialize_main_thread(mem: *mut c_void) {
     let metadata: *mut Metadata = new.add(header).cast();
     let newtls: *mut Abi = &mut (*metadata).abi;
 
+    let thread_id_ptr = (*metadata).thread.thread_id.as_ptr();
+    let tid = rustix::runtime::set_tid_address(thread_id_ptr.cast());
+
     // Initialize the thread metadata.
     ptr::write(
         metadata,
@@ -443,7 +446,7 @@ pub(super) unsafe fn initialize_main_thread(mem: *mut c_void) {
                 pad: [0_usize; 1],
             },
             thread: ThreadData::new(
-                Some(gettid()),
+                Some(tid),
                 stack_least.cast(),
                 stack_size,
                 guard_size,
