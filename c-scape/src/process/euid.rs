@@ -1,4 +1,4 @@
-use libc::uid_t;
+use libc::{c_int, uid_t};
 
 #[no_mangle]
 unsafe extern "C" fn geteuid() -> uid_t {
@@ -7,7 +7,7 @@ unsafe extern "C" fn geteuid() -> uid_t {
 }
 
 #[no_mangle]
-unsafe extern "C" fn seteuid() {
-    //libc!(libc::seteuid());
+unsafe extern "C" fn seteuid(_uid: uid_t) -> c_int {
+    libc!(libc::seteuid(_uid));
     unimplemented!("setuid")
 }

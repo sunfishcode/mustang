@@ -1,4 +1,4 @@
-use libc::gid_t;
+use libc::{c_int, gid_t};
 
 #[no_mangle]
 unsafe extern "C" fn getgid() -> gid_t {
@@ -7,7 +7,7 @@ unsafe extern "C" fn getgid() -> gid_t {
 }
 
 #[no_mangle]
-unsafe extern "C" fn setgid() {
-    //libc!(libc::setgid());
+unsafe extern "C" fn setgid(_gid: gid_t) -> c_int {
+    libc!(libc::setgid(_gid));
     unimplemented!("setgid")
 }

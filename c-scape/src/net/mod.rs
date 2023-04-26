@@ -7,7 +7,7 @@ use core::ffi::c_void;
 use core::mem::size_of;
 use core::ptr::copy_nonoverlapping;
 use core::slice;
-use libc::{c_int, c_uint};
+use libc::{c_int, c_uint, ssize_t};
 use rustix::fd::{BorrowedFd, IntoRawFd};
 use rustix::net::{
     AcceptFlags, AddressFamily, Ipv4Addr, Ipv6Addr, Protocol, RecvFlags, SendFlags, Shutdown,
@@ -499,6 +499,12 @@ unsafe extern "C" fn recvfrom(
 }
 
 #[no_mangle]
+unsafe extern "C" fn recvmsg(_sockfd: c_int, _msg: *mut libc::msghdr, _flags: c_int) -> ssize_t {
+    libc!(libc::recvmsg(_sockfd, _msg, _flags));
+    unimplemented!("recvmsg")
+}
+
+#[no_mangle]
 unsafe extern "C" fn send(fd: c_int, buf: *const c_void, len: usize, flags: c_int) -> isize {
     libc!(libc::send(fd, buf, len, flags));
 
@@ -555,6 +561,12 @@ unsafe extern "C" fn sendto(
         Some(nwritten) => nwritten as isize,
         None => -1,
     }
+}
+
+#[no_mangle]
+unsafe extern "C" fn sendmsg(_sockfd: c_int, _msg: *const libc::msghdr, _flags: c_int) -> ssize_t {
+    libc!(libc::sendmsg(_sockfd, _msg, _flags));
+    unimplemented!("sendmsg")
 }
 
 #[no_mangle]
