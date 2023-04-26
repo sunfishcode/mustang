@@ -30,7 +30,15 @@ Mustang is organized as 4 crates:
 
 Mustang currently runs on Rust Nightly on Linux on x86-64, x86, aarch64, and
 riscv64. It aims to support all Linux versions [supported by Rust], though
-at this time it's only tested on relatively recent versions.
+at this time it's only tested on relatively recent versions. It's complete
+enough to run:
+
+ - [ripgrep](https://github.com/sunfishcode/ripgrep/tree/mustang)
+ - [coreutils](https://github.com/sunfishcode/coreutils/tree/mustang)
+ - [async-std](https://github.com/sunfishcode/tide/tree/mustang)
+ - [tokio](https://github.com/sunfishcode/tokio/tree/mustang)
+ - [bat](https://github.com/sunfishcode/bat/tree/mustang)
+ - [cargo-watch](https://github.com/sunfishcode/cargo-watch/tree/mustang)
 
 Mustang isn't about making anything safer, for the foreseeable future. The
 major libc implementations are extraordinarily well tested and mature. Mustang
@@ -117,12 +125,21 @@ set the environment variable `CC_i686-mustang-linux-gnu` to
 
 [tell the `cc` crate which C compiler to use]: https://github.com/alexcrichton/cc-rs#external-configuration-via-environment-variables
 
+## panic = "abort"
+
+When using `panic = "abort"` in your Cargo.toml, change the `-Z build-std` to
+`-Z build-std=panic_abort,std`. See [here] for background.
+
+[here]: https://github.com/rust-lang/wg-cargo-std-aware/issues/29
+
 ## Known Limitations
 
 Known limitations in `mustang` include:
 
- - No support for dynamic linking yet.
+ - No support for dynamic linking or position-independent executables yet.
  - Many missing features needed for libraries written in C.
+ - Enabling LTO doesn't work yet.
+ - `catch_unwind` does not yet work on 32-bit x86
 
 ## Background
 
