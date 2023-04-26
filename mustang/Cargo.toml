@@ -1,6 +1,6 @@
 [package]
 name = "mustang"
-version = "0.8.9"
+version = "0.8.10"
 authors = [
     "Dan Gohman <dev@sunfishcode.online>",
 ]
@@ -32,8 +32,8 @@ features = [
 ]
 
 [target.'cfg(target_vendor = "mustang")'.dependencies]
-origin = { path = "../origin", default-features = false, version = "^0.8.9" }
-c-gull = { path = "../c-gull", version = "^0.8.9", default-features = false }
+origin = { path = "../origin", default-features = false, version = "^0.8.10" }
+c-gull = { path = "../c-gull", version = "^0.8.10", default-features = false }
 
 # A general-purpose `global_allocator` implementation.
 dlmalloc = { version = "0.2", features = ["global"], optional = true }
