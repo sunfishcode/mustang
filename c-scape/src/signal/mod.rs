@@ -151,7 +151,13 @@ unsafe extern "C" fn raise(sig: c_int) -> c_int {
     libc!(libc::raise(sig));
 
     let sig = Signal::from_raw(sig).unwrap();
-    match convert_res(rustix::runtime::tkill(rustix::thread::gettid(), sig)) {
+    let tid = origin::current_thread_id();
+
+    // `tkill` is ordinarily considered obsolete and dangerous, because a
+    // thread could exit and its thread id could get reused by another thread.
+    // But in this case, we're sending the signal to ourself, so we know we
+    // haven't exited.
+    match convert_res(rustix::runtime::tkill(tid, sig)) {
         Some(()) => 0,
         None => -1,
     }
@@ -162,14 +168,14 @@ unsafe extern "C" fn abort() {
     libc!(libc::abort());
 
     // The `abort` function is documented to kill the process with an abort
-    // signal.
-    rustix::runtime::tkill(rustix::thread::gettid(), Signal::Abort).ok();
+    // signal. As in `raise`, `tkill` is dangerous in general, but safe here.
+    rustix::runtime::tkill(origin::current_thread_id(), Signal::Abort).ok();
 
     // That ought to work, but there's a possibility that the application has
     // a handler for the abort signal and that the handler returns. We really
     // don't want to return, because our caller presumably called `abort()`
     // for a reason, so we escalate to the unhandlable signal.
-    rustix::runtime::tkill(rustix::thread::gettid(), Signal::Kill).ok();
+    rustix::runtime::tkill(origin::current_thread_id(), Signal::Kill).ok();
 
     // That *really* should have worked. But if we're somehow still running,
     // abruptly exit the program.
