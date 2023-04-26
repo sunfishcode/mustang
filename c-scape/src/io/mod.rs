@@ -76,20 +76,6 @@ unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
     }
 }
 
-#[cfg(feature = "net")]
-#[no_mangle]
-unsafe extern "C" fn sendmsg() {
-    //libc!(libc::sendmsg());
-    unimplemented!("sendmsg")
-}
-
-#[cfg(feature = "net")]
-#[no_mangle]
-unsafe extern "C" fn recvmsg() {
-    //libc!(libc::recvmsg());
-    unimplemented!("recvmsg")
-}
-
 #[cfg(any(target_os = "android", target_os = "linux"))]
 #[no_mangle]
 unsafe extern "C" fn eventfd(initval: c_uint, flags: c_int) -> c_int {

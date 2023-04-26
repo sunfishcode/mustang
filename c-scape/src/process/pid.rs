@@ -9,11 +9,6 @@ unsafe extern "C" fn getpid() -> pid_t {
 }
 
 #[no_mangle]
-unsafe extern "C" fn setpid() {
-    unimplemented!("setpid");
-}
-
-#[no_mangle]
 unsafe extern "C" fn getppid() -> pid_t {
     libc!(libc::getppid());
     Pid::as_raw(rustix::process::getppid()) as _
