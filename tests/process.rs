@@ -46,10 +46,8 @@ fn smoke() {
     assert!(p.wait().unwrap().success());
 }
 
-// NOTE(mustang): fails in the CI for a reason unreleated to mustang
-// see https://github.com/rust-lang/rust/issues/90825 for details
 #[test]
-#[cfg_attr(any(target_os = "android", not(target_vendor = "mustang")), ignore)]
+#[cfg_attr(target_os = "android", ignore)]
 fn smoke_failure() {
     match Command::new("if-this-is-a-binary-then-the-world-has-ended").spawn() {
         Ok(..) => panic!(),
@@ -203,10 +201,7 @@ fn test_process_status() {
     assert!(status.success());
 }
 
-// NOTE(mustang): fails in the CI for a reason unreleated to mustang
-// see https://github.com/rust-lang/rust/issues/90825 for details
 #[test]
-#[cfg_attr(not(target_vendor = "mustang"), ignore)]
 fn test_process_output_fail_to_start() {
     match Command::new("/no-binary-by-this-name-should-exist").output() {
         Err(e) => assert_eq!(e.kind(), ErrorKind::NotFound),

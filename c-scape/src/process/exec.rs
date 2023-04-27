@@ -1,11 +1,16 @@
 use rustix::fd::BorrowedFd;
-use rustix::fs::{AtFlags, Mode, OFlags};
+use rustix::fs::AtFlags;
+use rustix::mm::{mmap_anonymous, MapFlags, ProtFlags};
 
 use alloc::vec::Vec;
+use core::cmp::max;
 use core::ffi::CStr;
+use core::ptr::copy_nonoverlapping;
+use core::ptr::null_mut;
+use core::slice;
 
 use crate::env::environ;
-use crate::{set_errno, Errno};
+use crate::{convert_res, set_errno, Errno};
 
 use libc::{c_char, c_int};
 
@@ -80,10 +85,9 @@ unsafe extern "C" fn execve(
 
 #[no_mangle]
 unsafe extern "C" fn execvp(file: *const c_char, argv: *const *const c_char) -> c_int {
-    let cwd = rustix::fs::cwd();
-
     let file = CStr::from_ptr(file);
-    if file.to_bytes().contains(&b'/') {
+    let file_bytes = file.to_bytes();
+    if file_bytes.contains(&b'/') {
         let err = rustix::runtime::execve(file, argv.cast(), environ.cast());
         set_errno(Errno(err.raw_os_error()));
         return -1;
@@ -96,59 +100,63 @@ unsafe extern "C" fn execvp(file: *const c_char, argv: *const *const c_char) -> 
         CStr::from_ptr(path)
     };
 
+    // Compute the length of the longest item in `PATH`.
+    let mut longest_length = 0;
+    for dir in path.to_bytes().split(|byte| *byte == b':') {
+        longest_length = max(longest_length, dir.len());
+    }
+
+    // Allocate a buffer for concatenating `PATH` items with the requested
+    // file name. Use `mmap` because we might be running in the child of a
+    // fork, where `malloc` is not safe to call. POSIX for its part says
+    // that `execvp` is not async-signal-safe, but real-world code depends
+    // on it being so.
+    //
+    // A seeming alternative to allocating a buffer would be to open the
+    // `PATH` item and then use `execveat` to execute the requested filename
+    // under it, however on Linux at least, `execveat` doesn't work if the
+    // file is a `#!` and the directory fd has `O_CLOEXEC`, which we'd
+    // want to avoid leaking the directory fd on other threads.
+    //
+    // POSIX doesn't say that `mmap` is async-signal-safe either, but we're
+    // not calling `libc` here, we're calling rustix with the linux_raw
+    // backend where it just makes a raw syscall.
+    let buffer = match convert_res(mmap_anonymous(
+        null_mut(),
+        longest_length + 1 + file_bytes.len() + 1,
+        ProtFlags::READ | ProtFlags::WRITE,
+        MapFlags::PRIVATE,
+    )) {
+        Some(buffer) => buffer.cast::<u8>(),
+        None => return -1,
+    };
+
     let mut access_error = false;
     for dir in path.to_bytes().split(|byte| *byte == b':') {
-        // Open the directory and use `execveat` to avoid needing to
-        // dynamically allocate a combined path string ourselves.
-        let result = rustix::fs::openat(
-            cwd,
-            dir,
-            OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC | OFlags::NOCTTY,
-            Mode::empty(),
-        )
-        .and_then::<(), _>(|dirfd| {
-            let mut error = rustix::runtime::execveat(
-                &dirfd,
-                file,
-                argv.cast(),
-                environ.cast(),
-                AtFlags::empty(),
-            );
+        // Concatenate the `PATH` item, a `/`, the requested filename, and a
+        // NUL terminator.
+        copy_nonoverlapping(dir.as_ptr(), buffer, dir.len());
+        buffer.add(dir.len()).write(b'/');
+        copy_nonoverlapping(
+            file_bytes.as_ptr(),
+            buffer.add(dir.len() + 1),
+            file_bytes.len(),
+        );
+        buffer.add(dir.len() + 1 + file_bytes.len()).write(b'\0');
+        let slice = slice::from_raw_parts(buffer, dir.len() + 1 + file_bytes.len() + 1);
 
-            // If `execveat` is unsupported, emulate it with `execve`, without
-            // allocating. This trusts /proc/self/fd.
-            #[cfg(any(target_os = "android", target_os = "linux"))]
-            if let rustix::io::Errno::NOSYS = error {
-                let fd = rustix::fs::openat(
-                    &dirfd,
-                    file,
-                    OFlags::PATH | OFlags::CLOEXEC | OFlags::NOCTTY,
-                    Mode::empty(),
-                )?;
-                const PREFIX: &[u8] = b"/proc/self/fd/";
-                const PREFIX_LEN: usize = PREFIX.len();
-                let mut buf = [0_u8; PREFIX_LEN + 20 + 1];
-                buf[..PREFIX_LEN].copy_from_slice(PREFIX);
-                let fd_dec = rustix::path::DecInt::from_fd(&fd);
-                let fd_bytes = fd_dec.as_c_str().to_bytes_with_nul();
-                buf[PREFIX_LEN..PREFIX_LEN + fd_bytes.len()].copy_from_slice(fd_bytes);
+        // Run it! If this succeeds, it doesn't return.
+        let error = rustix::runtime::execve(
+            CStr::from_bytes_with_nul(slice).unwrap(),
+            argv.cast(),
+            environ.cast(),
+        );
 
-                error = rustix::runtime::execve(
-                    CStr::from_bytes_with_nul_unchecked(&buf),
-                    argv.cast(),
-                    environ.cast(),
-                );
-            }
-
-            Err(error)
-        });
-
-        match result {
-            Ok(()) => (),
-            Err(rustix::io::Errno::ACCESS) => access_error = true,
-            Err(rustix::io::Errno::NOENT) | Err(rustix::io::Errno::NOTDIR) => {}
-            Err(err) => {
-                set_errno(Errno(err.raw_os_error()));
+        match error {
+            rustix::io::Errno::ACCESS => access_error = true,
+            rustix::io::Errno::NOENT | rustix::io::Errno::NOTDIR => {}
+            _ => {
+                set_errno(Errno(error.raw_os_error()));
                 return -1;
             }
         }

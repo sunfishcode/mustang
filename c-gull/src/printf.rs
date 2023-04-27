@@ -186,6 +186,21 @@ unsafe extern "C" fn __memcpy_chk(
     libc::memcpy(dest, src, len)
 }
 
+// <https://refspecs.linuxbase.org/LSB_4.0.0/LSB-Core-generic/LSB-Core-generic/libc---strncpy-chk-1.html>
+#[no_mangle]
+unsafe extern "C" fn __strncpy_chk(
+    dest: *mut c_char,
+    src: *const c_char,
+    len: size_t,
+    destlen: size_t,
+) -> *mut c_char {
+    if destlen < len {
+        __chk_fail();
+    }
+
+    libc::strncpy(dest, src, len)
+}
+
 #[no_mangle]
 unsafe extern "C" fn perror(user_message: *const c_char) {
     libc!(libc::perror(user_message));
