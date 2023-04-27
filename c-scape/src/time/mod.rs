@@ -119,3 +119,10 @@ unsafe extern "C" fn clock_settime(id: c_int, tp: *mut libc::timespec) -> c_int 
         None => -1,
     }
 }
+
+#[no_mangle]
+unsafe extern "C" fn difftime(time1: libc::time_t, time0: libc::time_t) -> f64 {
+    libc!(libc::difftime(time1, time0));
+
+    (time1 as i128 - time0 as i128) as f64
+}
