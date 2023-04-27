@@ -1,6 +1,6 @@
 [package]
 name = "c-scape"
-version = "0.8.11"
+version = "0.8.12"
 authors = [
     "Dan Gohman <dev@sunfishcode.online>",
 ]
@@ -15,7 +15,7 @@ libm = "0.2.1"
 rustix = { version = "0.37.15", default-features = false, features = ["fs", "itoa", "net", "param", "process", "rand", "runtime", "termios", "thread", "time"] }
 memoffset = "0.8.0"
 realpath-ext = { version = "0.1.0", default-features = false }
-origin = { path = "../origin", default-features = false, version = "^0.8.11" }
+origin = { path = "../origin", default-features = false, version = "^0.8.12" }
 log = { version = "0.4.14", default-features = false }
 # We use the libc crate for C ABI types and constants, but we don't depend on
 # the actual platform libc.
