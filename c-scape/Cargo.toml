@@ -12,7 +12,7 @@ edition = "2021"
 
 [dependencies]
 libm = "0.2.1"
-rustix = { version = "0.37.15", default-features = false, features = ["fs", "itoa", "net", "param", "process", "rand", "runtime", "termios", "thread", "time"] }
+rustix = { version = "0.37.17", default-features = false, features = ["fs", "itoa", "net", "param", "process", "rand", "runtime", "termios", "thread", "time"] }
 memoffset = "0.8.0"
 realpath-ext = { version = "0.1.0", default-features = false }
 origin = { path = "../origin", default-features = false, version = "^0.8.12" }

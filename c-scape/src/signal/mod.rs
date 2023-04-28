@@ -110,7 +110,9 @@ unsafe extern "C" fn sigprocmask(how: c_int, set: *const sigset_t, oldset: *mut 
     let set: *const Sigset = set.cast();
     let oldset: *mut Sigset = oldset.cast();
 
-    match convert_res(rustix::runtime::sigprocmask(how, &*set)) {
+    let set = if set.is_null() { None } else { Some(&*set) };
+
+    match convert_res(rustix::runtime::sigprocmask(how, set)) {
         Some(old) => {
             if !oldset.is_null() {
                 oldset.write(old);
