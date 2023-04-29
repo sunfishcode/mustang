@@ -639,7 +639,9 @@ unsafe extern "C" fn pthread_sigmask(
     let set: *const rustix::runtime::Sigset = set.cast();
     let oldset: *mut rustix::runtime::Sigset = oldset.cast();
 
-    match rustix::runtime::sigprocmask(how, &*set) {
+    let set = if set.is_null() { None } else { Some(&*set) };
+
+    match rustix::runtime::sigprocmask(how, set) {
         Ok(old) => {
             if !oldset.is_null() {
                 oldset.write(old);
