@@ -34,10 +34,12 @@ at this time it's only tested on relatively recent versions. It's complete
 enough to run:
 
  - [ripgrep](https://github.com/sunfishcode/ripgrep/tree/mustang)
- - [coreutils](https://github.com/sunfishcode/coreutils/tree/mustang)
+ - [coreutils](https://github.com/sunfishcode/coreutils/tree/mustang),
+   including the "unix" feature set
  - [async-std](https://github.com/sunfishcode/tide/tree/mustang)
  - [tokio](https://github.com/sunfishcode/tokio/tree/mustang)
- - [bat](https://github.com/sunfishcode/bat/tree/mustang)
+ - [bat](https://github.com/sunfishcode/bat/tree/mustang), including git
+   support with libgit2
  - [cargo-watch](https://github.com/sunfishcode/cargo-watch/tree/mustang)
 
 Mustang isn't about making anything safer, for the foreseeable future. The
@@ -136,10 +138,15 @@ When using `panic = "abort"` in your Cargo.toml, change the `-Z build-std` to
 
 Known limitations in `mustang` include:
 
- - No support for dynamic linking or position-independent executables yet.
- - Many missing features needed for libraries written in C.
+ - Dynamic linking isn't implemented yet. Similarly, position-independent
+   static executables aren't implemented yet. Mustang defaults to creating
+   dynamic executables with all libraries statially linked. Position-dependent
+   static executables also work.
+ - Many libc C functions that aren't typically needed by most Rust programs
+   aren't implemented yet.
  - Enabling LTO doesn't work yet.
- - `catch_unwind` does not yet work on 32-bit x86
+ - Unwinding isn't yet implemented on 32-bit arm, and `catch_unwind` does not
+   yet work on 32-bit x86.
 
 ## Background
 
@@ -210,7 +217,6 @@ own implementation of std.
 [relibc]: https://gitlab.redox-os.org/redox-os/relibc/
 [steed]: https://github.com/japaric/steed
 [tiny-std]: https://github.com/MarcusGrass/tiny-std
-
 [`steed`]: https://github.com/japaric/steed
 [build-std]: https://doc.rust-lang.org/cargo/reference/unstable.html#build-std
 [Rust itself already does this]: https://github.com/rust-lang/rust/blob/6bed1f0bc3cc50c10aab26d5f94b16a00776b8a5/library/std/src/sys/unix/mod.rs#L71

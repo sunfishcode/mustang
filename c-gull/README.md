@@ -17,13 +17,13 @@ c-gull is a libc implementation. It is an implementation of the ABI described
 by the [libc] crate.
 
 It is implemented in terms of crates written in Rust, such as [c-scape],
-[rustix], [origin], [sync-resolve], [libm], [realpath-ext], [tz-rs],
-[printf-compat], and [rand].
+[rustix], [origin], [sync-resolve], [libm], [realpath-ext], [tz-rs], and
+[printf-compat].
 
 Currently it only supports `*-*-linux-gnu` ABIs, though other ABIs could be
 added in the future. And currently this mostly focused on features needed by
-Rust programs, so it doesn't have many C-idiomatic things like `printf` yet, but
-they could be added in the future.
+Rust programs, so it doesn't have all the C-idiomatic things like `qsort` yet,
+but they could be added in the future.
 
 The goal is to have very little code in c-gull itself, by factoring out all of
 the significant functionality into independent crates with more Rust-idiomatic
