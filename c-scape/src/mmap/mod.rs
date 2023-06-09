@@ -1,5 +1,5 @@
 use rustix::fd::BorrowedFd;
-use rustix::mm::{MapFlags, MprotectFlags, MremapFlags, ProtFlags};
+use rustix::mm::{Advice, MapFlags, MprotectFlags, MremapFlags, ProtFlags};
 
 use core::ffi::c_void;
 use libc::{c_int, off64_t, off_t};
@@ -108,6 +108,17 @@ unsafe extern "C" fn mprotect(addr: *mut c_void, length: usize, prot: c_int) -> 
 
     let prot = MprotectFlags::from_bits(prot as _).unwrap();
     match convert_res(rustix::mm::mprotect(addr, length, prot)) {
+        Some(()) => 0,
+        None => -1,
+    }
+}
+
+#[no_mangle]
+unsafe extern "C" fn madvise(addr: *mut c_void, length: usize, advice: c_int) -> c_int {
+    libc!(libc::madvise(addr, length, advice));
+
+    let advice = advice as _;
+    match convert_res(rustix::mm::madvise(addr, length, advice)) {
         Some(()) => 0,
         None => -1,
     }
