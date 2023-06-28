@@ -24,9 +24,9 @@ unsafe extern "C" fn lseek64(fd: c_int, offset: off64_t, whence: c_int) -> off64
     libc!(libc::lseek64(fd, offset, whence));
 
     let seek_from = match whence {
-        libc::SEEK_SET => rustix::io::SeekFrom::Start(offset as u64),
-        libc::SEEK_CUR => rustix::io::SeekFrom::Current(offset),
-        libc::SEEK_END => rustix::io::SeekFrom::End(offset),
+        libc::SEEK_SET => rustix::fs::SeekFrom::Start(offset as u64),
+        libc::SEEK_CUR => rustix::fs::SeekFrom::Current(offset),
+        libc::SEEK_END => rustix::fs::SeekFrom::End(offset),
         _ => panic!("unrecognized whence({})", whence),
     };
     match convert_res(rustix::fs::seek(BorrowedFd::borrow_raw(fd), seek_from)) {

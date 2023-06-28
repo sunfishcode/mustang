@@ -5,13 +5,14 @@ use core::convert::TryInto;
 use core::ffi::c_void;
 #[cfg(not(target_os = "wasi"))]
 use core::mem::size_of;
+use core::num::NonZeroU32;
 use core::ptr::copy_nonoverlapping;
 use core::slice;
 use libc::{c_int, c_uint, ssize_t};
 use rustix::fd::{BorrowedFd, IntoRawFd};
 use rustix::net::{
-    AcceptFlags, AddressFamily, Ipv4Addr, Ipv6Addr, Protocol, RecvFlags, SendFlags, Shutdown,
-    SocketAddrAny, SocketAddrStorage, SocketFlags, SocketType,
+    AddressFamily, Ipv4Addr, Ipv6Addr, Protocol, RecvFlags, SendFlags, Shutdown, SocketAddrAny,
+    SocketAddrStorage, SocketFlags, SocketType,
 };
 
 use crate::convert_res;
@@ -49,7 +50,7 @@ unsafe extern "C" fn accept4(
     // just represents the header of the struct, not the full storage.
     libc!(libc::accept4(fd, addr.cast(), len, flags));
 
-    let flags = AcceptFlags::from_bits(flags as _).unwrap();
+    let flags = SocketFlags::from_bits(flags as _).unwrap();
     match convert_res(rustix::net::acceptfrom_with(
         BorrowedFd::borrow_raw(fd),
         flags,
@@ -592,7 +593,11 @@ unsafe extern "C" fn socket(domain: c_int, type_: c_int, protocol: c_int) -> c_i
     let domain = AddressFamily::from_raw(domain as _);
     let flags = SocketFlags::from_bits_truncate(type_ as _);
     let type_ = SocketType::from_raw(type_ as u32 & !SocketFlags::all().bits());
-    let protocol = Protocol::from_raw(protocol as _);
+    let protocol = if let Some(protocol) = NonZeroU32::new(protocol as u32) {
+        Some(Protocol::from_raw(protocol))
+    } else {
+        None
+    };
     match convert_res(rustix::net::socket_with(domain, type_, flags, protocol)) {
         Some(fd) => fd.into_raw_fd(),
         None => -1,
@@ -616,7 +621,11 @@ unsafe extern "C" fn socketpair(
     let domain = AddressFamily::from_raw(domain as _);
     let flags = SocketFlags::from_bits_truncate(type_ as _);
     let type_ = SocketType::from_raw(type_ as u32 & !SocketFlags::all().bits());
-    let protocol = Protocol::from_raw(protocol as _);
+    let protocol = if let Some(protocol) = NonZeroU32::new(protocol as u32) {
+        Some(Protocol::from_raw(protocol))
+    } else {
+        None
+    };
     match convert_res(rustix::net::socketpair(domain, type_, flags, protocol)) {
         Some((fd0, fd1)) => {
             (*sv) = [fd0.into_raw_fd(), fd1.into_raw_fd()];

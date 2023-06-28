@@ -198,7 +198,7 @@ fn ipv6_addr_to_string() {
 
     // ipv4-compatible address
     let a1 = Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0xc000, 0x280);
-    assert_eq!(a1.to_string(), "::192.0.2.128");
+    assert_eq!(a1.to_string(), "::c000:280");
 
     // v6 address with no zero segments
     assert_eq!(
@@ -702,7 +702,7 @@ fn ipv6_properties() {
     );
 
     check!(
-        "::0.0.0.2",
+        "::2",
         &[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2],
         global | unicast_global
     );

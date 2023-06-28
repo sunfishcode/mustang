@@ -1,7 +1,7 @@
 use alloc::boxed::Box;
 use core::ffi::CStr;
 use rustix::fd::{BorrowedFd, FromRawFd, IntoRawFd, OwnedFd};
-use rustix::fs::{cwd, Mode, OFlags};
+use rustix::fs::{Mode, OFlags, CWD};
 
 use core::mem::zeroed;
 use core::ptr::null_mut;
@@ -15,7 +15,7 @@ unsafe extern "C" fn opendir(pathname: *const c_char) -> *mut c_void {
     libc!(libc::opendir(pathname).cast());
 
     match convert_res(rustix::fs::openat(
-        cwd(),
+        CWD,
         CStr::from_ptr(pathname.cast()),
         OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC,
         Mode::empty(),

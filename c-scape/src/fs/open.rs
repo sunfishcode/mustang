@@ -1,6 +1,6 @@
 use core::ffi::CStr;
 use rustix::fd::{BorrowedFd, IntoRawFd};
-use rustix::fs::{cwd, Mode, OFlags};
+use rustix::fs::{Mode, OFlags, CWD};
 
 use libc::{c_char, c_int};
 
@@ -36,14 +36,14 @@ macro_rules! openat_impl {
 unsafe extern "C" fn open(pathname: *const c_char, flags: c_int, mut args: ...) -> c_int {
     libc!(libc::open(pathname, flags, args));
 
-    openat_impl!(cwd(), pathname, flags, args)
+    openat_impl!(CWD, pathname, flags, args)
 }
 
 #[no_mangle]
 unsafe extern "C" fn open64(pathname: *const c_char, flags: c_int, mut args: ...) -> c_int {
     libc!(libc::open64(pathname, flags, args));
 
-    openat_impl!(cwd(), pathname, flags, args)
+    openat_impl!(CWD, pathname, flags, args)
 }
 
 // same behavior with `O_LARGEFILE` as open/open64

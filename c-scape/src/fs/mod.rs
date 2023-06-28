@@ -2,6 +2,7 @@ mod access;
 #[cfg(not(target_os = "wasi"))]
 mod chmod;
 mod dir;
+mod fadvise;
 mod fcntl;
 mod inotify;
 mod link;
@@ -116,7 +117,7 @@ unsafe extern "C" fn chown(
     let group = Some(rustix::process::Gid::from_raw(group));
     let flags = rustix::fs::AtFlags::empty();
     match convert_res(rustix::fs::chownat(
-        rustix::fs::cwd(),
+        rustix::fs::CWD,
         pathname,
         owner,
         group,
@@ -140,7 +141,7 @@ unsafe extern "C" fn lchown(
     let group = Some(rustix::process::Gid::from_raw(group));
     let flags = rustix::fs::AtFlags::SYMLINK_NOFOLLOW;
     match convert_res(rustix::fs::chownat(
-        rustix::fs::cwd(),
+        rustix::fs::CWD,
         pathname,
         owner,
         group,

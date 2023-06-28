@@ -15,11 +15,11 @@ use core::mem::{align_of, size_of};
 use core::ptr::{self, drop_in_place, null, null_mut};
 use core::slice;
 use core::sync::atomic::Ordering::SeqCst;
-use core::sync::atomic::{AtomicU32, AtomicU8};
+use core::sync::atomic::{AtomicI32, AtomicU8};
 use memoffset::offset_of;
 use rustix::io;
 use rustix::param::{linux_execfn, page_size};
-use rustix::process::{getrlimit, Pid, RawNonZeroPid, Resource};
+use rustix::process::{getrlimit, Pid, Resource};
 use rustix::runtime::{set_tid_address, StartupTlsInfo};
 use rustix::thread::gettid;
 
@@ -137,7 +137,7 @@ impl Thread {
 
 /// Data associated with a thread. This is not `repr(C)` and not ABI-exposed.
 struct ThreadData {
-    thread_id: AtomicU32,
+    thread_id: AtomicI32,
     detached: AtomicU8,
     stack_addr: *mut c_void,
     stack_size: usize,
@@ -161,7 +161,7 @@ impl ThreadData {
         map_size: usize,
     ) -> Self {
         Self {
-            thread_id: AtomicU32::new(Pid::as_raw(tid)),
+            thread_id: AtomicI32::new(Pid::as_raw(tid)),
             detached: AtomicU8::new(INITIAL),
             stack_addr,
             stack_size,
@@ -193,8 +193,8 @@ pub fn current_thread() -> Thread {
 #[inline]
 pub fn current_thread_id() -> Pid {
     let raw = unsafe { (*current_thread().0).thread_id.load(SeqCst) };
-    debug_assert_ne!(raw, 0);
-    let tid = unsafe { Pid::from_raw_nonzero(RawNonZeroPid::new_unchecked(raw)) };
+    debug_assert!(raw > 0);
+    let tid = unsafe { Pid::from_raw_unchecked(raw) };
     debug_assert_eq!(tid, gettid(), "`current_thread_id` disagrees with `gettid`");
     tid
 }
@@ -741,10 +741,10 @@ unsafe fn wait_for_thread_exit(thread: Thread) {
         // as arranged by the `CloneFlags::CHILD_CLEARTID` flag,
         // and Linux doesn't use the private flag for the wake.
         match futex(
-            thread_id.as_ptr(),
+            thread_id.as_ptr().cast::<u32>(),
             FutexOperation::Wait,
             FutexFlags::empty(),
-            id_value.as_raw_nonzero().get(),
+            id_value.as_raw_nonzero().get() as u32,
             null(),
             null_mut(),
             0,

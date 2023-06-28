@@ -5,7 +5,7 @@ mod string;
 #[no_mangle]
 unsafe extern "C" fn __chk_fail() {
     rustix::io::write(
-        rustix::io::stderr(),
+        rustix::stdio::stderr(),
         b"A buffer overflow has been detected.\n",
     )
     .ok();

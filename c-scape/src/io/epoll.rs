@@ -1,5 +1,7 @@
+use rustix::event::epoll::{
+    add, delete, modify, CreateFlags, Event, EventData, EventFlags, EventVec,
+};
 use rustix::fd::{BorrowedFd, IntoRawFd};
-use rustix::io::epoll::{epoll_add, epoll_del, epoll_mod, CreateFlags, EventFlags, EventVec};
 
 use errno::{set_errno, Errno};
 use libc::c_int;
@@ -24,7 +26,7 @@ unsafe extern "C" fn epoll_create1(flags: c_int) -> c_int {
 
     let flags = CreateFlags::from_bits(flags as _).unwrap();
 
-    match convert_res(rustix::io::epoll::epoll_create(flags)) {
+    match convert_res(rustix::event::epoll::create(flags)) {
         Some(epoll) => epoll.into_raw_fd(),
         None => -1,
     }
@@ -46,14 +48,14 @@ unsafe extern "C" fn epoll_ctl(
         libc::EPOLL_CTL_ADD => {
             let libc::epoll_event { events, r#u64 } = event.read();
             let events = EventFlags::from_bits(events).unwrap();
-            epoll_add(epfd, fd, r#u64, events)
+            add(epfd, fd, EventData::new_u64(r#u64), events)
         }
         libc::EPOLL_CTL_MOD => {
             let libc::epoll_event { events, r#u64 } = event.read();
             let events = EventFlags::from_bits(events).unwrap();
-            epoll_mod(epfd, fd, r#u64, events)
+            modify(epfd, fd, EventData::new_u64(r#u64), events)
         }
-        libc::EPOLL_CTL_DEL => epoll_del(epfd, fd),
+        libc::EPOLL_CTL_DEL => delete(epfd, fd),
         _ => {
             set_errno(Errno(libc::EINVAL));
             return -1;
@@ -84,17 +86,17 @@ unsafe extern "C" fn epoll_wait(
     // to write events directly into the user's buffer, rather then allocating
     // and copying here.
     let mut events_vec = EventVec::with_capacity(maxevents as usize);
-    match convert_res(rustix::io::epoll::epoll_wait(
+    match convert_res(rustix::event::epoll::wait(
         BorrowedFd::borrow_raw(epfd),
         &mut events_vec,
         timeout,
     )) {
         Some(()) => {
             let mut events = events;
-            for (flags, data) in events_vec.iter() {
+            for Event { flags, data } in events_vec.iter() {
                 events.write(libc::epoll_event {
                     events: flags.bits(),
-                    r#u64: data,
+                    r#u64: data.u64(),
                 });
                 events = events.add(1);
             }
