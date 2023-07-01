@@ -1,3 +1,7 @@
+#[cfg(not(feature = "std"))]
+#[cfg(not(target_os = "wasi"))]
+use libc::{c_char, c_int, passwd, uid_t};
+
 #[cfg(not(feature = "std"))] // Avoid conflicting with c-gull's more complete `getpwuid_r`.
 #[cfg(not(target_os = "wasi"))]
 #[no_mangle]
