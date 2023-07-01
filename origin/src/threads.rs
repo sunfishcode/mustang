@@ -756,7 +756,7 @@ unsafe fn wait_for_thread_exit(thread: Thread) {
 }
 
 #[cfg(feature = "log")]
-unsafe fn log_thread_to_be_freed(thread_id: u32) {
+unsafe fn log_thread_to_be_freed(thread_id: i32) {
     if log::log_enabled!(log::Level::Trace) {
         log::trace!("Thread[{:?}] memory being freed", thread_id);
     }
