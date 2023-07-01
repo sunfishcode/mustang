@@ -419,7 +419,7 @@ unsafe extern "C" fn pthread_condattr_setclock(
     ));
     let _ = (attr, clock_id);
     rustix::io::write(
-        rustix::io::stderr(),
+        rustix::stdio::stderr(),
         b"unimplemented: pthread_condattr_setclock\n",
     )
     .ok();

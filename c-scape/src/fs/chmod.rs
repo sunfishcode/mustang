@@ -1,6 +1,6 @@
 use core::ffi::CStr;
 use rustix::fd::BorrowedFd;
-use rustix::fs::{cwd, Mode};
+use rustix::fs::{AtFlags, Mode, CWD};
 
 use libc::{c_char, c_int, mode_t};
 
@@ -39,9 +39,10 @@ unsafe extern "C" fn fchmodat(
 
     let mode = Mode::from_bits((mode & !libc::S_IFMT) as _).unwrap();
     match convert_res(rustix::fs::chmodat(
-        cwd(),
+        CWD,
         CStr::from_ptr(pathname.cast()),
         mode,
+        AtFlags::empty(),
     )) {
         Some(()) => 0,
         None => -1,

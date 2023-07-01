@@ -21,7 +21,7 @@ unsafe extern "C" fn get_nprocs() -> c_int {
 unsafe extern "C" fn get_phys_pages() -> c_long {
     //libc!(libc::get_phys_pages());
 
-    let info = rustix::process::sysinfo();
+    let info = rustix::system::sysinfo();
     let mem_unit = if info.mem_unit == 0 {
         1
     } else {
@@ -37,7 +37,7 @@ unsafe extern "C" fn get_phys_pages() -> c_long {
 unsafe extern "C" fn get_avphys_pages() -> c_long {
     //libc!(libc::get_avphys_pages());
 
-    let info = rustix::process::sysinfo();
+    let info = rustix::system::sysinfo();
     let mem_unit = if info.mem_unit == 0 {
         1
     } else {

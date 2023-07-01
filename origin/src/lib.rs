@@ -136,20 +136,20 @@ unsafe impl Sync for UnsafeSendSyncVoidStar {}
 
 /// Initialize logging, if enabled.
 #[cfg(target_vendor = "mustang")]
-#[cfg(feature = "env_logger")]
+#[cfg(feature = "log")]
 #[link_section = ".init_array.00099"]
 #[used]
 static INIT_ARRAY: unsafe extern "C" fn() = {
     unsafe extern "C" fn function() {
+        #[cfg(feature = "env_logger")]
         env_logger::init();
 
-        #[cfg(feature = "log")]
         log::trace!(target: "origin::program", "Program started");
 
         // Log the thread id. We initialized the main earlier than this, but
         // we couldn't initialize the logger until after the main thread is
         // intialized :-).
-        #[cfg(all(feature = "log", feature = "threads"))]
+        #[cfg(feature = "threads")]
         log::trace!(target: "origin::threads", "Main Thread[{:?}] initialized", current_thread_id());
     }
     function

@@ -8,7 +8,7 @@ use libc::{c_char, c_double, c_int};
 unsafe extern "C" fn uname(buf: *mut libc::utsname) -> c_int {
     libc!(libc::uname(buf));
 
-    let uname = rustix::process::uname();
+    let uname = rustix::system::uname();
     let buf = &mut *buf;
 
     let sysname = uname.sysname().to_bytes_with_nul();
@@ -73,7 +73,7 @@ unsafe extern "C" fn getloadavg(a: *mut c_double, n: c_int) -> c_int {
         return -1;
     }
 
-    let info = rustix::process::sysinfo();
+    let info = rustix::system::sysinfo();
     let mut a = a;
 
     for i in 0..core::cmp::min(n as usize, info.loads.len()) {
@@ -87,7 +87,7 @@ unsafe extern "C" fn getloadavg(a: *mut c_double, n: c_int) -> c_int {
 #[cfg(not(target_os = "wasi"))]
 #[no_mangle]
 unsafe extern "C" fn gethostname(name: *mut c_char, len: usize) -> c_int {
-    let uname = rustix::process::uname();
+    let uname = rustix::system::uname();
     let nodename = uname.nodename();
     if nodename.to_bytes().len() + 1 > len {
         set_errno(Errno(libc::ENAMETOOLONG));
@@ -106,7 +106,7 @@ unsafe extern "C" fn gethostname(name: *mut c_char, len: usize) -> c_int {
 #[no_mangle]
 unsafe extern "C" fn sethostname(name: *mut c_char, len: usize) -> c_int {
     let slice = slice::from_raw_parts(name.cast(), len);
-    match convert_res(rustix::process::sethostname(slice)) {
+    match convert_res(rustix::system::sethostname(slice)) {
         Some(()) => 0,
         None => -1,
     }

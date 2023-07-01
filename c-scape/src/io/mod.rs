@@ -11,8 +11,8 @@ mod splice;
 mod timerfd;
 mod write;
 
+use rustix::event::EventfdFlags;
 use rustix::fd::{BorrowedFd, IntoRawFd};
-use rustix::io::EventfdFlags;
 
 use core::convert::TryInto;
 use libc::{c_int, c_long, c_uint};
@@ -67,7 +67,7 @@ unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
             libc!(libc::ioctl(fd, libc::FICLONE, src_fd));
             let fd = BorrowedFd::borrow_raw(fd);
             let src_fd = BorrowedFd::borrow_raw(src_fd);
-            match convert_res(rustix::io::ioctl_ficlone(fd, src_fd)) {
+            match convert_res(rustix::fs::ioctl_ficlone(fd, src_fd)) {
                 Some(()) => 0,
                 None => -1,
             }
@@ -81,7 +81,7 @@ unsafe extern "C" fn ioctl(fd: c_int, request: c_long, mut args: ...) -> c_int {
 unsafe extern "C" fn eventfd(initval: c_uint, flags: c_int) -> c_int {
     libc!(libc::eventfd(initval, flags));
     let flags = EventfdFlags::from_bits(flags.try_into().unwrap()).unwrap();
-    match convert_res(rustix::io::eventfd(initval, flags)) {
+    match convert_res(rustix::event::eventfd(initval, flags)) {
         Some(fd) => fd.into_raw_fd(),
         None => -1,
     }

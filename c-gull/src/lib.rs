@@ -29,7 +29,7 @@ mod strtol;
 #[cfg(feature = "std")]
 mod sysconf;
 #[cfg(feature = "std")]
-mod termios;
+mod termios_;
 #[cfg(feature = "std")]
 mod time;
 #[cfg(feature = "std")]

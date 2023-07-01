@@ -83,7 +83,10 @@ pub(crate) const fn error_str(e: Errno) -> Option<&'static str> {
         Errno::PROTOTYPE => "Protocol wrong type for socket",
         Errno::RANGE => "Result too large",
         Errno::ROFS => "Read-only file system",
+        #[cfg(target_env = "musl")]
         Errno::SPIPE => "Invalid seek",
+        #[cfg(not(target_env = "musl"))]
+        Errno::SPIPE => "Illegal seek",
         Errno::SRCH => "No such process",
         Errno::STALE => "Reserved",
         #[cfg(not(target_os = "wasi"))]
