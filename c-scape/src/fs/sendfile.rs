@@ -62,7 +62,7 @@ unsafe extern "C" fn sendfile64(
         BorrowedFd::borrow_raw(out_fd),
         BorrowedFd::borrow_raw(in_fd),
         offset.as_mut(),
-        count.into(),
+        count,
     )) {
         Some(num) => num.try_into().unwrap(),
         None => -1,

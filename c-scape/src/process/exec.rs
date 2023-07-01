@@ -5,8 +5,7 @@ use rustix::mm::{mmap_anonymous, MapFlags, ProtFlags};
 use alloc::vec::Vec;
 use core::cmp::max;
 use core::ffi::CStr;
-use core::ptr::copy_nonoverlapping;
-use core::ptr::null_mut;
+use core::ptr::{copy_nonoverlapping, null_mut};
 use core::slice;
 
 use crate::env::environ;
