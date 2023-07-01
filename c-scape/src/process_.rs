@@ -1,8 +1,12 @@
 use crate::convert_res;
 use core::ffi::CStr;
 use core::mem::{size_of, zeroed};
-use core::ptr::{self, null_mut};
-use libc::{c_char, c_int, c_long, c_ulong, c_void};
+#[cfg(target_vendor = "mustang")]
+use core::ptr;
+use core::ptr::null_mut;
+#[cfg(target_vendor = "mustang")]
+use libc::c_ulong;
+use libc::{c_char, c_int, c_long, c_void};
 
 #[no_mangle]
 unsafe extern "C" fn sysconf(name: c_int) -> c_long {

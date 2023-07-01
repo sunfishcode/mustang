@@ -33,7 +33,7 @@ compiler_builtins = { version = '0.1.49', optional = true }
 
 [features]
 default = ["std", "threads", "log"]
-std = ["rustix/std", "linux-raw-sys/std"]
+std = ["rustix/std"]
 set_thread_id = []
 rustc-dep-of-std = [
     "core",
