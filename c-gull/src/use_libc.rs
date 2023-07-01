@@ -36,7 +36,8 @@ macro_rules! checked_cast {
 /// #[no_mangle]
 /// unsafe extern "C" fn strlen(s: *const c_char) -> usize {
 ///    libc!(libc::strlen(s));
-///    ...
+///    // ...
+/// }
 /// ```
 ///
 /// This will elicit a compile-time error if the signature doesn't match.
