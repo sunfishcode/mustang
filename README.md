@@ -46,7 +46,7 @@ Mustang isn't about making anything safer, for the foreseeable future. The
 major libc implementations are extraordinarily well tested and mature. Mustang
 for its part is experimental and has lots of `unsafe`.
 
-[`origin`]: https://github.com/sunfishcode/mustang/tree/main/origin
+[`origin`]: https://github.com/sunfishcode/origin/
 [Rust-idiomatic]: https://docs.rs/origin/latest/origin/
 [`c-scape`]: https://github.com/sunfishcode/mustang/tree/main/c-scape
 [`c-gull`]: https://github.com/sunfishcode/mustang/tree/main/c-gull
@@ -221,7 +221,7 @@ own implementation of std.
 [build-std]: https://doc.rust-lang.org/cargo/reference/unstable.html#build-std
 [Rust itself already does this]: https://github.com/rust-lang/rust/blob/6bed1f0bc3cc50c10aab26d5f94b16a00776b8a5/library/std/src/sys/unix/mod.rs#L71
 [`rustix`]: https://github.com/bytecodealliance/rustix
-[`origin`]: https://github.com/sunfishcode/mustang/tree/main/origin
+[`origin`]: https://github.com/sunfishcode/origin
 [chat]: https://bytecodealliance.zulipchat.com/#narrow/stream/206238-general
 [issue]: https://github.com/sunfishcode/mustang/issues
 [these instructions]: https://docs.rust-embedded.org/embedonomicon/custom-target.html#fill-the-target-file

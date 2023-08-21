@@ -186,13 +186,6 @@ jobs:
       env:
         RUST_BACKTRACE: 1
 
-    - name: test origin-as-just-a-library in non-mustang mode
-      working-directory: test-crates/origin-as-just-a-library
-      run: |
-        cargo +nightly-2023-06-27 run --target=${{ matrix.host_target }}
-      env:
-        RUST_BACKTRACE: 1
-
     - name: test mustang-nostd as program
       working-directory: test-crates/mustang-nostd
       run: |

@@ -46,7 +46,6 @@ cc = ["mustang/cc", "c-scape/cc"]
 [workspace]
 members = [
   "mustang",
-  "origin",
   "c-scape",
   "c-gull",
 ]
