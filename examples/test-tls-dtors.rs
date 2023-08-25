@@ -1,5 +1,3 @@
-#![feature(local_key_cell_methods)]
-
 mustang::can_run_this!();
 
 use std::cell::RefCell;

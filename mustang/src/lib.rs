@@ -34,9 +34,9 @@ extern crate origin;
 extern crate unwinding;
 
 #[cfg(target_vendor = "mustang")]
-#[cfg(feature = "dlmalloc")]
+#[cfg(feature = "rustix-dlmalloc")]
 #[global_allocator]
-static GLOBAL_ALLOCATOR: dlmalloc::GlobalDlmalloc = dlmalloc::GlobalDlmalloc;
+static GLOBAL_ALLOCATOR: rustix_dlmalloc::GlobalDlmalloc = rustix_dlmalloc::GlobalDlmalloc;
 
 #[cfg(target_vendor = "mustang")]
 #[cfg(feature = "wee_alloc")]
@@ -47,5 +47,7 @@ static GLOBAL_ALLOCATOR: wee_alloc::WeeAlloc<'static> = wee_alloc::WeeAlloc::INI
 // `malloc` using the Rust global allocator, and the default Rust global
 // allocator uses `malloc`.
 #[cfg(target_vendor = "mustang")]
-#[cfg(not(any(feature = "dlmalloc", feature = "wee_alloc")))]
-compile_error!("Either feature \"dlmalloc\" or \"wee_alloc\" must be enabled for this crate.");
+#[cfg(not(any(feature = "rustix-dlmalloc", feature = "wee_alloc")))]
+compile_error!(
+    "Either feature \"rustix-dlmalloc\" or \"wee_alloc\" must be enabled for this crate."
+);

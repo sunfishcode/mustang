@@ -25,9 +25,6 @@ mod use_libc;
 mod at_fork;
 mod error_str;
 mod sync_ptr;
-// Unwinding isn't supported on 32-bit arm yet.
-#[cfg(target_arch = "arm")]
-mod unwind;
 
 // Selected libc-compatible interfaces.
 //

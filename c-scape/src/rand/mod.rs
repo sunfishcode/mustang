@@ -4,7 +4,7 @@ use rand::Rng;
 use rand_core::SeedableRng;
 use rand_pcg::Pcg32;
 
-use origin::sync::Mutex;
+use rustix_futex_sync::Mutex;
 
 #[cfg(test)]
 static_assertions::assert_eq_size!(c_uint, u32);

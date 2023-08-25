@@ -1709,7 +1709,9 @@ fn test_read_dir_infinite_loop() {
     use std::process::Command;
 
     // Create a zombie child process
-    let Ok(mut child) = Command::new("echo").spawn() else { return };
+    let Ok(mut child) = Command::new("echo").spawn() else {
+        return;
+    };
 
     // Make sure the process is (un)dead
     match child.kill() {

@@ -1,5 +1,5 @@
 use alloc::vec::Vec;
-use origin::sync::Mutex;
+use rustix_futex_sync::Mutex;
 
 /// Functions registered with `at_fork`.
 static FORK_FUNCS: Mutex<RegisteredForkFuncs> = Mutex::new(RegisteredForkFuncs::new());
