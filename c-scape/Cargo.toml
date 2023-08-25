@@ -29,11 +29,6 @@ rand = { version = "0.8.5", default-features = false }
 [target.'cfg(target_vendor = "mustang")'.dependencies]
 origin = { version = "0.11.0", default-features = false, features = ["origin-start"] }
 
-[build-dependencies]
-# Enable the cc dependency to build aarch64_outline_atomics from source
-# instead of using the prebuilt libraries.
-cc = { version = "1.0.68", optional = true }
-
 [dev-dependencies]
 libc = "0.2.138"
 static_assertions = "1.1.0"
