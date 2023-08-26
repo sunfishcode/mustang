@@ -9,9 +9,9 @@ use core::sync::atomic::Ordering::SeqCst;
 use core::sync::atomic::{AtomicBool, AtomicU32};
 use core::time::Duration;
 use errno::{set_errno, Errno};
-use origin::lock_api::{self, RawMutex as _, RawReentrantMutex, RawRwLock as _};
-use origin::sync::{Condvar, RawMutex, RawRwLock};
 use origin::Thread;
+use rustix_futex_sync::lock_api::{self, RawMutex as _, RawReentrantMutex, RawRwLock as _};
+use rustix_futex_sync::{RawCondvar, RawMutex, RawRwLock};
 
 use libc::c_int;
 
@@ -360,9 +360,9 @@ const SIZEOF_PTHREAD_COND_T: usize = 48;
 #[cfg_attr(target_arch = "x86", repr(C, align(4)))]
 #[cfg_attr(not(target_arch = "x86"), repr(C, align(8)))]
 struct PthreadCondT {
-    inner: Condvar,
+    inner: RawCondvar,
     attr: PthreadCondattrT,
-    pad: [u8; SIZEOF_PTHREAD_COND_T - size_of::<Condvar>() - size_of::<PthreadCondattrT>()],
+    pad: [u8; SIZEOF_PTHREAD_COND_T - size_of::<RawCondvar>() - size_of::<PthreadCondattrT>()],
 }
 
 libc_type!(PthreadCondT, pthread_cond_t);
@@ -452,10 +452,10 @@ unsafe extern "C" fn pthread_cond_init(
     ptr::write(
         cond,
         PthreadCondT {
-            inner: Condvar::new(),
+            inner: RawCondvar::new(),
             attr: ptr::read(attr),
             pad: [0_u8;
-                SIZEOF_PTHREAD_COND_T - size_of::<Condvar>() - size_of::<PthreadCondattrT>()],
+                SIZEOF_PTHREAD_COND_T - size_of::<RawCondvar>() - size_of::<PthreadCondattrT>()],
         },
     );
     0

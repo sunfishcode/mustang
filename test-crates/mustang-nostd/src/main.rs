@@ -1,3 +1,4 @@
+#![allow(internal_features)]
 #![feature(lang_items)]
 #![no_std]
 // When testing we do not want to use our main function

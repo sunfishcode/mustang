@@ -211,12 +211,13 @@ simplify and optimize by changing code to call into the Rust interfaces
 directly. This can eliminate many uses of raw pointers and C-style
 NUL-terminated strings, so it can be much safer.
 
-Another similar project is [tiny-std]. Similar to steed, tiny-std contains its
-own implementation of std.
+Other similar projects are [tiny-std] and [veneer]. Similar to steed, they
+contain their own implementations of std.
 
 [relibc]: https://gitlab.redox-os.org/redox-os/relibc/
 [steed]: https://github.com/japaric/steed
 [tiny-std]: https://github.com/MarcusGrass/tiny-std
+[veneer]: https://crates.io/crates/veneer
 [`steed`]: https://github.com/japaric/steed
 [build-std]: https://doc.rust-lang.org/cargo/reference/unstable.html#build-std
 [Rust itself already does this]: https://github.com/rust-lang/rust/blob/6bed1f0bc3cc50c10aab26d5f94b16a00776b8a5/library/std/src/sys/unix/mod.rs#L71

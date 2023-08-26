@@ -5,7 +5,7 @@ use core::sync::atomic::{AtomicU32, Ordering};
 use errno::{set_errno, Errno};
 use libc::{c_int, c_void};
 
-use origin::sync::RwLock;
+use rustix_futex_sync::RwLock;
 
 #[cfg(target_env = "gnu")]
 const PTHREAD_KEYS_MAX: u32 = 1024;
