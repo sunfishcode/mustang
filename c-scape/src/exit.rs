@@ -19,7 +19,7 @@ unsafe extern "C" fn __cxa_atexit(
     unsafe impl Sync for SendSync {}
     let arg = SendSync(arg);
 
-    origin::at_exit(Box::new(move || {
+    origin::program::at_exit(Box::new(move || {
         let arg: SendSync = arg;
         func(arg.0);
     }));
@@ -34,7 +34,7 @@ unsafe extern "C" fn __cxa_finalize(_d: *mut c_void) {}
 #[no_mangle]
 unsafe extern "C" fn atexit(func: extern "C" fn()) -> c_int {
     libc!(libc::atexit(func));
-    origin::at_exit(Box::new(move || func()));
+    origin::program::at_exit(Box::new(move || func()));
     0
 }
 
@@ -44,7 +44,7 @@ unsafe extern "C" fn atexit(func: extern "C" fn()) -> c_int {
 #[no_mangle]
 unsafe extern "C" fn exit(status: c_int) -> ! {
     libc!(libc::exit(status));
-    origin::exit(status)
+    origin::program::exit(status)
 }
 
 /// POSIX-compatible `_exit`.
@@ -53,7 +53,7 @@ unsafe extern "C" fn exit(status: c_int) -> ! {
 #[no_mangle]
 unsafe extern "C" fn _exit(status: c_int) -> ! {
     libc!(libc::_exit(status));
-    origin::exit_immediately(status)
+    origin::program::exit_immediately(status)
 }
 
 #[no_mangle]

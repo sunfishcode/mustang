@@ -73,7 +73,7 @@ unsafe extern "C" fn pthread_setspecific(key: libc::pthread_key_t, value: *const
     // If this is the first-time we have gotten here,
     // we need to actually register the dtors for cleanup.
     if !HAS_REGISTERED_CLEANUP.get() {
-        origin::at_thread_exit(Box::new(move || {
+        origin::thread::at_thread_exit(Box::new(move || {
             for _ in 0..PTHREAD_DESTRUCTOR_ITERATIONS {
                 let mut ran_dtor = false;
 

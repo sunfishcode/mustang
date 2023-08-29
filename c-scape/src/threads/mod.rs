@@ -9,7 +9,7 @@ use core::sync::atomic::Ordering::SeqCst;
 use core::sync::atomic::{AtomicBool, AtomicU32};
 use core::time::Duration;
 use errno::{set_errno, Errno};
-use origin::Thread;
+use origin::thread::Thread;
 use rustix_futex_sync::lock_api::{self, RawMutex as _, RawReentrantMutex, RawRwLock as _};
 use rustix_futex_sync::{RawCondvar, RawMutex, RawRwLock};
 
@@ -21,7 +21,7 @@ unsafe impl lock_api::GetThreadId for GetThreadId {
     const INIT: Self = Self;
 
     fn nonzero_thread_id(&self) -> core::num::NonZeroUsize {
-        origin::current_thread_id()
+        origin::thread::current_thread_id()
             .as_raw_nonzero()
             .try_into()
             .unwrap()
@@ -56,8 +56,8 @@ impl Default for PthreadAttrT {
     fn default() -> Self {
         Self {
             stack_addr: null_mut(),
-            stack_size: origin::default_stack_size(),
-            guard_size: origin::default_guard_size(),
+            stack_size: origin::thread::default_stack_size(),
+            guard_size: origin::thread::default_guard_size(),
             pad0: 0,
             pad1: 0,
             pad2: 0,
@@ -122,7 +122,7 @@ libc_type!(PthreadRwlockattrT, pthread_rwlockattr_t);
 #[no_mangle]
 unsafe extern "C" fn pthread_self() -> PthreadT {
     libc!(ptr::from_exposed_addr_mut(libc::pthread_self() as _));
-    origin::current_thread().to_raw().cast()
+    origin::thread::current_thread().to_raw().cast()
 }
 
 #[no_mangle]
@@ -132,7 +132,7 @@ unsafe extern "C" fn pthread_getattr_np(thread: PthreadT, attr: *mut PthreadAttr
         checked_cast!(attr)
     ));
     let (stack_addr, stack_size, guard_size) =
-        origin::thread_stack(Thread::from_raw(thread.cast()));
+        origin::thread::thread_stack(Thread::from_raw(thread.cast()));
     ptr::write(
         attr,
         PthreadAttrT {
@@ -577,7 +577,7 @@ unsafe extern "C" fn pthread_create(
     };
     assert!(stack_addr.is_null());
 
-    let thread = match origin::create_thread(
+    let thread = match origin::thread::create_thread(
         Box::new(move || {
             fn_(arg);
             Some(Box::new(arg))
@@ -596,7 +596,7 @@ unsafe extern "C" fn pthread_create(
 #[no_mangle]
 unsafe extern "C" fn pthread_detach(pthread: PthreadT) -> c_int {
     libc!(libc::pthread_detach(pthread.expose_addr() as _));
-    origin::detach_thread(Thread::from_raw(pthread.cast()));
+    origin::thread::detach_thread(Thread::from_raw(pthread.cast()));
     0
 }
 
@@ -608,7 +608,7 @@ unsafe extern "C" fn pthread_join(pthread: PthreadT, retval: *mut *mut c_void) -
         "pthread_join return values not supported yet"
     );
 
-    origin::join_thread(Thread::from_raw(pthread.cast()));
+    origin::thread::join_thread(Thread::from_raw(pthread.cast()));
     0
 }
 
@@ -732,7 +732,7 @@ unsafe extern "C" fn __cxa_thread_atexit_impl(
     _dso_symbol: *mut c_void,
 ) -> c_int {
     // TODO: libc!(libc::__cxa_thread_atexit_impl(func, obj, _dso_symbol));
-    origin::at_thread_exit(Box::new(move || func(obj)));
+    origin::thread::at_thread_exit(Box::new(move || func(obj)));
     0
 }
 
@@ -744,7 +744,7 @@ unsafe extern "C" fn __tls_get_addr(p: &[usize; 2]) -> *mut c_void {
     // Offset 0 is the generation field, and we don't support dynamic linking,
     // so we should only sever see 1 here.
     assert_eq!(module, 1);
-    origin::current_thread_tls_addr(offset)
+    origin::thread::current_thread_tls_addr(offset)
 }
 
 #[cfg(target_arch = "x86")]
