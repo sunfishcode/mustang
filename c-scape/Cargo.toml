@@ -12,22 +12,22 @@ edition = "2021"
 
 [dependencies]
 libm = "0.2.1"
-rustix = { version = "0.38.1", default-features = false, features = ["event", "fs", "itoa", "net", "param", "pipe", "process", "rand", "runtime", "stdio", "system", "termios", "thread", "time"] }
+rustix = { version = "0.38.10", default-features = false, features = ["event", "fs", "itoa", "net", "param", "pipe", "process", "rand", "runtime", "stdio", "system", "termios", "thread", "time"] }
 rustix-futex-sync = { version = "0.1.1", features = ["atomic_usize"] }
 memoffset = "0.9.0"
 realpath-ext = { version = "0.1.0", default-features = false }
-origin = { version = "0.11.1", default-features = false, features = ["origin-all", "libc"] }
+origin = { version = "0.12.0", default-features = false, features = ["origin-program", "origin-thread", "origin-signal"] }
 log = { version = "0.4.14", default-features = false }
 # We use the libc crate for C ABI types and constants, but we don't depend on
 # the actual platform libc.
 libc = { version = "0.2.138", default-features = false }
-errno = { version = "0.3.0", default-features = false }
+errno = { version = "0.3.3", default-features = false }
 rand_pcg = "0.3.1"
 rand_core = "0.6.4"
 rand = { version = "0.8.5", default-features = false }
 
 [target.'cfg(target_vendor = "mustang")'.dependencies]
-origin = { version = "0.11.1", default-features = false, features = ["origin-start"] }
+origin = { version = "0.12.0", default-features = false, features = ["origin-start"] }
 
 [dev-dependencies]
 libc = "0.2.138"

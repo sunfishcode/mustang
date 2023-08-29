@@ -22,7 +22,7 @@ unsafe extern "C" fn signal(signal: c_int, handler: sighandler_t) -> sighandler_
     new.sa_handler_kernel = transmute(handler);
     new.sa_flags = SA_RESTART as _;
 
-    match rustix::runtime::sigaction(signal, Some(new)) {
+    match origin::signal::sigaction(signal, Some(new)) {
         Ok(old) => transmute(old.sa_handler_kernel),
         Err(_) => SIG_ERR,
     }
@@ -60,7 +60,7 @@ unsafe extern "C" fn sigaction(signal: c_int, new: *const sigaction, old: *mut s
         })
     };
 
-    match convert_res(origin::sigaction(signal, new)) {
+    match convert_res(origin::signal::sigaction(signal, new)) {
         Some(old_action) => {
             if !old.is_null() {
                 let mut sa_mask = zeroed();
@@ -153,7 +153,7 @@ unsafe extern "C" fn raise(sig: c_int) -> c_int {
     libc!(libc::raise(sig));
 
     let sig = Signal::from_raw(sig).unwrap();
-    let tid = origin::current_thread_id();
+    let tid = origin::thread::current_thread_id();
 
     // `tkill` is ordinarily considered obsolete and dangerous, because a
     // thread could exit and its thread id could get reused by another thread.
@@ -171,13 +171,13 @@ unsafe extern "C" fn abort() {
 
     // The `abort` function is documented to kill the process with an abort
     // signal. As in `raise`, `tkill` is dangerous in general, but safe here.
-    rustix::runtime::tkill(origin::current_thread_id(), Signal::Abort).ok();
+    rustix::runtime::tkill(origin::thread::current_thread_id(), Signal::Abort).ok();
 
     // That ought to work, but there's a possibility that the application has
     // a handler for the abort signal and that the handler returns. We really
     // don't want to return, because our caller presumably called `abort()`
     // for a reason, so we escalate to the unhandlable signal.
-    rustix::runtime::tkill(origin::current_thread_id(), Signal::Kill).ok();
+    rustix::runtime::tkill(origin::thread::current_thread_id(), Signal::Kill).ok();
 
     // That *really* should have worked. But if we're somehow still running,
     // abruptly exit the program.
