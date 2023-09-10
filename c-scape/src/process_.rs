@@ -89,7 +89,7 @@ unsafe extern "C" fn dl_iterate_phdr(
 
     libc!(libc::dl_iterate_phdr(callback, data));
 
-    let (phdr, phnum) = rustix::runtime::exe_phdrs();
+    let (phdr, _phent, phnum) = rustix::runtime::exe_phdrs();
     let mut info = libc::dl_phdr_info {
         dlpi_addr: (&mut __executable_start as *mut c_void).expose_addr() as _,
         dlpi_name: b"/proc/self/exe\0".as_ptr().cast(),

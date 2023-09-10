@@ -81,6 +81,35 @@ mod setjmp;
 mod syscall;
 mod time;
 
+/// An ABI-conforming `__dso_handle`.
+#[cfg(target_vendor = "mustang")]
+#[no_mangle]
+static __dso_handle: UnsafeSendSyncVoidStar =
+    UnsafeSendSyncVoidStar(&__dso_handle as *const _ as *const _);
+
+/// A type for `__dso_handle`.
+///
+/// `*const c_void` isn't `Send` or `Sync` because a raw pointer could point to
+/// arbitrary data which isn't thread-safe, however `__dso_handle` is used as
+/// an opaque cookie value, and it always points to itself.
+///
+/// Note that in C, `__dso_handle`'s type is usually `void *` which would
+/// correspond to `*mut c_void`, however we can assume the pointee is never
+/// actually mutated.
+#[repr(transparent)]
+struct UnsafeSendSyncVoidStar(*const core::ffi::c_void);
+unsafe impl Send for UnsafeSendSyncVoidStar {}
+unsafe impl Sync for UnsafeSendSyncVoidStar {}
+
+/// Adapt from origin's `origin_main` to a C ABI `main`.
+#[no_mangle]
+fn origin_main(argc: usize, argv: *mut *mut u8, envp: *mut *mut u8) -> i32 {
+    extern "C" {
+        fn main(argc: i32, argv: *const *const u8, envp: *const *const u8) -> i32;
+    }
+    unsafe { main(argc as _, argv as _, envp as _) }
+}
+
 // utilities
 
 /// Convert a rustix `Result` into an `Option` with the error stored
