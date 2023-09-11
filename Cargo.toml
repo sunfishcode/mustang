@@ -14,8 +14,6 @@ publish = false
 
 [dev-dependencies]
 mustang = { path = "mustang", version = "^0.10.0" }
-c-scape = { path = "c-scape", version = "^0.10.0" }
-c-gull = { path = "c-gull", version = "^0.10.0" }
 similar-asserts = "1.1.0"
 rand = "0.8.4"
 libc = "0.2.138"
@@ -31,6 +29,11 @@ which = "4.4.0"
 # Test that the core_simd crate works under mustang.
 # TODO: Re-enable this when core_simd works on Rust nightly.
 #core_simd = { git = "https://github.com/rust-lang/portable-simd" }
+
+[target.'cfg(target_vendor = "mustang")'.dependencies]
+c-gull = { path = "c-gull", version = "^0.10.0", features = ["take-charge"] }
+[target.'cfg(not(target_vendor = "mustang"))'.dependencies]
+c-gull = { path = "c-gull", version = "^0.10.0", features = ["coexist-with-libc"] }
 
 [features]
 default = ["threads"]

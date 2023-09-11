@@ -16,8 +16,8 @@ unsafe extern "C" fn readdir64_r(
 ) -> c_int {
     libc!(libc::readdir64_r(dir.cast(), entry, ptr));
 
-    let mustang_dir = dir.cast::<CScapeDir>();
-    let dir = &mut (*mustang_dir).dir;
+    let c_scape_dir = dir.cast::<CScapeDir>();
+    let dir = &mut (*c_scape_dir).dir;
     match dir.read() {
         None => {
             *ptr = null_mut();
@@ -56,8 +56,8 @@ unsafe extern "C" fn readdir64_r(
 unsafe extern "C" fn readdir64(dir: *mut libc::DIR) -> *mut libc::dirent64 {
     libc!(libc::readdir64(dir.cast()));
 
-    let mustang_dir = dir.cast::<CScapeDir>();
-    let dir = &mut (*mustang_dir).dir;
+    let c_scape_dir = dir.cast::<CScapeDir>();
+    let dir = &mut (*c_scape_dir).dir;
     match dir.read() {
         None => null_mut(),
         Some(Ok(e)) => {
@@ -71,7 +71,7 @@ unsafe extern "C" fn readdir64(dir: *mut libc::DIR) -> *mut libc::dirent64 {
                 rustix::fs::FileType::BlockDevice => libc::DT_BLK,
                 rustix::fs::FileType::Unknown => libc::DT_UNKNOWN,
             };
-            (*mustang_dir).storage.dirent64 = libc::dirent64 {
+            (*c_scape_dir).storage.dirent64 = libc::dirent64 {
                 d_ino: e.ino(),
                 d_off: 0, // We don't implement `seekdir` yet anyway.
                 d_reclen: (offset_of!(libc::dirent64, d_name) + e.file_name().to_bytes().len() + 1)
@@ -81,9 +81,9 @@ unsafe extern "C" fn readdir64(dir: *mut libc::DIR) -> *mut libc::dirent64 {
                 d_name: [0; 256],
             };
             let len = core::cmp::min(256, e.file_name().to_bytes().len());
-            (*mustang_dir).storage.dirent64.d_name[..len]
+            (*c_scape_dir).storage.dirent64.d_name[..len]
                 .copy_from_slice(transmute(e.file_name().to_bytes()));
-            &mut (*mustang_dir).storage.dirent64
+            &mut (*c_scape_dir).storage.dirent64
         }
         Some(Err(err)) => {
             set_errno(Errno(err.raw_os_error()));
@@ -96,8 +96,8 @@ unsafe extern "C" fn readdir64(dir: *mut libc::DIR) -> *mut libc::dirent64 {
 unsafe extern "C" fn readdir(dir: *mut libc::DIR) -> *mut libc::dirent {
     libc!(libc::readdir(dir.cast()));
 
-    let mustang_dir = dir.cast::<CScapeDir>();
-    let dir = &mut (*mustang_dir).dir;
+    let c_scape_dir = dir.cast::<CScapeDir>();
+    let dir = &mut (*c_scape_dir).dir;
     match dir.read() {
         None => null_mut(),
         Some(Ok(e)) => {
@@ -113,7 +113,7 @@ unsafe extern "C" fn readdir(dir: *mut libc::DIR) -> *mut libc::dirent {
             };
 
             let result: Result<(), core::num::TryFromIntError> = try {
-                (*mustang_dir).storage.dirent = libc::dirent {
+                (*c_scape_dir).storage.dirent = libc::dirent {
                     d_ino: e.ino().try_into()?,
                     d_off: 0, // We don't implement `seekdir` yet anyway.
                     d_reclen: (offset_of!(libc::dirent64, d_name)
@@ -135,9 +135,9 @@ unsafe extern "C" fn readdir(dir: *mut libc::DIR) -> *mut libc::dirent {
             }
 
             let len = core::cmp::min(256, e.file_name().to_bytes().len());
-            (*mustang_dir).storage.dirent.d_name[..len]
+            (*c_scape_dir).storage.dirent.d_name[..len]
                 .copy_from_slice(transmute(e.file_name().to_bytes()));
-            &mut (*mustang_dir).storage.dirent
+            &mut (*c_scape_dir).storage.dirent
         }
         Some(Err(err)) => {
             set_errno(Errno(err.raw_os_error()));

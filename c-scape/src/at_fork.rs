@@ -50,7 +50,7 @@ pub(crate) fn at_fork(
 /// # Safety
 ///
 /// Wildly unsafe. See the documentation comment for [`rustix::runtime::fork`].
-/// On top off that, this calls the unsafe functions registered with
+/// On top of that, this calls the unsafe functions registered with
 /// [`at_fork`].
 pub(crate) unsafe fn fork() -> rustix::io::Result<Option<rustix::process::Pid>> {
     let funcs = FORK_FUNCS.lock();

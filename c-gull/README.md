@@ -35,14 +35,20 @@ optimized.
 This is part of the [Mustang] project, building Rust programs written entirely
 in Rust.
 
-## Using c-gull in non-mustang programs
+## c-gull's two modes
 
-c-gull can also be used as a drop-in (partial) libc replacement in non-mustang
-builds, provided you're using nightly Rust. To use it, just change your typical
-libc dependency in Cargo.toml to this:
+c-gull has two main cargo features: "take-charge" and "coexist-with-libc". One
+of these must be enabled.
+
+In "take-charge" mode, c-gull takes charge of the process, handling program
+startup (via origin) providing `malloc` (via c-scape), and other things.
+
+In "coexist-witht-libc" mode, c-gull can be used as a drop-in (partial) libc
+replacement in non-mustang builds, provided you're using nightly Rust. To use
+it, just change your typical libc dependency in Cargo.toml to this:
 
 ```toml
-libc = { version = "<c-gull version>", package = "c-gull" }
+libc = { version = "<c-gull version>", package = "c-gull", features = ["coexist-with-libc"] }
 ```
 
 and c-gull will replace as many of the system libc implementation with its own

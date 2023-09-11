@@ -11,6 +11,12 @@
 #![deny(lossy_provenance_casts)]
 #![feature(try_blocks)]
 
+// Check that our features were used as we intend.
+#[cfg(all(feature = "coexist-with-libc", feature = "take-charge"))]
+compile_error!("Enable only one of \"coexist-with-libc\" and \"take-charge\".");
+#[cfg(all(not(feature = "coexist-with-libc"), not(feature = "take-charge")))]
+compile_error!("Enable one \"coexist-with-libc\" and \"take-charge\".");
+
 extern crate alloc;
 extern crate compiler_builtins;
 
@@ -44,7 +50,7 @@ mod env;
 mod fs;
 mod io;
 
-#[cfg(target_vendor = "mustang")]
+#[cfg(feature = "take-charge")]
 mod malloc;
 
 mod math;
@@ -61,12 +67,12 @@ mod process;
 mod rand;
 mod rand48;
 #[cfg(not(target_os = "wasi"))]
-#[cfg(target_vendor = "mustang")]
+#[cfg(feature = "take-charge")]
 mod signal;
 mod termios_;
 
 #[cfg(feature = "threads")]
-#[cfg(target_vendor = "mustang")]
+#[cfg(feature = "take-charge")]
 mod threads;
 
 mod errno_;
@@ -82,7 +88,7 @@ mod syscall;
 mod time;
 
 /// An ABI-conforming `__dso_handle`.
-#[cfg(target_vendor = "mustang")]
+#[cfg(feature = "take-charge")]
 #[no_mangle]
 static __dso_handle: UnsafeSendSyncVoidStar =
     UnsafeSendSyncVoidStar(&__dso_handle as *const _ as *const _);
@@ -97,8 +103,11 @@ static __dso_handle: UnsafeSendSyncVoidStar =
 /// correspond to `*mut c_void`, however we can assume the pointee is never
 /// actually mutated.
 #[repr(transparent)]
+#[cfg(feature = "take-charge")]
 struct UnsafeSendSyncVoidStar(*const core::ffi::c_void);
+#[cfg(feature = "take-charge")]
 unsafe impl Send for UnsafeSendSyncVoidStar {}
+#[cfg(feature = "take-charge")]
 unsafe impl Sync for UnsafeSendSyncVoidStar {}
 
 /// Adapt from origin's `origin_main` to a C ABI `main`.

@@ -26,12 +26,6 @@ rand_pcg = "0.3.1"
 rand_core = "0.6.4"
 rand = { version = "0.8.5", default-features = false }
 
-[target.'cfg(target_vendor = "mustang")'.dependencies]
-origin = { version = "0.13.0", default-features = false, features = ["origin-start", "origin-thread", "origin-signal", "origin-program"] }
-
-[target.'cfg(not(target_vendor = "mustang"))'.dependencies]
-origin = { version = "0.13.0", default-features = false, features = ["libc"] }
-
 [dev-dependencies]
 libc = "0.2.138"
 static_assertions = "1.1.0"
@@ -42,3 +36,12 @@ once_cell = "1.8.0"
 default = ["threads", "std"]
 threads = ["origin/set_thread_id"]
 std = ["rustix/std"]
+
+# One of the following two features must be enabled:
+
+# Enable this to tell c-scape to take control of the process.
+take-charge = ["origin/origin-start", "origin/origin-thread", "origin/origin-signal", "origin/origin-program"]
+
+# Enable this to tell c-scape to let a libc be in control of
+# the process.
+coexist-with-libc = ["origin/libc"]

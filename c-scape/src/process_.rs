@@ -1,10 +1,10 @@
 use crate::convert_res;
 use core::ffi::CStr;
 use core::mem::{size_of, zeroed};
-#[cfg(target_vendor = "mustang")]
+#[cfg(feature = "take-charge")]
 use core::ptr;
 use core::ptr::null_mut;
-#[cfg(target_vendor = "mustang")]
+#[cfg(feature = "take-charge")]
 use libc::c_ulong;
 use libc::{c_char, c_int, c_long, c_void};
 
@@ -48,20 +48,20 @@ unsafe extern "C" fn sysconf(name: c_int) -> c_long {
 // `getauxval` usually returns `unsigned long`, but we make it a pointer type
 // so that it preserves provenance.
 //
-// This is not used in non-mustang configurations because libc startup code
-// sometimes needs to call `getauxval` before rustix is initialized.
-#[cfg(target_vendor = "mustang")]
+// This is not used in coexist-with-libc configurations because libc startup
+// code sometimes needs to call `getauxval` before rustix is initialized.
+#[cfg(feature = "take-charge")]
 #[no_mangle]
 unsafe extern "C" fn getauxval(type_: c_ulong) -> *mut c_void {
     libc!(ptr::from_exposed_addr_mut(libc::getauxval(type_) as _));
     unimplemented!("unrecognized getauxval {}", type_)
 }
 
-// As with `getauxval`, this is not used in non-mustang configurations because
-// libc startup code sometimes needs to call `getauxval` before rustix is
-// initialized.
+// As with `getauxval`, this is not used in coexist-with-libc configurations
+// because libc startup code sometimes needs to call `getauxval` before rustix
+// is initialized.
 #[cfg(target_arch = "aarch64")]
-#[cfg(target_vendor = "mustang")]
+#[cfg(feature = "take-charge")]
 #[no_mangle]
 unsafe extern "C" fn __getauxval(type_: c_ulong) -> *mut c_void {
     //libc!(ptr::from_exposed_addr(libc::__getauxval(type_) as _));

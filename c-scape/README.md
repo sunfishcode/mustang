@@ -17,4 +17,6 @@ c-scape is a layer underneath [c-gull]. It provides a subset of libc features,
 containing only features that don't require Rust's `std` to implement. This
 allows it to be used by `std` itself.
 
+Similar to c-gull, c-scape has "take-charge" and "coexist-with-libc" modes.
+
 [c-gull]: https://crates.io/crates/c-gull

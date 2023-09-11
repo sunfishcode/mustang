@@ -33,7 +33,7 @@ features = [
 
 [target.'cfg(target_vendor = "mustang")'.dependencies]
 origin = { version = "0.13.0", default-features = false }
-c-gull = { path = "../c-gull", version = "^0.10.0", default-features = false }
+c-gull = { path = "../c-gull", version = "^0.10.0", default-features = false, features = ["take-charge"] }
 
 # A general-purpose `global_allocator` implementation.
 rustix-dlmalloc = { version = "0.1.0", features = ["global"], optional = true }
