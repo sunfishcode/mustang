@@ -43,7 +43,7 @@ of these must be enabled.
 In "take-charge" mode, c-gull takes charge of the process, handling program
 startup (via origin) providing `malloc` (via c-scape), and other things.
 
-In "coexist-witht-libc" mode, c-gull can be used as a drop-in (partial) libc
+In "coexist-with-libc" mode, c-gull can be used as a drop-in (partial) libc
 replacement in non-mustang builds, provided you're using nightly Rust. To use
 it, just change your typical libc dependency in Cargo.toml to this:
 
