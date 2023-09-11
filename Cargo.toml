@@ -1,6 +1,6 @@
 [package]
 name = "mustang-examples"
-version = "0.10.0"
+version = "0.11.0"
 authors = [
     "Dan Gohman <dev@sunfishcode.online>",
 ]
@@ -13,7 +13,7 @@ exclude = ["/.github"]
 publish = false
 
 [dev-dependencies]
-mustang = { path = "mustang", version = "^0.10.0" }
+mustang = { path = "mustang", version = "^0.11.0" }
 similar-asserts = "1.1.0"
 rand = "0.8.4"
 libc = "0.2.138"
@@ -31,9 +31,9 @@ which = "4.4.0"
 #core_simd = { git = "https://github.com/rust-lang/portable-simd" }
 
 [target.'cfg(target_vendor = "mustang")'.dependencies]
-c-gull = { path = "c-gull", version = "^0.10.0", features = ["take-charge"] }
+c-gull = { path = "c-gull", version = "^0.11.0", features = ["take-charge"] }
 [target.'cfg(not(target_vendor = "mustang"))'.dependencies]
-c-gull = { path = "c-gull", version = "^0.10.0", features = ["coexist-with-libc"] }
+c-gull = { path = "c-gull", version = "^0.11.0", features = ["coexist-with-libc"] }
 
 [features]
 default = ["threads"]
