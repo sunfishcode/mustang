@@ -14,9 +14,9 @@ use std::fmt;
 use std::io::prelude::*;
 use std::io::{ErrorKind, IoSlice, IoSliceMut};
 use std::net::*;
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 use std::sync::mpsc::channel;
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -58,7 +58,7 @@ fn connect_error() {
     }
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 #[test]
 fn listen_localhost() {
     let socket_addr = next_test_ip4();
@@ -75,7 +75,7 @@ fn listen_localhost() {
     assert!(buf[0] == 144);
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 #[test]
 fn connect_loopback() {
     each_ip(&mut |addr| {
@@ -97,7 +97,7 @@ fn connect_loopback() {
     })
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 #[test]
 fn smoke_test() {
     each_ip(&mut |addr| {
@@ -118,7 +118,7 @@ fn smoke_test() {
     })
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 #[test]
 fn read_eof() {
     each_ip(&mut |addr| {
@@ -138,7 +138,7 @@ fn read_eof() {
     })
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 #[test]
 fn write_close() {
     each_ip(&mut |addr| {
@@ -168,7 +168,7 @@ fn write_close() {
     })
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 #[test]
 fn multiple_connect_serial() {
     each_ip(&mut |addr| {
@@ -191,7 +191,7 @@ fn multiple_connect_serial() {
     })
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 #[test]
 fn multiple_connect_interleaved_greedy_schedule() {
     const MAX: usize = 10;
@@ -229,7 +229,7 @@ fn multiple_connect_interleaved_greedy_schedule() {
     }
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 #[test]
 fn multiple_connect_interleaved_lazy_schedule() {
     const MAX: usize = 10;
@@ -265,7 +265,7 @@ fn multiple_connect_interleaved_lazy_schedule() {
     }
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 #[test]
 fn socket_and_peer_name() {
     each_ip(&mut |addr| {
@@ -281,7 +281,7 @@ fn socket_and_peer_name() {
     })
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 #[test]
 fn partial_read() {
     each_ip(&mut |addr| {
@@ -376,7 +376,7 @@ fn double_bind() {
     })
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 #[test]
 fn tcp_clone_smoke() {
     each_ip(&mut |addr| {
@@ -408,7 +408,7 @@ fn tcp_clone_smoke() {
     })
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 #[test]
 fn tcp_clone_two_read() {
     each_ip(&mut |addr| {
@@ -443,7 +443,7 @@ fn tcp_clone_two_read() {
     })
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 #[test]
 fn tcp_clone_two_write() {
     each_ip(&mut |addr| {
@@ -471,7 +471,7 @@ fn tcp_clone_two_write() {
     })
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 #[test]
 // FIXME: https://github.com/fortanix/rust-sgx/issues/110
 #[cfg_attr(target_env = "sgx", ignore)]
@@ -494,7 +494,7 @@ fn shutdown_smoke() {
     })
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 #[test]
 // FIXME: https://github.com/fortanix/rust-sgx/issues/110
 #[cfg_attr(target_env = "sgx", ignore)]
@@ -535,7 +535,7 @@ fn close_readwrite_smoke() {
     })
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 #[test]
 #[cfg(unix)] // test doesn't work on Windows, see #31657
 fn close_read_wakes_up() {
@@ -564,7 +564,7 @@ fn close_read_wakes_up() {
     })
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 #[test]
 fn clone_while_reading() {
     each_ip(&mut |addr| {
@@ -605,7 +605,7 @@ fn clone_while_reading() {
     })
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 #[test]
 fn clone_accept_smoke() {
     each_ip(&mut |addr| {
@@ -624,7 +624,7 @@ fn clone_accept_smoke() {
     })
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 #[test]
 fn clone_accept_concurrent() {
     each_ip(&mut |addr| {
@@ -879,7 +879,7 @@ fn set_nonblocking() {
     }
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 #[test]
 #[cfg_attr(target_env = "sgx", ignore)] // FIXME: https://github.com/fortanix/rust-sgx/issues/31
 fn peek() {

@@ -16,17 +16,10 @@
 Mustang is a system for building programs built entirely in Rust, meaning they
 do not depend on any part of libc or crt1.o, and do not link in any C code.
 
-Why? For fun! And to exercise some components built for other purposes (such as
-[`rustix`]) but which happen to also be part of what's needed to do what
-Mustang is doing. And in the future, possibly also for experimenting with new
-kinds of platform ABIs.
-
-Mustang is organized as 4 crates:
-
- - [`origin`], a [Rust-idiomatic] library for program and thread startup and shutdown
- - [`c-scape`], the `no_std` part of a libc implementation
- - [`c-gull`], the `std`-using part of a libc implementation
- - [`mustang`], packages the above into a usable target
+Why? For fun! And to exercise some components that have other purposes (such as
+[`rustix`], ['origin`], [`c-scape`], and [`c-gull`]) but which happen to also be
+part of what's needed to do what Mustang is doing. And in the future, possibly
+also for experimenting with new kinds of platform ABIs.
 
 Mustang currently runs on Rust Nightly on Linux on x86-64, x86, aarch64, and
 riscv64. It aims to support all Linux versions [supported by Rust], though
@@ -48,8 +41,8 @@ for its part is experimental and has lots of `unsafe`.
 
 [`origin`]: https://github.com/sunfishcode/origin/
 [Rust-idiomatic]: https://docs.rs/origin/latest/origin/
-[`c-scape`]: https://github.com/sunfishcode/mustang/tree/main/c-scape
-[`c-gull`]: https://github.com/sunfishcode/mustang/tree/main/c-gull
+[`c-scape`]: https://github.com/sunfishcode/c-ward/tree/main/c-scape
+[`c-gull`]: https://github.com/sunfishcode/c-ward/tree/main/c-gull
 [`mustang`]: https://github.com/sunfishcode/mustang/tree/main/mustang
 [supported by Rust]: https://doc.rust-lang.org/nightly/rustc/platform-support.html
 

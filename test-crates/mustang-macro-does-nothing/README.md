@@ -14,11 +14,11 @@ c-gull and origin dependencies:
 ```
 $ cargo tree --target=x86_64-mustang-linux-gnu
 mustang-macro-does-nothing v0.0.0 (mustang/test-crates/mustang-macro-does-nothing)
-└── mustang v0.5.1 (mustang/mustang)
-    ├── c-gull v0.5.1 (mustang/c-gull)
-    │   ├── c-scape v0.5.1 (mustang/c-scape)
-    │   │   ├── errno v0.2.8
-    │   │   │   └── libc v0.2.138
-    │   │   ├── libc v0.2.138
+└── mustang v0.11.0 (mustang/mustang)
+    ├── c-gull v0.11.0 (c-ward/c-gull)
+    │   ├── c-scape v0.11.0 (c-ward/c-scape)
+    │   │   ├── errno v0.3.3
+    │   │   │   └── libc v0.2.147
+    │   │   ├── libc v0.2.147
 ...
 ```

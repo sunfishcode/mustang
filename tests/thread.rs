@@ -2,7 +2,7 @@
 //! library/std/src/thread/tests.rs at revision
 //! eb14dd863a0d8af603c6783b10efff8454944c15.
 
-#![cfg(feature = "threads")]
+#![cfg(feature = "thread")]
 
 mustang::can_run_this!();
 
