@@ -55,7 +55,7 @@ macro_rules! libc {
 
 /// This is used to check that our type definition matches the layout of the
 /// corresponding libc type.
-#[cfg(all(target_vendor = "mustang", feature = "threads"))]
+#[cfg(all(feature = "take-charge", feature = "threads"))]
 macro_rules! libc_type {
     ($name:ident, $libc:ident) => {
         #[cfg(test)]

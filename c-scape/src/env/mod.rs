@@ -188,7 +188,7 @@ unsafe extern "C" fn getlogin() -> *mut c_char {
 /// a non-standard extension. Use priority 98 so that we run before any
 /// normal user-defined constructor functions and our own functions which
 /// depend on `getenv` working.
-#[cfg(any(target_env = "gnu", target_vendor = "mustang"))]
+#[cfg(any(target_env = "gnu", feature = "take-charge"))]
 #[link_section = ".init_array.00098"]
 #[used]
 static INIT_ARRAY: unsafe extern "C" fn(c_int, *mut *mut c_char, *mut *mut c_char) = {
@@ -198,7 +198,7 @@ static INIT_ARRAY: unsafe extern "C" fn(c_int, *mut *mut c_char, *mut *mut c_cha
     function
 };
 
-#[cfg(not(any(target_env = "gnu", target_vendor = "mustang")))]
+#[cfg(not(any(target_env = "gnu", feature = "take-charge")))]
 static INIT_ARRAY: Unimplemented = Unimplemented::new();
 
 #[cfg(not(target_os = "wasi"))]

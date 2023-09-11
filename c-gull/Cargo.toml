@@ -29,3 +29,12 @@ libc = "0.2.138"
 default = ["threads", "std"]
 threads = ["c-scape/threads"]
 std = ["c-scape/std", "rustix", "log", "printf-compat", "tz-rs", "errno", "sync-resolve"]
+
+# One of the following two features must be enabled:
+
+# Enable this to tell c-gull to take control of the process.
+take-charge = ["c-scape/take-charge"]
+
+# Enable this to tell c-gull to let a libc be in control of
+# the process.
+coexist-with-libc = ["c-scape/coexist-with-libc"]
