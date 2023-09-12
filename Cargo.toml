@@ -1,6 +1,6 @@
 [package]
 name = "mustang-examples"
-version = "0.11.0"
+version = "0.12.0"
 authors = [
     "Dan Gohman <dev@sunfishcode.online>",
 ]
@@ -13,7 +13,7 @@ exclude = ["/.github"]
 publish = false
 
 [dev-dependencies]
-mustang = { path = "mustang", version = "^0.11.0" }
+mustang = { path = "mustang", version = "^0.12.0" }
 similar-asserts = "1.1.0"
 rand = "0.8.4"
 libc = "0.2.138"
