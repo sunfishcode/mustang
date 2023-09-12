@@ -30,25 +30,14 @@ which = "4.4.0"
 # TODO: Re-enable this when core_simd works on Rust nightly.
 #core_simd = { git = "https://github.com/rust-lang/portable-simd" }
 
-[target.'cfg(target_vendor = "mustang")'.dependencies]
-c-gull = { path = "c-gull", version = "^0.11.0", features = ["take-charge"] }
-[target.'cfg(not(target_vendor = "mustang"))'.dependencies]
-c-gull = { path = "c-gull", version = "^0.11.0", features = ["coexist-with-libc"] }
-
 [features]
-default = ["threads"]
-threads = ["mustang/threads"]
+default = ["thread"]
+thread = ["mustang/thread"]
 env_logger = ["mustang/env_logger"]
 log = ["mustang/log"]
 max_level_off = ["mustang/max_level_off"]
 
-# Enable the cc dependency to build assembly-code libraries from .s sources
-# instead of using the prebuilt libraries.
-cc = ["mustang/cc"]
-
 [workspace]
 members = [
   "mustang",
-  "c-scape",
-  "c-gull",
 ]

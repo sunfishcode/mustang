@@ -10,11 +10,6 @@ license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
 repository = "https://github.com/sunfishcode/mustang"
 edition = "2021"
 
-[build-dependencies]
-# Enable the cc dependency to build the empty `libc.a` and similar libraries
-# from the empty.s source file, instead of using the prebuilt libraries.
-cc = { version = "1.0.68", optional = true }
-
 # Enable "libc" and don't depend on "spin".
 # TODO: Eventually, we should propose a `fde-phdr-rustix` backend option to
 # upstream `unwinding` so that it doesn't need to go through `dl_iterate_phdr`,
@@ -33,7 +28,7 @@ features = [
 
 [target.'cfg(target_vendor = "mustang")'.dependencies]
 origin = { version = "0.13.0", default-features = false }
-c-gull = { path = "../c-gull", version = "^0.11.0", default-features = false, features = ["take-charge"] }
+c-gull = { version = "0.12.0", default-features = false, features = ["take-charge"] }
 
 # A general-purpose `global_allocator` implementation.
 rustix-dlmalloc = { version = "0.1.0", features = ["global"], optional = true }
@@ -41,10 +36,10 @@ rustix-dlmalloc = { version = "0.1.0", features = ["global"], optional = true }
 wee_alloc = { version = "0.4", optional = true }
 
 [features]
-default = ["default-alloc", "threads", "std"]
+default = ["default-alloc", "thread", "std"]
 default-alloc = ["rustix-dlmalloc"]
-threads = ["c-gull/threads"]
+thread = ["c-gull/thread"]
 env_logger = ["origin/env_logger"]
 log = ["origin/log"]
 max_level_off = ["origin/max_level_off"]
-std = ["c-gull/default"]
+std = ["c-gull/std"]

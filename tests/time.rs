@@ -40,7 +40,7 @@ fn instant_monotonic() {
     }
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 #[test]
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg_attr(not(feature = "slow"), ignore)]

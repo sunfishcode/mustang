@@ -19,7 +19,7 @@ use std::mem::MaybeUninit;
 use std::path::Path;
 use std::str;
 use std::sync::Arc;
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 use std::thread;
 use std::time::{Duration, Instant};
 use sys_common::io::test::{tmpdir, TempDir};
@@ -602,7 +602,7 @@ fn recursive_mkdir_failure() {
     assert!(result.is_err());
 }
 
-#[cfg(feature = "threads")]
+#[cfg(feature = "thread")]
 #[test]
 fn concurrent_recursive_mkdir() {
     for _ in 0..100 {

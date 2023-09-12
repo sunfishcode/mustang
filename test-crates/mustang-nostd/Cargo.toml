@@ -8,6 +8,6 @@ publish = false
 
 [dependencies]
 # The mustang crate provides the `can_run_this!()` macro.
-mustang = { path = "../../mustang", default-features = false, features = ["threads", "default-alloc"] }
+mustang = { path = "../../mustang", default-features = false, features = ["thread", "default-alloc"] }
 
 [workspace]
