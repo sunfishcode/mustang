@@ -91,7 +91,7 @@ That's a Rust program built entirely from Rust saying "Hello, world!"!
 For more detail, mustang has an `env_logger` feature, which you can enable, and set
 `RUST_LOG` to see various pieces of mustang in action:
 ```
-$ RUST_LOG=trace cargo +nightly run --quiet -Z build-std --target=x86_64-mustang-linux-gnu --example hello --features env_logger
+$ RUST_LOG=trace cargo +nightly run --quiet -Z build-std --target=x86_64-mustang-linux-gnu --example hello --features log,env_logger
 [2021-06-28T06:28:31Z TRACE origin::program] Program started
 [2021-06-28T06:28:31Z TRACE origin::threads] Main Thread[Pid(3916066)] initialized
 [2021-06-28T06:28:31Z TRACE origin::program] Calling `.init_array`-registered function `0x5555558fb480(1, 0x7fffffffdb98, 0x7fffffffdba8)`
@@ -140,6 +140,13 @@ Known limitations in `mustang` include:
  - Enabling LTO doesn't work yet.
  - Unwinding isn't yet implemented on 32-bit arm, and `catch_unwind` does not
    yet work on 32-bit x86.
+
+## Alternatives
+
+[Eyra] uses the same underlying libraries as Mustang, but doesn't use a custom
+target, and doesn't need `-Z build-std`. And, it supports LTO.
+
+[Eyra]: https://github.com/sunfishcode/c-ward/tree/main/eyra
 
 ## Background
 
