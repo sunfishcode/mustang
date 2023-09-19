@@ -156,10 +156,10 @@ it doesn't provide a `std` implementation.
 might look like. It has things like `println!`, but it's also currently lots
 of features, such as `File`.
 
-[Eyra]: https://github.com/sunfishcode/c-ward/tree/main/eyra
-[Origin]: https://github.com/sunfishcode/origin
+[Eyra]: https://github.com/sunfishcode/c-ward/tree/main/eyra#readme
+[Origin]: https://github.com/sunfishcode/origin#readme
 [examples]: https://github.com/sunfishcode/origin/tree/main/example-crates
-[Origin Studio]: https://github.com/sunfishcode/origin-studio
+[Origin Studio]: https://github.com/sunfishcode/origin-studio#readme
 
 ## Background
 
