@@ -36,6 +36,10 @@ env_logger = ["mustang/env_logger"]
 log = ["mustang/log"]
 max_level_off = ["mustang/max_level_off"]
 
+# Enable highly experimental support for performing startup-time relocations,
+# needed to support statically-linked PIE executables.
+experimental-relocate = ["mustang/experimental-relocate"]
+
 [workspace]
 members = [
   "mustang",
