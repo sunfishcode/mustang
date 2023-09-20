@@ -27,8 +27,7 @@ ctor = "0.2.0"
 which = "4.4.0"
 
 # Test that the core_simd crate works under mustang.
-# TODO: Re-enable this when core_simd works on Rust nightly.
-#core_simd = { git = "https://github.com/rust-lang/portable-simd" }
+core_simd = { git = "https://github.com/rust-lang/portable-simd" }
 
 [features]
 default = ["thread"]
