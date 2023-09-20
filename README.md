@@ -144,9 +144,22 @@ Known limitations in `mustang` include:
 ## Alternatives
 
 [Eyra] uses the same underlying libraries as Mustang, but doesn't use a custom
-target, and doesn't need `-Z build-std`. And, it supports LTO.
+target, and doesn't need `-Z build-std`.
+
+Using [Origin] directly is another option; there are [examples] showing how
+to do this. Using origin directly can produce very small binary sizes; the
+`tiny` example can produce a 408-byte executable. Among other things, Origin
+by itself works with LTO. The big downside of using Origin directly is that
+it doesn't provide a `std` implementation.
+
+[Origin Studio] is a demo of what a `std`-like environment on top of Origin
+might look like. It has things like `println!`, but it's also currently lots
+of features, such as `File`.
 
 [Eyra]: https://github.com/sunfishcode/c-ward/tree/main/eyra
+[Origin]: https://github.com/sunfishcode/origin
+[examples]: https://github.com/sunfishcode/origin/tree/main/example-crates
+[Origin Studio]: https://github.com/sunfishcode/origin-studio
 
 ## Background
 
