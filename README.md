@@ -208,6 +208,14 @@ One probably needs to do similar things as for a new architecture, and also
 write a new `origin::rust` implementation to handle the OS's convention for
 arguments, environment variables, and initialization functions.
 
+## Using mustang non-mustang programs
+
+In non-`*-mustang-*` targets, importing this crate and using the
+`mustang::can_run_this!()` macro has no effect, does not depend on nightly
+Rust, and has no extra dependencies.
+
+See the [mustang-macro-does-nothing example] for more details.
+
 ## Similar crates
 
 c-scape has some similarities to [relibc], but has a different focus. Relibc is
@@ -240,3 +248,4 @@ contain their own implementations of std.
 [issue]: https://github.com/sunfishcode/mustang/issues
 [these instructions]: https://docs.rust-embedded.org/embedonomicon/custom-target.html#fill-the-target-file
 [Background]: #background
+[mustang-macro-does-nothing example]: https://github.com/sunfishcode/mustang/blob/main/test-crates/mustang-macro-does-nothing/README.md

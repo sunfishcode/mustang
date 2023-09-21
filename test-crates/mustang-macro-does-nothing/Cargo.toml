@@ -6,7 +6,7 @@ publish = false
 
 [dependencies]
 # The mustang crate provides the `can_run_this!()` macro.
-mustang = { path = "../../mustang" }
+mustang = { path = "../.." }
 
 # This is just an example crate, and not part of the mustang workspace.
 [workspace]
