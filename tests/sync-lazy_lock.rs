@@ -136,7 +136,6 @@ fn static_sync_lazy_via_fn() {
 }
 
 #[test]
-#[cfg_attr(all(target_vendor = "mustang", target_arch = "x86"), ignore)] // FIXME(mustang): triggers segfault
 fn sync_lazy_poisoning() {
     let x: LazyLock<String> = LazyLock::new(|| panic!("kaboom"));
     for _ in 0..2 {
