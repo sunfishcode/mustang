@@ -18,6 +18,9 @@ fn panic(_panic: &core::panic::PanicInfo<'_>) -> ! {
 #[lang = "eh_personality"]
 extern "C" fn eh_personality() {}
 
+#[global_allocator]
+static GLOBAL_ALLOCATOR: rustix_dlmalloc::GlobalDlmalloc = rustix_dlmalloc::GlobalDlmalloc;
+
 // Small hack for rust-analyzer.
 //
 // If we do `#[cfg(not(test))]` then rust-analyzer will say the code is inactive and we

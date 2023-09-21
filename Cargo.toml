@@ -12,12 +12,7 @@ edition = "2021"
 exclude = ["/.github"]
 
 [target.'cfg(target_vendor = "mustang")'.dependencies]
-c-gull = { version = "0.14.5", default-features = false, features = ["take-charge", "call-main", "malloc-via-rust-global-alloc", "define-mem-functions"] }
-
-# A general-purpose `global_allocator` implementation.
-rustix-dlmalloc = { version = "0.1.0", features = ["global"], optional = true }
-# A small `global_allocator` implementation.
-wee_alloc = { version = "0.4", optional = true }
+c-gull = { version = "0.14.5", default-features = false, features = ["take-charge", "call-main", "malloc-via-crates", "define-mem-functions"] }
 
 [dev-dependencies]
 similar-asserts = "1.1.0"
@@ -36,8 +31,7 @@ which = "4.4.0"
 core_simd = { git = "https://github.com/rust-lang/portable-simd" }
 
 [features]
-default = ["default-alloc", "thread", "std"]
-default-alloc = ["rustix-dlmalloc"]
+default = ["thread", "std"]
 thread = ["c-gull/thread"]
 env_logger = ["c-gull/env_logger"]
 log = ["c-gull/log"]

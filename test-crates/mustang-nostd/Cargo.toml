@@ -8,6 +8,7 @@ publish = false
 
 [dependencies]
 # The mustang crate provides the `can_run_this!()` macro.
-mustang = { path = "../..", default-features = false, features = ["thread", "default-alloc"] }
+mustang = { path = "../..", default-features = false, features = ["thread"] }
+rustix-dlmalloc = { version = "0.1.0", features = ["global"] }
 
 [workspace]

@@ -1,9 +1,4 @@
 #![doc = include_str!("../README.md")]
-// Enable strict-provenance APIs and lints. We only do this for mustang to
-// prevent non-mustang compilations from depending on nightly Rust.
-#![cfg_attr(target_vendor = "mustang", feature(strict_provenance))]
-#![cfg_attr(target_vendor = "mustang", deny(fuzzy_provenance_casts))]
-#![cfg_attr(target_vendor = "mustang", deny(lossy_provenance_casts))]
 #![no_std]
 
 /// Declare that a program can be compiled and run by `mustang`.
@@ -27,22 +22,3 @@ macro_rules! can_run_this {
 
 #[cfg(target_vendor = "mustang")]
 extern crate c_gull;
-
-#[cfg(target_vendor = "mustang")]
-#[cfg(feature = "rustix-dlmalloc")]
-#[global_allocator]
-static GLOBAL_ALLOCATOR: rustix_dlmalloc::GlobalDlmalloc = rustix_dlmalloc::GlobalDlmalloc;
-
-#[cfg(target_vendor = "mustang")]
-#[cfg(feature = "wee_alloc")]
-#[global_allocator]
-static GLOBAL_ALLOCATOR: wee_alloc::WeeAlloc<'static> = wee_alloc::WeeAlloc::INIT;
-
-// We need to enable some global allocator, because `c-scape` implements
-// `malloc` using the Rust global allocator, and the default Rust global
-// allocator uses `malloc`.
-#[cfg(target_vendor = "mustang")]
-#[cfg(not(any(feature = "rustix-dlmalloc", feature = "wee_alloc")))]
-compile_error!(
-    "Either feature \"rustix-dlmalloc\" or \"wee_alloc\" must be enabled for this crate."
-);
