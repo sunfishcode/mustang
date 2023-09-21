@@ -159,30 +159,37 @@ jobs:
       env:
         RUST_BACKTRACE: 1
 
-    - name: test mustang-macro-does-nothing in mustang mode
-      working-directory: test-crates/mustang-macro-does-nothing
+    - name: test mustang-example in mustang mode
+      working-directory: example-crates/mustang-example
       run: |
         cargo run -Z build-std --target=../../target-specs/${{ matrix.mustang_target }}.json
       env:
         RUST_BACKTRACE: 1
 
-    - name: test mustang-macro-does-nothing in non-mustang mode
-      working-directory: test-crates/mustang-macro-does-nothing
+    - name: test mustang-example in non-mustang mode
+      working-directory: example-crates/mustang-example
       run: |
         cargo run --target=${{ matrix.host_target }}
       env:
         RUST_BACKTRACE: 1
 
     - name: test mustang-nostd as program
-      working-directory: test-crates/mustang-nostd
+      working-directory: example-crates/mustang-nostd
       run: |
         cargo +nightly-2023-09-20 run -Zbuild-std=core,alloc --target=../../target-specs/${{ matrix.mustang_target }}.json
       env:
         RUST_BACKTRACE: 1
 
     - name: test mustang-nostd as tests
-      working-directory: test-crates/mustang-nostd
+      working-directory: example-crates/mustang-nostd
       run: |
         cargo +nightly-2023-09-20 test -Zbuild-std=core,alloc,test,std --target=../../target-specs/${{ matrix.mustang_target }}.json
+      env:
+        RUST_BACKTRACE: 1
+
+    - name: test mustang-custom-allocator as tests
+      working-directory: example-crates/mustang-custom-allocator
+      run: |
+        cargo +nightly-2023-09-20 run -Zbuild-std --target=../../target-specs/${{ matrix.mustang_target }}.json
       env:
         RUST_BACKTRACE: 1

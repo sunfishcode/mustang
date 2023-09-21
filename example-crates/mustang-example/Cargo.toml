@@ -1,5 +1,5 @@
 [package]
-name = "mustang-macro-does-nothing"
+name = "mustang-example"
 version = "0.0.0"
 edition = "2021"
 publish = false
