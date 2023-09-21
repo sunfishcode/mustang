@@ -4,7 +4,7 @@ Rust and there are no extra dependencies:
 
 ```
 $ cargo tree
-mustang-macro-does-nothing v0.0.0 (mustang/test-crates/mustang-macro-does-nothing)
+mustang-macro-does-nothing v0.0.0 (test-crates/mustang-macro-does-nothing)
 └── mustang v0.4.1 (mustang/mustang)
 ```
 
@@ -13,7 +13,7 @@ c-gull and origin dependencies:
 
 ```
 $ cargo tree --target=x86_64-mustang-linux-gnu
-mustang-macro-does-nothing v0.0.0 (mustang/test-crates/mustang-macro-does-nothing)
+mustang-macro-does-nothing v0.0.0 (test-crates/mustang-macro-does-nothing)
 └── mustang v0.11.0 (mustang/mustang)
     ├── c-gull v0.11.0 (c-ward/c-gull)
     │   ├── c-scape v0.11.0 (c-ward/c-scape)

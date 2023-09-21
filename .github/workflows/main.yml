@@ -149,20 +149,20 @@ jobs:
 
     - name: cargo test
       run: |
-        cargo +nightly-2023-09-20 test --verbose -Z build-std --target=mustang/target-specs/${{ matrix.mustang_target }}.json -- ${{ matrix.test_args }} -- --nocapture
+        cargo +nightly-2023-09-20 test --verbose -Z build-std --target=target-specs/${{ matrix.mustang_target }}.json -- ${{ matrix.test_args }} -- --nocapture
       env:
         RUST_BACKTRACE: 1
 
     - name: cargo test --release
       run: |
-        cargo +nightly-2023-09-20 test --verbose --release -Z build-std --target=mustang/target-specs/${{ matrix.mustang_target }}.json  -- ${{ matrix.test_args }}
+        cargo +nightly-2023-09-20 test --verbose --release -Z build-std --target=target-specs/${{ matrix.mustang_target }}.json  -- ${{ matrix.test_args }}
       env:
         RUST_BACKTRACE: 1
 
     - name: test mustang-macro-does-nothing in mustang mode
       working-directory: test-crates/mustang-macro-does-nothing
       run: |
-        cargo run -Z build-std --target=../../mustang/target-specs/${{ matrix.mustang_target }}.json
+        cargo run -Z build-std --target=../../target-specs/${{ matrix.mustang_target }}.json
       env:
         RUST_BACKTRACE: 1
 
@@ -176,13 +176,13 @@ jobs:
     - name: test mustang-nostd as program
       working-directory: test-crates/mustang-nostd
       run: |
-        cargo +nightly-2023-09-20 run -Zbuild-std=core,alloc --target=../../mustang/target-specs/${{ matrix.mustang_target }}.json
+        cargo +nightly-2023-09-20 run -Zbuild-std=core,alloc --target=../../target-specs/${{ matrix.mustang_target }}.json
       env:
         RUST_BACKTRACE: 1
 
     - name: test mustang-nostd as tests
       working-directory: test-crates/mustang-nostd
       run: |
-        cargo +nightly-2023-09-20 test -Zbuild-std=core,alloc,test,std --target=../../mustang/target-specs/${{ matrix.mustang_target }}.json
+        cargo +nightly-2023-09-20 test -Zbuild-std=core,alloc,test,std --target=../../target-specs/${{ matrix.mustang_target }}.json
       env:
         RUST_BACKTRACE: 1

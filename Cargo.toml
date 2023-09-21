@@ -1,5 +1,5 @@
 [package]
-name = "mustang-examples"
+name = "mustang"
 version = "0.13.2"
 authors = [
     "Dan Gohman <dev@sunfishcode.online>",
@@ -10,10 +10,16 @@ license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
 repository = "https://github.com/sunfishcode/mustang"
 edition = "2021"
 exclude = ["/.github"]
-publish = false
+
+[target.'cfg(target_vendor = "mustang")'.dependencies]
+c-gull = { version = "0.14.5", default-features = false, features = ["take-charge", "call-main", "malloc-via-rust-global-alloc", "define-mem-functions"] }
+
+# A general-purpose `global_allocator` implementation.
+rustix-dlmalloc = { version = "0.1.0", features = ["global"], optional = true }
+# A small `global_allocator` implementation.
+wee_alloc = { version = "0.4", optional = true }
 
 [dev-dependencies]
-mustang = { path = "mustang", version = "^0.13.2" }
 similar-asserts = "1.1.0"
 rand = "0.8.4"
 libc = "0.2.138"
@@ -30,17 +36,14 @@ which = "4.4.0"
 core_simd = { git = "https://github.com/rust-lang/portable-simd" }
 
 [features]
-default = ["thread"]
-thread = ["mustang/thread"]
-env_logger = ["mustang/env_logger"]
-log = ["mustang/log"]
-max_level_off = ["mustang/max_level_off"]
+default = ["default-alloc", "thread", "std"]
+default-alloc = ["rustix-dlmalloc"]
+thread = ["c-gull/thread"]
+env_logger = ["c-gull/env_logger"]
+log = ["c-gull/log"]
+max_level_off = ["c-gull/max_level_off"]
+std = ["c-gull/std"]
 
 # Enable highly experimental support for performing startup-time relocations,
 # needed to support statically-linked PIE executables.
-experimental-relocate = ["mustang/experimental-relocate"]
-
-[workspace]
-members = [
-  "mustang",
-]
+experimental-relocate = ["c-gull/experimental-relocate"]

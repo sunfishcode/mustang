@@ -54,7 +54,7 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
         .arg("-Z")
         .arg("build-std")
         .arg(&format!(
-            "--target=mustang/target-specs/{}-mustang-linux-{}.json",
+            "--target=target-specs/{}-mustang-linux-{}.json",
             arch, env
         ))
         .arg("--example")
