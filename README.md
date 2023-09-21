@@ -208,7 +208,7 @@ One probably needs to do similar things as for a new architecture, and also
 write a new `origin::rust` implementation to handle the OS's convention for
 arguments, environment variables, and initialization functions.
 
-## Using mustang non-mustang programs
+## Using mustang in non-mustang programs
 
 In non-`*-mustang-*` targets, importing this crate and using the
 `mustang::can_run_this!()` macro has no effect, does not depend on nightly
