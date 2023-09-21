@@ -1,6 +1,6 @@
 This crate demonstrates the use of mustang with no_std. Specifying `-Zbuild-std=core,alloc` lets you skip compiling std as it will not be used:
 
-```
+```console
 cargo run --target=x86_64-mustang-linux-gnu -Zbuild-std=core,alloc
 ```
 
@@ -16,6 +16,6 @@ You can use either `#[start]` or replacing the C shim as in the example. See the
 
 To use tests, make sure to also compile test and std:
 
-```
+```console
 cargo test --target=x86_64-mustang-linux-gnu -Zbuild-std=core,alloc,std,test
 ```

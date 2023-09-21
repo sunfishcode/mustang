@@ -2,7 +2,7 @@ This crate demonstrates the use of the `mustang::can_run_this!()` macro in a
 crate. When compiled for a non-mustang target, it doesn't depend on nightly
 Rust and there are no extra dependencies:
 
-```
+```console
 $ cargo tree
 mustang-macro-does-nothing v0.0.0 (.../test-crates/mustang-macro-does-nothing)
 └── mustang v0.13.2 (...)
@@ -11,7 +11,7 @@ mustang-macro-does-nothing v0.0.0 (.../test-crates/mustang-macro-does-nothing)
 When compiled for a mustang target, it depends on nightly Rust and it has the
 c-gull and origin dependencies:
 
-```
+```console
 $ cargo tree --target=x86_64-mustang-linux-gnu
 mustang-macro-does-nothing v0.0.0 (.../test-crates/mustang-macro-does-nothing)
 └── mustang v0.13.2 (...)

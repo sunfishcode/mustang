@@ -50,7 +50,7 @@ for its part is experimental and has lots of `unsafe`.
 
 To use it, first install rust-src, which is needed by `-Z build-std`:
 
-```
+```console
 $ rustup component add rust-src --toolchain nightly
 ```
 
@@ -58,7 +58,7 @@ Then, set the `RUST_TARGET_PATH` environment variable to a path to the
 `mustang/target-specs` directory, so that you can name `mustang` targets with
 `--target=...`. For example, within a mustang repo:
 
-```
+```console
 $ export RUST_TARGET_PATH="$PWD/mustang/target-specs"
 ```
 
@@ -73,14 +73,14 @@ And add a `mustang::can_run_this!();` to your top-level module (eg. main.rs).
 This does nothing in non-`mustang`-target builds, but in `mustang`-target
 builds arranges for `mustang`'s libraries to be linked in.
 
-```rust
+```rust,no_run
 mustang::can_run_this!();
 ```
 
 Then, compile with Rust nightly, using `-Z build-std` and
 `--target=<mustang-target>`. For example:
 
-```
+```console
 $ cargo +nightly run --quiet -Z build-std --target=x86_64-mustang-linux-gnu --example hello
 Hello, world!
 $
@@ -90,7 +90,7 @@ That's a Rust program built entirely from Rust saying "Hello, world!"!
 
 For more detail, mustang has an `env_logger` feature, which you can enable, and set
 `RUST_LOG` to see various pieces of mustang in action:
-```
+```console
 $ RUST_LOG=trace cargo +nightly run --quiet -Z build-std --target=x86_64-mustang-linux-gnu --example hello --features log,env_logger
 [2021-06-28T06:28:31Z TRACE origin::program] Program started
 [2021-06-28T06:28:31Z TRACE origin::threads] Main Thread[Pid(3916066)] initialized
@@ -106,7 +106,7 @@ A simple way to check for uses of libc functions is to use `nm -u`, since
 the above commands are configured to link libc dynamically. If `mustang` has
 everything covered, there should be no output:
 
-```
+```console
 $ nm -u target/x86_64-mustang-linux-gnu/debug/examples/hello
 $
 ```
