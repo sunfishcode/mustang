@@ -16,9 +16,9 @@ c-gull, c-scape, and origin dependencies:
 ```console
 $ cargo tree --target=x86_64-mustang-linux-gnu
 mustang-example v0.0.0 (…/example-crates/mustang-example)
-└── mustang v0.13.2 (…)
-    ├── c-gull v0.14.5
-    │   ├── c-scape v0.14.5
+└── mustang v0.14.0 (…)
+    ├── c-gull v0.15.0
+    │   ├── c-scape v0.15.5
     │   │   ├── errno v0.3.3
     │   │   │   └── libc v0.2.148
     │   │   ├── libc v0.2.148
