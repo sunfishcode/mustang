@@ -56,7 +56,7 @@ $ rustup component add rust-src --toolchain nightly
 
 Then, set the `RUST_TARGET_PATH` environment variable to a path to the
 `mustang/target-specs` directory, so that you can name `mustang` targets with
-`--target=...`. For example, within a mustang repo:
+`--target=…`. For example, within a mustang repo:
 
 ```console
 $ export RUST_TARGET_PATH="$PWD/mustang/target-specs"
@@ -214,7 +214,7 @@ In non-`*-mustang-*` targets, importing this crate and using the
 `mustang::can_run_this!()` macro has no effect, does not depend on nightly
 Rust, and has no extra dependencies.
 
-See the [mustang-macro-does-nothing example] for more details.
+See the [mustang-example] example for more details.
 
 ## Similar crates
 
@@ -248,4 +248,4 @@ contain their own implementations of std.
 [issue]: https://github.com/sunfishcode/mustang/issues
 [these instructions]: https://docs.rust-embedded.org/embedonomicon/custom-target.html#fill-the-target-file
 [Background]: #background
-[mustang-macro-does-nothing example]: https://github.com/sunfishcode/mustang/blob/main/test-crates/mustang-macro-does-nothing/README.md
+[mustang-example]: https://github.com/sunfishcode/mustang/blob/main/example-crates/mustang-example/README.md
