@@ -1,8 +1,8 @@
 <div align="center">
-  <h1><code>mustang</code></h1>
+  <h1>Mustang</h1>
 
   <p>
-    <strong>Programs written entirely in Rust</strong>
+    <strong>Rust programs written entirely in Rust</strong>
   </p>
 
   <p>
