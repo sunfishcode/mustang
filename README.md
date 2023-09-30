@@ -93,7 +93,7 @@ For more detail, mustang has an `env_logger` feature, which you can enable, and 
 ```console
 $ RUST_LOG=trace cargo +nightly run --quiet -Z build-std --target=x86_64-mustang-linux-gnu --example hello --features log,env_logger
 [2021-06-28T06:28:31Z TRACE origin::program] Program started
-[2021-06-28T06:28:31Z TRACE origin::threads] Main Thread[Pid(3916066)] initialized
+[2021-06-28T06:28:31Z TRACE origin::threads] Main Thread[916066] initialized
 [2021-06-28T06:28:31Z TRACE origin::program] Calling `.init_array`-registered function `0x5555558fb480(1, 0x7fffffffdb98, 0x7fffffffdba8)`
 [2021-06-28T06:28:31Z TRACE origin::program] Calling `main(1, 0x7fffffffdb98, 0x7fffffffdba8)`
 Hello, world!
