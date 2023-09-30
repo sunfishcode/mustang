@@ -1,3 +1,9 @@
+//! A very simple example using threads.
+//!
+//! This is [Rust by Example's threads example].
+//!
+//! [Rust by Example's threads example]: https://doc.rust-lang.org/rust-by-example/std_misc/threads.html
+
 mustang::can_run_this!();
 
 use std::thread;
