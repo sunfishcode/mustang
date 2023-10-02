@@ -9,7 +9,7 @@ documentation = "https://docs.rs/mustang"
 license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
 repository = "https://github.com/sunfishcode/mustang"
 edition = "2021"
-exclude = ["/.github"]
+exclude = ["/.github", "ci"]
 keywords = ["linux"]
 
 [target.'cfg(target_vendor = "mustang")'.dependencies]
