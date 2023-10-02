@@ -35,6 +35,7 @@ core_simd = { git = "https://github.com/rust-lang/portable-simd" }
 default = ["thread", "std"]
 thread = ["c-gull/thread"]
 env_logger = ["c-gull/env_logger"]
+atomic-dbg-logger = ["c-gull/atomic-dbg-logger"]
 log = ["c-gull/log"]
 max_level_off = ["c-gull/max_level_off"]
 std = ["c-gull/std"]
