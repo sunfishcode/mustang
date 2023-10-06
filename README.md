@@ -131,15 +131,10 @@ When using `panic = "abort"` in your Cargo.toml, change the `-Z build-std` to
 
 Known limitations in `mustang` include:
 
- - Dynamic linking isn't implemented yet. Similarly, position-independent
-   static executables aren't implemented yet. Mustang defaults to creating
-   dynamic executables with all libraries statially linked. Position-dependent
-   static executables also work.
+ - Dynamic linking isn't implemented yet.
  - Many libc C functions that aren't typically needed by most Rust programs
    aren't implemented yet.
  - Enabling LTO doesn't work yet.
- - Unwinding isn't yet implemented on 32-bit arm, and `catch_unwind` does not
-   yet work on 32-bit x86.
 
 ## Alternatives
 
