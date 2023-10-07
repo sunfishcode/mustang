@@ -134,7 +134,6 @@ Known limitations in `mustang` include:
  - Dynamic linking isn't implemented yet.
  - Many libc C functions that aren't typically needed by most Rust programs
    aren't implemented yet.
- - Enabling LTO doesn't work yet.
 
 ## Alternatives
 
@@ -143,9 +142,8 @@ target, and doesn't need `-Z build-std`.
 
 Using [Origin] directly is another option; there are [examples] showing how
 to do this. Using origin directly can produce very small binary sizes; the
-`tiny` example can produce a 408-byte executable. Among other things, Origin
-by itself works with LTO. The big downside of using Origin directly is that
-it doesn't provide a `std` implementation.
+`tiny` example can produce a 408-byte executable. The big downside of using
+Origin directly is that it doesn't provide a `std` implementation.
 
 [Origin Studio] is a demo of what a `std`-like environment on top of Origin
 might look like. It has things like `println!`, but it's also currently lots

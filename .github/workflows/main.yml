@@ -176,6 +176,13 @@ jobs:
       env:
         RUST_BACKTRACE: 1
 
+    - name: test mustang-example-lto
+      working-directory: example-crates/mustang-example-lto
+      run: |
+        cargo run -Z build-std --target=../../target-specs/${{ matrix.mustang_target }}.json --release
+      env:
+        RUST_BACKTRACE: 1
+
     - name: test mustang-nostd as program
       working-directory: example-crates/mustang-nostd
       run: |
