@@ -1,0 +1,16 @@
+[package]
+name = "mustang-example"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+# The mustang crate provides the `can_run_this!()` macro.
+mustang = { path = "../.." }
+
+# Enable LTO.
+[profile.release]
+lto = true
+
+# This is just an example crate, and not part of the mustang workspace.
+[workspace]
