@@ -26,7 +26,7 @@ rand_xorshift = "0.3.0"
 ctor = "0.2.0"
 
 # Check if rustup is installed for tests
-which = "4.4.0"
+which = "5.0.0"
 
 # Test that the core_simd crate works under mustang.
 core_simd = { git = "https://github.com/rust-lang/portable-simd" }
