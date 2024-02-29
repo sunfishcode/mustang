@@ -5,6 +5,7 @@
 #![feature(io_error_uncategorized)]
 #![feature(read_buf)]
 #![feature(maybe_uninit_uninit_array)]
+#![feature(core_io_borrowed_buf)]
 
 mustang::can_run_this!();
 

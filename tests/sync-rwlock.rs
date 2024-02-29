@@ -4,7 +4,7 @@
 
 mustang::can_run_this!();
 
-use rand::{self, Rng};
+use rand::Rng;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::channel;
 use std::sync::{Arc, RwLock, TryLockError};

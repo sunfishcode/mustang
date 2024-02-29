@@ -1,8 +1,6 @@
 //! Run the programs in the `examples` directory and compare their outputs with
 //! expected outputs.
 
-#![feature(cfg_target_abi)]
-
 mustang::can_run_this!();
 
 use similar_asserts::assert_eq;
@@ -41,7 +39,7 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
 
     let mut command = Command::new("cargo");
     if which::which("rustup").is_ok() {
-        command.arg("+nightly-2023-09-20");
+        command.arg("+nightly-2024-02-26");
     }
     command.arg("run").arg("--quiet");
     if !features.is_empty() {
@@ -83,6 +81,7 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
         output
     );
 
+    // Check nm output for any unexpected undefined symbols.
     let output = Command::new("nm")
         .arg("-u")
         .arg(&format!(
