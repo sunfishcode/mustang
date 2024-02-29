@@ -1,6 +1,6 @@
 [package]
 name = "mustang"
-version = "0.14.4"
+version = "0.14.5"
 authors = [
     "Dan Gohman <dev@sunfishcode.online>",
 ]
