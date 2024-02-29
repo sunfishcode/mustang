@@ -81,6 +81,7 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
         output
     );
 
+    // Check nm output for any unexpected undefined symbols.
     let output = Command::new("nm")
         .arg("-u")
         .arg(&format!(

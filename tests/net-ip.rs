@@ -770,7 +770,7 @@ fn ipv6_properties() {
     check!(
         "2001:30::",
         &[0x20, 1, 0, 0x30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        unicast_global
+        global | unicast_global
     );
 
     check!(
