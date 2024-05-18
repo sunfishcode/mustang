@@ -39,7 +39,7 @@ fn test_example(name: &str, features: &str, stdout: &str, stderr: &str) {
 
     let mut command = Command::new("cargo");
     if which::which("rustup").is_ok() {
-        command.arg("+nightly-2024-04-21");
+        command.arg("+nightly-2024-05-16");
     }
     command.arg("run").arg("--quiet");
     if !features.is_empty() {
