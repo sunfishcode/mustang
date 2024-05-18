@@ -13,7 +13,7 @@ exclude = ["/.github", "ci"]
 keywords = ["linux"]
 
 [target.'cfg(target_vendor = "mustang")'.dependencies]
-c-gull = { version = "0.15.44", default-features = false, features = ["take-charge", "call-main", "malloc-via-crates", "define-mem-functions"] }
+c-gull = { version = "0.16.0", default-features = false, features = ["take-charge", "call-main", "malloc-via-crates", "define-mem-functions"] }
 
 [dev-dependencies]
 similar-asserts = "1.1.0"
