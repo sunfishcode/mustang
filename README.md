@@ -77,6 +77,15 @@ builds arranges for `mustang`'s libraries to be linked in.
 mustang::can_run_this!();
 ```
 
+And, to work around an LLVM bug, add the following to Cargo.toml:
+```toml
+# TODO: Remove this workaround when
+# https://github.com/llvm/llvm-project/pull/105513
+# makes it into the Rust compiler.
+[profile.dev.package.unwinding]
+debug = false
+```
+
 Then, compile with Rust nightly, using `-Z build-std` and
 `--target=<mustang-target>`. For example:
 
