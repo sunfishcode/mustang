@@ -12,9 +12,3 @@ mustang = { path = "../.." }
 rustix-dlmalloc = { version = "0.1.0", features = ["global"] }
 
 [workspace]
-
-# TODO: Remove this workaround when
-# https://github.com/llvm/llvm-project/pull/105513
-# makes it into the Rust compiler.
-[profile.dev.package.unwinding]
-debug = false
