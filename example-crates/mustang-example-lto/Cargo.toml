@@ -14,9 +14,3 @@ lto = true
 
 # This is just an example crate, and not part of the mustang workspace.
 [workspace]
-
-# TODO: Remove this workaround when
-# https://github.com/llvm/llvm-project/pull/105513
-# makes it into the Rust compiler.
-[profile.dev.package.unwinding]
-debug = false

@@ -13,7 +13,7 @@ exclude = ["/.github", "ci"]
 keywords = ["linux"]
 
 [target.'cfg(target_vendor = "mustang")'.dependencies]
-c-gull = { version = "0.17.0", default-features = false, features = ["take-charge", "call-main", "malloc-via-crates", "define-mem-functions"] }
+c-gull = { version = "0.18.1", default-features = false, features = ["take-charge", "call-main", "malloc-via-crates", "define-mem-functions"] }
 
 [dev-dependencies]
 similar-asserts = "1.1.0"
@@ -29,7 +29,9 @@ ctor = "0.2.0"
 which = "6.0.0"
 
 # Test that the core_simd crate works under mustang.
-core_simd = { git = "https://github.com/rust-lang/portable-simd" }
+# TODO: Reenable this when the crate compiles on nightly. Currently it gets:
+#  - error[E0511]: invalid monomorphization of `simd_shuffle` intrinsic: simd_shuffle index must be a SIMD vector of `u32`, got `[u32; 4]`
+#core_simd = { git = "https://github.com/rust-lang/portable-simd" }
 
 [features]
 default = ["thread", "std"]
@@ -43,9 +45,3 @@ std = ["c-gull/std"]
 # Enable highly experimental support for performing startup-time relocations,
 # needed to support statically-linked PIE executables.
 experimental-relocate = ["c-gull/experimental-relocate"]
-
-# TODO: Remove this workaround when
-# https://github.com/llvm/llvm-project/pull/105513
-# makes it into the Rust compiler.
-[profile.dev.package.unwinding]
-debug = false
