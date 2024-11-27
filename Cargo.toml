@@ -13,7 +13,7 @@ exclude = ["/.github", "ci"]
 keywords = ["linux"]
 
 [target.'cfg(target_vendor = "mustang")'.dependencies]
-c-gull = { version = "0.20.0", default-features = false, features = ["take-charge", "call-main", "malloc-via-crates"] }
+c-gull = { version = "0.20.3", default-features = false, features = ["take-charge", "call-main", "malloc-via-crates"] }
 
 [dev-dependencies]
 similar-asserts = "1.1.0"
@@ -26,7 +26,7 @@ rand_xorshift = "0.3.0"
 ctor = "0.2.0"
 
 # Check if rustup is installed for tests
-which = "6.0.0"
+which = "7.0.0"
 
 # Test that the core_simd crate works under mustang.
 # TODO: Reenable this when the crate compiles on nightly. Currently it gets:
