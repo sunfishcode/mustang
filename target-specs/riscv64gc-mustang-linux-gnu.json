@@ -9,7 +9,6 @@
   "features": "+m,+a,+f,+d,+c",
   "has-rpath": true,
   "has-thread-local": true,
-  "is-builtin": false,
   "llvm-abiname": "lp64d",
   "llvm-target": "riscv64-unknown-linux-gnu",
   "max-atomic-width": 64,
