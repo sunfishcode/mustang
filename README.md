@@ -182,7 +182,6 @@ Let's find out! Come say hi in the [chat] or an [issue].
  - Create a target file in `mustang/target-specs`, by first following
    [these instructions] to generate a specification of a built-in target,
    and then:
-     - change `is-builtin` to false
      - change `dynamic-linking` to false
      - add `-nostartfiles` and `-Wl,--undefined=_Unwind_Backtrace` to
        pre-link-args

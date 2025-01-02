@@ -9,7 +9,6 @@
   "has-rpath": true,
   "has-thread-local": true,
   "has-thumb-interworking": true,
-  "is-builtin": false,
   "llvm-target": "armv5te-unknown-linux-gnueabi",
   "max-atomic-width": 32,
   "os": "linux",

@@ -7,7 +7,6 @@
   "env": "gnu",
   "has-rpath": true,
   "has-thread-local": true,
-  "is-builtin": false,
   "llvm-target": "i686-unknown-linux-gnu",
   "max-atomic-width": 64,
   "os": "linux",

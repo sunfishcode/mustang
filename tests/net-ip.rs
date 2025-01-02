@@ -3,9 +3,6 @@
 //! c1a5ec7faf6c32af2f0aae1af4420e1bb1a3a7fe.
 
 #![feature(ip)]
-#![feature(const_ip)]
-#![feature(const_ipv4)]
-#![feature(const_ipv6)]
 
 mustang::can_run_this!();
 
