@@ -13,17 +13,17 @@ exclude = ["/.github", "ci"]
 keywords = ["linux"]
 
 [target.'cfg(target_vendor = "mustang")'.dependencies]
-c-gull = { version = "0.21.0", default-features = false, features = ["take-charge", "call-main", "malloc-via-crates"] }
+c-gull = { version = "0.22.0", default-features = false, features = ["take-charge", "call-main", "malloc-via-crates"] }
 
 [dev-dependencies]
 similar-asserts = "1.1.0"
-rand = "0.8.4"
+rand = "0.9.0"
 libc = "0.2.138"
 cfg-if = "1.0.0"
-rand_xorshift = "0.3.0"
+rand_xorshift = "0.4.0"
 
 # Test that the ctor crate works under mustang.
-ctor = "0.2.0"
+ctor = "0.4.0"
 
 # Check if rustup is installed for tests
 which = "7.0.0"
