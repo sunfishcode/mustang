@@ -36,7 +36,7 @@ fn frob() {
         thread::spawn(move || {
             let mut rng = rand::thread_rng();
             for _ in 0..M {
-                if rng.gen_bool(1.0 / (N as f64)) {
+                if rng.random_bool(1.0 / (N as f64)) {
                     drop(r.write().unwrap());
                 } else {
                     drop(r.read().unwrap());

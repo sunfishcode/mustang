@@ -4,7 +4,7 @@
 
 #![feature(io_error_uncategorized)]
 #![feature(read_buf)]
-#![feature(maybe_uninit_uninit_array)]
+#![feature(maybe_uninit_uninit_array_transpose)]
 #![feature(core_io_borrowed_buf)]
 
 mustang::can_run_this!();
@@ -164,7 +164,7 @@ fn child_stdout_read_buf() {
     let child = cmd.spawn().unwrap();
 
     let mut stdout = child.stdout.unwrap();
-    let mut buf: [MaybeUninit<u8>; 128] = MaybeUninit::uninit_array();
+    let mut buf: [MaybeUninit<u8>; 128] = MaybeUninit::uninit().transpose();
     let mut buf = BorrowedBuf::from(buf.as_mut_slice());
     stdout.read_buf(buf.unfilled()).unwrap();
 
